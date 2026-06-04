@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+*.pyc
+.env
+*.log
+sahel.db
+front-chatdoc/
+frontend-chat/
+node_modules/
+.git/
+.gitignore
+README.md
+THIRD_PARTY_NOTES.md
+images/
+tests/

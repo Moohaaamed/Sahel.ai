@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ 'rtl' if lang == 'ar' else 'ltr' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ business.name }} | Sahel.ai</title>
+  <meta name="description" content="{{ business.description or business.name }}">
+  <meta property="og:title" content="{{ business.name }}">
+  <meta property="og:description" content="{{ business.description or '' }}">
+  {% if business.cover_image_url %}<meta property="og:image" content="{{ business.cover_image_url }}">{% endif %}
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #E8604C;
+      --primary-dark: #D04A38;
+      --gold: #F5A623;
+      --bg: #FFF9F5;
+      --surface: #FFFFFF;
+      --text: #2D3436;
+      --text-light: #636E72;
+      --border: #F0E6E0;
+      --radius: 16px;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    .cover {
+      width: 100%;
+      height: 300px;
+      object-fit: cover;
+      display: block;
+      background: linear-gradient(135deg, var(--primary), var(--gold));
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+    .header {
+      text-align: center;
+      margin-top: -60px;
+      position: relative;
+      z-index: 1;
+    }
+    .avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--gold));
+      border: 4px solid var(--surface);
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      font-weight: 700;
+      color: white;
+      box-shadow: 0 8px 32px rgba(232,96,76,0.2);
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 20px;
+      background: rgba(232,96,76,0.1);
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: capitalize;
+      margin-bottom: 8px;
+    }
+    .description {
+      color: var(--text-light);
+      font-size: 15px;
+      max-width: 600px;
+      margin: 8px auto 0;
+    }
+    .section {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin: 20px 0;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+      border: 1px solid var(--border);
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-light);
+      margin-bottom: 16px;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 500px) {
+      .info-grid { grid-template-columns: 1fr; }
+      .cover { height: 200px; }
+      .avatar { width: 90px; height: 90px; font-size: 36px; }
+      h1 { font-size: 24px; }
+    }
+    .info-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .info-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: rgba(232,96,76,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 18px;
+    }
+    .info-label {
+      font-size: 12px;
+      color: var(--text-light);
+      margin-bottom: 2px;
+    }
+    .info-value {
+      font-size: 14px;
+      font-weight: 500;
+      word-break: break-word;
+    }
+    .info-value a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    .info-value a:hover { text-decoration: underline; }
+    .highlights {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .highlight-tag {
+      padding: 6px 14px;
+      border-radius: 8px;
+      background: rgba(245,166,35,0.1);
+      color: #8B6914;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .cta-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 24px 0 8px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 16px rgba(232,96,76,0.3);
+    }
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(232,96,76,0.4);
+    }
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      background: var(--bg);
+      border-color: var(--primary);
+    }
+    .btn-icon { font-size: 18px; }
+    .footer {
+      text-align: center;
+      padding: 32px 20px;
+      color: var(--text-light);
+      font-size: 13px;
+    }
+    .footer a { color: var(--primary); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+    .public-knowledge {
+      white-space: pre-wrap;
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.7;
+    }
+  </style>
+</head>
+<body>
+  {% if business.cover_image_url %}
+    <img class="cover" src="{{ business.cover_image_url }}" alt="{{ business.name }}" loading="lazy">
+  {% else %}
+    <div class="cover"></div>
+  {% endif %}
+
+  <div class="container">
+    <div class="header">
+      <div class="avatar">{{ business.name[0] }}</div>
+      <span class="badge">{{ business.business_type }}</span>
+      <h1>{{ business.name }}</h1>
+      {% if business.description %}
+        <p class="description">{{ business.description }}</p>
+      {% endif %}
+    </div>
+
+    <div class="cta-group">
+      <a href="{{ chat_url }}" class="btn btn-primary">
+        <span class="btn-icon">💬</span>
+        {{ t.chat }}
+      </a>
+      <a href="{{ qr_url }}" class="btn btn-secondary" download>
+        <span class="btn-icon">📱</span>
+        {{ t.qr }}
+      </a>
+    </div>
+
+    {% if business.highlights %}
+    <div class="section">
+      <div class="section-title">{{ t.highlights }}</div>
+      <div class="highlights">
+        {% for h in business.highlights.split(',') %}
+          <span class="highlight-tag">{{ h.strip() }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="section">
+      <div class="section-title">{{ t.info }}</div>
+      <div class="info-grid">
+        {% if business.owner_phone %}
+        <div class="info-item">
+          <div class="info-icon">📞</div>
+          <div>
+            <div class="info-label">{{ t.phone }}</div>
+            <div class="info-value">
+              <a href="tel:{{ business.owner_phone }}" dir="ltr">{{ business.owner_phone }}</a>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+        {% if business.owner_email %}
+        <div class="info-item">
+          <div class="info-icon">✉️</div>
+          <div>
+            <div class="info-label">{{ t.email }}</div>
+            <div class="info-value">
+              <a href="mailto:{{ business.owner_email }}">{{ business.owner_email }}</a>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+        {% if business.city %}
+        <div class="info-item">
+          <div class="info-icon">📍</div>
+          <div>
+            <div class="info-label">{{ t.city }}</div>
+            <div class="info-value">{{ business.city }}</div>
+          </div>
+        </div>
+        {% endif %}
+        {% if business.address %}
+        <div class="info-item">
+          <div class="info-icon">🏠</div>
+          <div>
+            <div class="info-label">{{ t.address }}</div>
+            <div class="info-value">{{ business.address }}</div>
+          </div>
+        </div>
+        {% endif %}
+        {% if business.working_hours %}
+        <div class="info-item">
+          <div class="info-icon">🕐</div>
+          <div>
+            <div class="info-label">{{ t.hours }}</div>
+            <div class="info-value">{{ business.working_hours }}</div>
+          </div>
+        </div>
+        {% endif %}
+        {% if business.primary_services %}
+        <div class="info-item">
+          <div class="info-icon">⭐</div>
+          <div>
+            <div class="info-label">{{ t.services }}</div>
+            <div class="info-value">{{ business.primary_services }}</div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if business.public_knowledge %}
+    <div class="section">
+      <div class="section-title">{{ t.about }}</div>
+      <div class="public-knowledge">{{ business.public_knowledge }}</div>
+    </div>
+    {% endif %}
+
+    <div class="cta-group">
+      <a href="{{ chat_url }}" class="btn btn-primary">
+        <span class="btn-icon">💬</span>
+        {{ t.chat }}
+      </a>
+    </div>
+
+    <div class="footer">
+      {{ t.powered_by }} <a href="https://sahel.ai">Sahel.ai</a>
+    </div>
+  </div>
+</body>
+</html>

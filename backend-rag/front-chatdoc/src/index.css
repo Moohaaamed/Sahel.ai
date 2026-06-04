@@ -1,0 +1,166 @@
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background-color: #fcf9f8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.font-headline {
+  font-family: 'Newsreader', serif;
+}
+
+.hairline {
+  border-width: 0.5px;
+}
+
+.shadow-none {
+  box-shadow: none !important;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: page-in 420ms ease both;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
+}
+
+.headline-font {
+  font-family: 'Newsreader', serif;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.step-completed {
+  background-color: #004880;
+}
+
+.step-active {
+  background-color: #005ea4;
+}
+
+.step-inactive {
+  background-color: #e5e2e1;
+}
+
+.onboarding-spinner {
+  border: 2px solid transparent;
+  border-top-color: #005ea4;
+  border-radius: 50%;
+  width: 80px;
+  height: 80px;
+  animation: onboarding-spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+@keyframes onboarding-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes subtle-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(0.98);
+  }
+}
+
+.animate-subtle-pulse {
+  animation: subtle-pulse 4s ease-in-out infinite;
+}
+
+.tag-selected {
+  background-color: #005ea4;
+  color: #ffffff;
+  border-color: #005ea4;
+}
+
+.flat-card {
+  background-color: #ffffff;
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+}
+
+.btn-primary-ui {
+  background-color: #005ea4;
+  color: #ffffff;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary-ui:hover {
+  opacity: 0.92;
+}
+
+.btn-primary-ui:active {
+  transform: scale(0.98);
+}
+
+.btn-outline-ui {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  background: transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-outline-ui:hover {
+  background-color: #f6f3f2;
+}
+
+.toast-enter {
+  animation: toast-slide-up 0.3s ease forwards;
+}
+
+.leaflet-container {
+  z-index: 1;
+  font-family: inherit;
+}
+
+@keyframes toast-slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+

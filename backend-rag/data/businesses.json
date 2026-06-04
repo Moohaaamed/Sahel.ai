@@ -1,0 +1,79 @@
+[
+  {
+    "id": "6be4e86b2c8a",
+    "slug": "sahel",
+    "name": "sahel",
+    "business_type": "service",
+    "description": "digitalisation for the businesses in a minute and integration of a chatbot",
+    "owner_email": "mohamed@gmail.com",
+    "site_url": "/b/sahel",
+    "chat_url": "/chat/sahel",
+    "owner_id": "demo-owner"
+  },
+  {
+    "id": "6efe87b2e45a",
+    "slug": "saghro",
+    "name": "Saghro",
+    "business_type": "Hotel",
+    "description": "Hotel \u00e0 Tighir ",
+    "owner_email": "Lahcen@gmail.com",
+    "site_url": "/b/saghro",
+    "chat_url": "/chat/saghro",
+    "owner_id": "demo-owner"
+  },
+  {
+    "id": "1203899ae7bd",
+    "owner_id": "ad76dd581e22",
+    "slug": "saghro-2",
+    "name": "saghro ",
+    "business_type": "hotel",
+    "description": "hotel \u00e0 Tinghir",
+    "owner_email": "demo@example.com",
+    "site_url": "/b/saghro-2",
+    "chat_url": "/chat/saghro-2"
+  },
+  {
+    "id": "6609ea99cc4c",
+    "owner_id": "6fb00317f3d7",
+    "slug": "saghro-3",
+    "name": "saghro",
+    "business_type": "Hotel",
+    "description": "hotel a tinghir",
+    "owner_email": "ham@hdh",
+    "site_url": "/b/saghro-3",
+    "chat_url": "/chat/saghro-3"
+  },
+  {
+    "id": "6ae136762cd8",
+    "owner_id": "8ffae9d05aa7",
+    "slug": "saghro-4",
+    "name": "saghro",
+    "business_type": "Hotel",
+    "description": "HOTEL A TINGHIR",
+    "owner_email": "moh@yy",
+    "site_url": "/b/saghro-4",
+    "chat_url": "/chat/saghro-4"
+  },
+  {
+    "id": "dc3d1c1f39ef",
+    "owner_id": "8ffae9d05aa7",
+    "slug": "saghro-5",
+    "name": "SAGHRO",
+    "business_type": "Hotel",
+    "description": "UN GRAND HOTTEL A TINGHIR NEAR AFANOUR",
+    "owner_email": "moh@yy",
+    "site_url": "/b/saghro-5",
+    "chat_url": "/chat/saghro-5"
+  },
+  {
+    "id": "a5ff974c52ba",
+    "owner_id": "8ffae9d05aa7",
+    "slug": "atlas",
+    "name": "atlas",
+    "business_type": "restaurant",
+    "description": "restau \u00e0 tinghir\n",
+    "owner_email": "",
+    "site_url": "/b/atlas",
+    "chat_url": "/chat/atlas"
+  }
+]

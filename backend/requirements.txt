@@ -13,6 +13,7 @@ sqlalchemy
 psycopg[binary]
 alembic
 pytest
-httpx2
+httpx
+python-multipart
 qrcode[pil]
 Pillow

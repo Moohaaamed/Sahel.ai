@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { getOwner, clearAuth, fetchAnalytics, fetchInquiries, updateInquiryStatus, fetchOwnerBusinesses, authHeaders } from '../lib/auth';
+import { getOwner, clearAuth, fetchAnalytics, fetchInquiries, updateInquiryStatus, fetchOwnerBusinesses } from '../lib/auth';
 
 interface Analytics {
   total_messages: number;

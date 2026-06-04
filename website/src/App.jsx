@@ -4,6 +4,7 @@ import DashboardPage from './components/DashboardPage';
 import ChatInterface from './components/ChatInterface';
 import BusinessShowcasePage from './components/PublicBusinessPage';
 import LoginPage from './components/LoginPage';
+import VerifyEmailPage from './components/VerifyEmailPage';
 import OnboardingFlow from './components/OnboardingFlow';
 import SuccessPage from './components/SuccessPage';
 import AboutPage from './components/AboutPage';
@@ -2026,6 +2027,10 @@ function App() {
 
   if (path === '/cookies') {
     return <LegalPage title="Politique cookies" />;
+  }
+
+  if (path === '/verify-email') {
+    return <VerifyEmailPage />;
   }
 
   if (path === '/login') {

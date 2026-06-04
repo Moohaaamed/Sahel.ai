@@ -189,6 +189,12 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
       working_hours: '',
       primary_services: '',
       pasted_text: '',
+      ice: '',
+      rc: '',
+      if_tax: '',
+      patente: '',
+      cnss: '',
+      legal_form: '',
     };
   });
 
@@ -361,6 +367,12 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
         highlights,
         public_knowledge: publicKnowledge || null,
         owner_id: owner.id,
+        ice: form.ice.trim() || null,
+        rc: form.rc.trim() || null,
+        if_tax: form.if_tax.trim() || null,
+        patente: form.patente.trim() || null,
+        cnss: form.cnss.trim() || null,
+        legal_form: form.legal_form.trim() || null,
       };
 
       const response = await fetch(`${API_URL}/businesses`, {
@@ -548,6 +560,89 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                           />
                         </div>
                       </label>
+
+                      <details className="mt-md border border-hairline-border rounded-lg p-md">
+                        <summary className="font-label-md text-label-md text-primary cursor-pointer select-none">
+                          Informations légales (Maroc)
+                        </summary>
+                        <div className="space-y-md mt-md">
+                          <label className="flex flex-col gap-base">
+                            <span className="font-label-md text-label-md text-on-surface">Forme juridique</span>
+                            <select
+                              name="legal_form"
+                              value={form.legal_form}
+                              onChange={handleInputChange}
+                              className="w-full bg-background border border-hairline-border rounded px-sm py-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none font-body-md h-[42px]"
+                            >
+                              <option value="">Sélectionnez...</option>
+                              <option value="Auto-entrepreneur">Auto-entrepreneur</option>
+                              <option value="SARL">SARL</option>
+                              <option value="SASU">SASU</option>
+                              <option value="SA">SA</option>
+                              <option value="SNC">SNC</option>
+                              <option value="Société civile">Société civile</option>
+                              <option value="Coopérative">Coopérative</option>
+                            </select>
+                          </label>
+                          <label className="flex flex-col gap-base">
+                            <span className="font-label-md text-label-md text-on-surface">ICE</span>
+                            <input
+                              name="ice"
+                              value={form.ice}
+                              onChange={handleInputChange}
+                              className="w-full bg-background border border-hairline-border rounded px-sm py-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none font-body-md"
+                              placeholder="Identifiant Commun de l'Entreprise"
+                              type="text"
+                            />
+                          </label>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+                            <label className="flex flex-col gap-base">
+                              <span className="font-label-md text-label-md text-on-surface">RC</span>
+                              <input
+                                name="rc"
+                                value={form.rc}
+                                onChange={handleInputChange}
+                                className="w-full bg-background border border-hairline-border rounded px-sm py-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none font-body-md"
+                                placeholder="Registre de Commerce"
+                                type="text"
+                              />
+                            </label>
+                            <label className="flex flex-col gap-base">
+                              <span className="font-label-md text-label-md text-on-surface">IF</span>
+                              <input
+                                name="if_tax"
+                                value={form.if_tax}
+                                onChange={handleInputChange}
+                                className="w-full bg-background border border-hairline-border rounded px-sm py-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none font-body-md"
+                                placeholder="Identifiant Fiscal"
+                                type="text"
+                              />
+                            </label>
+                            <label className="flex flex-col gap-base">
+                              <span className="font-label-md text-label-md text-on-surface">Patente</span>
+                              <input
+                                name="patente"
+                                value={form.patente}
+                                onChange={handleInputChange}
+                                className="w-full bg-background border border-hairline-border rounded px-sm py-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none font-body-md"
+                                placeholder="Numéro de patente"
+                                type="text"
+                              />
+                            </label>
+                            <label className="flex flex-col gap-base">
+                              <span className="font-label-md text-label-md text-on-surface">CNSS</span>
+                              <input
+                                name="cnss"
+                                value={form.cnss}
+                                onChange={handleInputChange}
+                                className="w-full bg-background border border-hairline-border rounded px-sm py-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none font-body-md"
+                                placeholder="Numéro CNSS"
+                                type="text"
+                              />
+                            </label>
+                          </div>
+                        </div>
+                      </details>
                     </div>
                   </div>
                 )}

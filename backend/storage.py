@@ -37,6 +37,8 @@ class OwnerModel(Base):
     full_name = Column(String(80), nullable=False)
     email = Column(String(120), nullable=False, unique=True, index=True)
     password_hash = Column(String(200), nullable=False)
+    verified = Column(String(5), nullable=False, default="true")
+    verification_token = Column(String(200), nullable=True)
     created_at = Column(String(40), nullable=False)
 
 
@@ -62,6 +64,12 @@ class BusinessModel(Base):
     cover_image_url = Column(String(320), nullable=True)
     highlights = Column(Text, nullable=True)
     public_knowledge = Column(Text, nullable=True)
+    ice = Column(String(20), nullable=True)
+    rc = Column(String(30), nullable=True)
+    if_tax = Column(String(30), nullable=True)
+    patente = Column(String(30), nullable=True)
+    cnss = Column(String(30), nullable=True)
+    legal_form = Column(String(50), nullable=True)
 
 
 class DocumentModel(Base):
@@ -128,28 +136,39 @@ def run_migrations():
     from sqlalchemy import text, inspect
     with engine.connect() as conn:
         inspector = inspect(engine)
-        columns = [c["name"] for c in inspector.get_columns("businesses")]
-        
-        new_cols = {
-            "city": "VARCHAR(100)",
-            "working_hours": "VARCHAR(100)",
-            "primary_services": "TEXT",
-            "address": "VARCHAR(300)",
-            "latitude": "VARCHAR(32)",
-            "longitude": "VARCHAR(32)",
-            "cover_image_url": "VARCHAR(320)",
-            "highlights": "TEXT",
-            "public_knowledge": "TEXT",
-        }
-        
-        for col, col_type in new_cols.items():
-            if col not in columns:
-                try:
-                    conn.execute(text(f"ALTER TABLE businesses ADD COLUMN {col} {col_type}"))
-                    conn.commit()
-                    print(f"Added column {col} to businesses table")
-                except Exception as e:
-                    print(f"Error adding column {col}: {e}")
+
+        for table_name, new_cols in {
+            "businesses": {
+                "city": "VARCHAR(100)",
+                "working_hours": "VARCHAR(100)",
+                "primary_services": "TEXT",
+                "address": "VARCHAR(300)",
+                "latitude": "VARCHAR(32)",
+                "longitude": "VARCHAR(32)",
+                "cover_image_url": "VARCHAR(320)",
+                "highlights": "TEXT",
+                "public_knowledge": "TEXT",
+                "ice": "VARCHAR(20)",
+                "rc": "VARCHAR(30)",
+                "if_tax": "VARCHAR(30)",
+                "patente": "VARCHAR(30)",
+                "cnss": "VARCHAR(30)",
+                "legal_form": "VARCHAR(50)",
+            },
+            "owners": {
+                "verified": "VARCHAR(5)",
+                "verification_token": "VARCHAR(200)",
+            },
+        }.items():
+            columns = [c["name"] for c in inspector.get_columns(table_name)]
+            for col, col_type in new_cols.items():
+                if col not in columns:
+                    try:
+                        conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col} {col_type}"))
+                        conn.commit()
+                        print(f"Added column {col} to {table_name} table")
+                    except Exception as e:
+                        print(f"Error adding column {col}: {e}")
 
 
 def init_database() -> None:

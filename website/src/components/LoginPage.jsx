@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { API_URL } from '../config';
+import { API_URL, GOOGLE_CLIENT_ID } from '../config';
 import { ROUTES, loginUrl } from '../lib/routes';
 import { authHeaders, saveSession } from '../lib/session';
 import MarketingHeader from './layout/MarketingHeader';
@@ -43,11 +43,12 @@ export default function LoginPage({ initialMode = 'login' }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
 
-  // Sync mode state with initialMode prop when route changes
   useEffect(() => {
     setMode(initialMode);
     setStatus('');
+    setRegisteredEmail('');
     setForm({
       full_name: '',
       email: '',
@@ -62,7 +63,6 @@ export default function LoginPage({ initialMode = 'login' }) {
     setIsSubmitting(true);
     setStatus('');
 
-    // Form validation
     if (mode === 'register') {
       if (form.password !== form.confirm_password) {
         setStatus('Les mots de passe ne correspondent pas.');
@@ -100,10 +100,86 @@ export default function LoginPage({ initialMode = 'login' }) {
       }
 
       const data = await response.json();
+
+      if (mode === 'register') {
+        setRegisteredEmail(form.email);
+        return;
+      }
+
       const session = { owner: data.owner, token: data.token, expires_at: data.expires_at };
       saveSession(session);
       const destination = await resolvePostLoginPath(session);
       window.location.href = destination;
+    } catch (error) {
+      setStatus(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const googleLogin = async (credential) => {
+    setIsSubmitting(true);
+    setStatus('');
+    try {
+      const response = await fetch(`${API_URL}/owners/google-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential }),
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.detail || 'Google sign-in failed');
+      }
+      const data = await response.json();
+      const session = { owner: data.owner, token: data.token, expires_at: data.expires_at };
+      saveSession(session);
+      const destination = await resolvePostLoginPath(session);
+      window.location.href = destination;
+    } catch (error) {
+      setStatus(error.message);
+      setIsSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) return;
+    if (!document.getElementById('gsi-script')) {
+      const script = document.createElement('script');
+      script.id = 'gsi-script';
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      document.body.appendChild(script);
+    }
+    const tryRender = () => {
+      if (!window.google?.accounts) return setTimeout(tryRender, 200);
+      const container = document.getElementById('google-btn');
+      if (!container) return setTimeout(tryRender, 200);
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: (response) => googleLogin(response.credential),
+      });
+      window.google.accounts.id.renderButton(container, {
+        theme: 'outline',
+        size: 'large',
+        width: '100%',
+        text: 'continue_with',
+      });
+    };
+    setTimeout(tryRender, 200);
+  }, [mode]);
+
+  const resendVerification = async () => {
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`${API_URL}/owners/resend-verification?email=${encodeURIComponent(form.email)}`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.detail || 'Failed to resend');
+      }
+      setStatus('✅ Verification email resent. Check your inbox.');
     } catch (error) {
       setStatus(error.message);
     } finally {
@@ -128,7 +204,44 @@ export default function LoginPage({ initialMode = 'login' }) {
         }
       `}</style>
 
-      {mode === 'register' ? (
+      {mode === 'register' && registeredEmail ? (
+        /* Verification Success */
+        <main className="w-full max-w-[400px] flex flex-col items-center animate-fade-in">
+          <div className="w-full bg-surface-container-lowest border border-hairline-border rounded-xl p-lg flex flex-col items-center shadow-sm text-center">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-lg">
+              <span className="material-symbols-outlined text-primary text-[36px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                mail
+              </span>
+            </div>
+            <h1 className="font-headline-sm text-headline-sm text-on-surface mb-sm">Vérifiez votre email</h1>
+            <p className="font-body-md text-body-md text-on-surface-variant mb-md">
+              Un email de confirmation a été envoyé à <strong>{registeredEmail}</strong>.
+            </p>
+            <p className="font-body-md text-body-md text-on-surface-variant mb-lg">
+              Cliquez sur le lien dans l'email pour activer votre compte, puis connectez-vous.
+            </p>
+            <div className="flex flex-col gap-sm w-full">
+              <a
+                className="w-full text-center bg-primary text-on-primary py-sm rounded-lg font-label-md text-label-md hover:opacity-90 transition-all no-underline"
+                href={ROUTES.login}
+              >
+                Aller à la connexion
+              </a>
+              <button
+                className="w-full border border-outline-variant py-sm rounded-lg font-label-md text-label-md text-on-surface hover:bg-surface-container-low transition-all cursor-pointer"
+                onClick={resendVerification}
+                disabled={isSubmitting}
+                type="button"
+              >
+                {isSubmitting ? 'Envoi...' : 'Renvoyer l\'email'}
+              </button>
+            </div>
+            {status ? (
+              <div className="text-sm mt-md text-on-surface-variant">{status}</div>
+            ) : null}
+          </div>
+        </main>
+      ) : mode === 'register' ? (
         /* Inscription Layout */
         <main className="w-full max-w-[400px] flex flex-col items-center animate-fade-in">
           {/* Registration Card */}
@@ -297,17 +410,19 @@ export default function LoginPage({ initialMode = 'login' }) {
               <div className="h-[1px] flex-grow bg-hairline-border"></div>
             </div>
 
-            {/* Google Sign Up (Secondary) */}
-            <button
-              className="w-full border border-outline-variant py-sm rounded-lg font-label-md text-label-md text-on-surface hover:bg-surface-container-low transition-colors flex items-center justify-center gap-xs cursor-pointer active:scale-[0.98]"
-              onClick={() => alert("L'inscription via Google sera disponible prochainement.")}
-              type="button"
-            >
-              <span className="material-symbols-outlined text-[18px]">
-                google
-              </span>
-              Continuer avec Google
-            </button>
+            {/* Google Sign Up */}
+            {GOOGLE_CLIENT_ID ? (
+              <div id="google-btn" className="w-full flex justify-center"></div>
+            ) : (
+              <button
+                className="w-full border border-outline-variant py-sm rounded-lg font-label-md text-label-md text-on-surface hover:bg-surface-container-low transition-colors flex items-center justify-center gap-xs cursor-pointer"
+                disabled
+                type="button"
+              >
+                <span className="material-symbols-outlined text-[18px]">google</span>
+                Google indisponible
+              </button>
+            )}
           </div>
 
           {/* Secondary Navigation */}
@@ -465,16 +580,18 @@ export default function LoginPage({ initialMode = 'login' }) {
             <div className="flex-grow border-t border-hairline-border"></div>
           </div>
 
-          <button
-            className="w-full h-12 bg-white border border-hairline-border flex items-center justify-center gap-sm rounded-lg hover:bg-surface-container-low transition-colors active:scale-[0.98] cursor-pointer"
-            type="button"
-            onClick={() => alert('La connexion via SSO sera disponible prochainement.')}
-          >
-            <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>
-              account_circle
-            </span>
-            <span className="font-label-md text-label-md text-on-surface">Continuer avec SSO</span>
-          </button>
+          {GOOGLE_CLIENT_ID ? (
+            <div id="google-btn" className="w-full flex justify-center"></div>
+          ) : (
+            <button
+              className="w-full h-12 bg-white border border-hairline-border rounded-lg flex items-center justify-center gap-sm opacity-60"
+              disabled
+              type="button"
+            >
+              <span className="material-symbols-outlined text-[18px]">google</span>
+              <span className="font-label-md text-label-md text-on-surface">Google indisponible</span>
+            </button>
+          )}
 
           {/* Footer Identity */}
           <footer className="mt-lg flex flex-col items-center gap-xs">

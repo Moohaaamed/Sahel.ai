@@ -122,6 +122,12 @@ class BusinessCreate(BaseModel):
     cover_image_url: str | None = Field(default=None, max_length=320)
     highlights: str | None = Field(default=None, max_length=2000)
     public_knowledge: str | None = Field(default=None, max_length=3000)
+    ice: str | None = Field(default=None, max_length=20)
+    rc: str | None = Field(default=None, max_length=30)
+    if_tax: str | None = Field(default=None, max_length=30)
+    patente: str | None = Field(default=None, max_length=30)
+    cnss: str | None = Field(default=None, max_length=30)
+    legal_form: str | None = Field(default=None, max_length=50)
 
 
 class Business(BusinessCreate):
@@ -146,6 +152,12 @@ class BusinessUpdate(BaseModel):
     cover_image_url: str | None = Field(default=None, max_length=320)
     highlights: str | None = Field(default=None, max_length=2000)
     public_knowledge: str | None = Field(default=None, max_length=3000)
+    ice: str | None = Field(default=None, max_length=20)
+    rc: str | None = Field(default=None, max_length=30)
+    if_tax: str | None = Field(default=None, max_length=30)
+    patente: str | None = Field(default=None, max_length=30)
+    cnss: str | None = Field(default=None, max_length=30)
+    legal_form: str | None = Field(default=None, max_length=50)
 
 
 class DocumentMetadata(BaseModel):
@@ -173,6 +185,10 @@ class OwnerRegister(BaseModel):
 class OwnerLogin(BaseModel):
     email: str = Field(min_length=5, max_length=120)
     password: str = Field(min_length=6, max_length=120)
+
+
+class GoogleLogin(BaseModel):
+    credential: str
 
 
 class OwnerPublic(BaseModel):
@@ -375,6 +391,8 @@ def default_owner() -> dict:
         "full_name": "Demo Owner",
         "email": "demo@sahel.ai",
         "password_hash": hash_password("demo123"),
+        "verified": "true",
+        "verification_token": None,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -384,8 +402,60 @@ def public_owner(owner: dict) -> dict:
         "id": owner["id"],
         "full_name": owner["full_name"],
         "email": owner["email"],
+        "verified": "true" if owner.get("verified") in (None, "true", True) else "false",
         "created_at": owner["created_at"],
     }
+
+
+def owner_verified(owner: dict) -> bool:
+    val = owner.get("verified")
+    return val in (None, "true", True)
+
+
+def generate_verification_token() -> str:
+    return uuid4().hex + uuid4().hex
+
+
+def send_verification_email(owner: dict) -> None:
+    smtp_host = os.getenv("SMTP_HOST")
+    smtp_port = os.getenv("SMTP_PORT", "587")
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_pass = os.getenv("SMTP_PASS")
+    site_url = os.getenv("SITE_URL", "http://localhost:5173")
+    token = owner.get("verification_token")
+    if not token:
+        return
+
+    verify_url = f"{site_url}/verify-email?token={token}"
+
+    subject = "Confirm your email — Sahel.ai"
+    body = (
+        f"Welcome to Sahel.ai, {owner['full_name']}!\n\n"
+        f"Please confirm your email address by clicking the link below:\n\n"
+        f"{verify_url}\n\n"
+        f"This link expires in 24 hours.\n\n"
+        f"If you didn't create an account, you can ignore this email.\n\n"
+        f"Sahel.ai — Digital presence for Moroccan businesses"
+    )
+
+    if all([smtp_host, smtp_user, smtp_pass]):
+        try:
+            msg = MIMEText(body, _charset="utf-8")
+            msg["Subject"] = subject
+            msg["From"] = smtp_user
+            msg["To"] = owner["email"]
+            with smtplib.SMTP(smtp_host, int(smtp_port), timeout=10) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_pass)
+                server.send_message(msg)
+            return
+        except Exception:
+            pass
+
+    print(f"\n=== VERIFICATION EMAIL (SMTP not configured) ===")
+    print(f"To: {owner['email']}")
+    print(f"Link: {verify_url}")
+    print(f"==================================================\n")
 
 
 def read_owners() -> list[dict]:
@@ -444,6 +514,12 @@ BUSINESS_OPTIONAL_DEFAULTS = {
     "cover_image_url": None,
     "highlights": None,
     "public_knowledge": None,
+    "ice": None,
+    "rc": None,
+    "if_tax": None,
+    "patente": None,
+    "cnss": None,
+    "legal_form": None,
 }
 
 COVER_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
@@ -481,6 +557,12 @@ def business_profile_fields(payload: BusinessCreate | BusinessUpdate) -> dict:
         "cover_image_url": payload.cover_image_url,
         "highlights": payload.highlights,
         "public_knowledge": payload.public_knowledge,
+        "ice": payload.ice,
+        "rc": payload.rc,
+        "if_tax": payload.if_tax,
+        "patente": payload.patente,
+        "cnss": payload.cnss,
+        "legal_form": payload.legal_form,
     }
 
 
@@ -1153,23 +1235,62 @@ async def health_check():
     return {"status": "ok"}
 
 
-@app.post("/owners/register", response_model=AuthResponse)
+@app.post("/owners/register")
 async def register_owner(payload: OwnerRegister):
     owners = read_owners()
     email = normalize_email(payload.email)
     if any(owner["email"] == email for owner in owners):
         raise HTTPException(status_code=409, detail="An owner with this email already exists.")
 
+    verification_token = generate_verification_token()
     owner = {
         "id": uuid4().hex[:12],
         "full_name": payload.full_name.strip(),
         "email": email,
         "password_hash": hash_password(payload.password),
+        "verified": "false",
+        "verification_token": verification_token,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     owners.append(owner)
     write_owners(owners)
+    send_verification_email(owner)
+    return {
+        "message": "Registration successful. Please check your email to verify your account.",
+        "owner_id": owner["id"],
+    }
+
+
+@app.get("/owners/verify", response_model=AuthResponse)
+async def verify_owner_email(token: str = Query(...)):
+    owners = read_owners()
+    owner = next((o for o in owners if o.get("verification_token") == token), None)
+    if not owner:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification token.")
+
+    owner["verified"] = "true"
+    owner["verification_token"] = None
+    write_owners(owners)
     return {"owner": public_owner(owner), **create_owner_session(owner["id"])}
+
+
+@app.post("/owners/resend-verification")
+async def resend_verification(email: str = Query(...)):
+    owner = find_owner_by_email(email)
+    if not owner:
+        raise HTTPException(status_code=404, detail="No account found with this email.")
+    if owner_verified(owner):
+        raise HTTPException(status_code=400, detail="This account is already verified.")
+
+    owner["verification_token"] = generate_verification_token()
+    owners = read_owners()
+    for i, o in enumerate(owners):
+        if o["id"] == owner["id"]:
+            owners[i] = owner
+            break
+    write_owners(owners)
+    send_verification_email(owner)
+    return {"message": "Verification email resent. Please check your inbox."}
 
 
 @app.post("/owners/login", response_model=AuthResponse)
@@ -1177,6 +1298,65 @@ async def login_owner(payload: OwnerLogin):
     owner = find_owner_by_email(payload.email)
     if not owner or not verify_password(payload.password, owner.get("password_hash", "")):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
+    if not owner_verified(owner):
+        raise HTTPException(
+            status_code=403,
+            detail="Please verify your email before logging in. Check your inbox or request a new verification link.",
+        )
+    return {"owner": public_owner(owner), **create_owner_session(owner["id"])}
+
+
+@app.post("/owners/google-login", response_model=AuthResponse)
+async def google_login(payload: GoogleLogin):
+    import httpx
+    client_id = os.getenv("GOOGLE_CLIENT_ID")
+    if not client_id:
+        raise HTTPException(status_code=500, detail="GOOGLE_CLIENT_ID not configured.")
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(
+                "https://oauth2.googleapis.com/tokeninfo",
+                params={"id_token": payload.credential},
+            )
+            if resp.status_code != 200:
+                raise HTTPException(status_code=401, detail="Invalid Google token.")
+            info = resp.json()
+    except httpx.RequestError:
+        raise HTTPException(status_code=502, detail="Failed to verify Google token.")
+
+    if info.get("aud") != client_id:
+        raise HTTPException(status_code=401, detail="Google token audience mismatch.")
+
+    email = normalize_email(info.get("email", ""))
+    if not email:
+        raise HTTPException(status_code=400, detail="Google account has no email.")
+
+    name = info.get("name", "").strip() or email.split("@")[0]
+    owners = read_owners()
+    owner = find_owner_by_email(email)
+
+    if not owner:
+        owner = {
+            "id": uuid4().hex[:12],
+            "full_name": name,
+            "email": email,
+            "password_hash": "",
+            "verified": "true",
+            "verification_token": None,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        owners.append(owner)
+        write_owners(owners)
+    elif not owner_verified(owner):
+        owner["verified"] = "true"
+        owner["verification_token"] = None
+        for i, o in enumerate(owners):
+            if o["id"] == owner["id"]:
+                owners[i] = owner
+                break
+        write_owners(owners)
+
     return {"owner": public_owner(owner), **create_owner_session(owner["id"])}
 
 

@@ -1,0 +1,4 @@
+node_modules/
+session/
+users.json
+.env

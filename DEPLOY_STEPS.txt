@@ -150,6 +150,42 @@
 
 
 ═══════════════════════════════════════════════════════════════
+  ÉTAPE 7 : (OPTIONNEL) Chatbot WhatsApp gratuit
+═══════════════════════════════════════════════════════════════
+
+   Un vrai chatbot IA sur WhatsApp qui répond automatiquement
+   avec les documents du commerce. Gratuit (sans carte bancaire).
+
+ 7.1  Aller dans le dossier whatsapp-bot :
+        cd whatsapp-bot
+
+ 7.2  Copier et éditer le fichier .env :
+        cp .env.example .env
+        → Mettre API_BASE = https://TON_USER-sahel-api.hf.space
+
+ 7.3  Installer les dépendances (une seule fois) :
+        npm install
+
+ 7.4  Lancer le bot :
+        npm start
+
+ 7.5  Scannez le QR code avec WhatsApp :
+        → Menu → Appareils liés → Lier un appareil
+        → Scanner le QR code affiché dans le terminal
+
+ 7.6  Envoyer /start au bot depuis WhatsApp
+
+   Commandes WhatsApp :
+     /start ou /menu     → Afficher le menu
+     /business <slug>    → Changer de commerce
+
+   💡 Pour garder le bot allumé 24/7 gratuitement :
+      • Railway.app (500h/mois gratuites)
+      • Fly.io (always-on gratuit)
+      Voir whatsapp-bot/README.md pour les détails.
+
+
+═══════════════════════════════════════════════════════════════
   PROCHAINES ÉTAPES (développement)
 ═══════════════════════════════════════════════════════════════
 
@@ -157,6 +193,5 @@
   → Ajouter de vraies données (commerces marocains avec PDF)
   → Améliorer le CSS du mini-site
   → Ajouter un vrai flow d'inscription commerçant
-  → Tester le chatbot sur WhatsApp via whatsapp-web.js
 
 ═══════════════════════════════════════════════════════════════

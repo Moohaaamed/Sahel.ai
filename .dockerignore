@@ -9,7 +9,6 @@ dashboard/
 node_modules/
 .git/
 .gitignore
-README.md
 THIRD_PARTY_NOTES.md
 images/
 tests/

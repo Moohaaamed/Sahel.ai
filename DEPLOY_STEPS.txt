@@ -26,16 +26,16 @@
   ÉTAPE 2 : Configuration locale (avant de déployer)
 ═══════════════════════════════════════════════════════════════
 
-2.1  Ouvrir le fichier backend-rag/.env
-   → REMPLACER la ligne DATABASE_URL par :
-     DATABASE_URL=sqlite:///./sahel.db
-   → Vérifier que GROQ_API_KEY contient la clé Groq
-   → Vérifier que APP_SECRET_KEY contient une clé secrète
-     (tu peux en générer une ici : https://generate-secret.vercel.app/)
+2.1  Ouvrir le fichier backend/.env
+    → REMPLACER la ligne DATABASE_URL par :
+      DATABASE_URL=sqlite:///./sahel.db
+    → Vérifier que GROQ_API_KEY contient la clé Groq
+    → Vérifier que APP_SECRET_KEY contient une clé secrète
+      (tu peux en générer une ici : https://generate-secret.vercel.app/)
 
 2.2  Tester que tout marche en local (optionnel mais recommandé) :
-   → Ouvrir un terminal dans le dossier backend-rag/
-   → Lancer : python -m uvicorn backend_chatdoc:app --port 8000
+    → Ouvrir un terminal dans le dossier backend/
+    → Lancer : python -m uvicorn backend_chatdoc:app --port 8000
    → Ouvrir http://localhost:8000/health dans le navigateur
    → Si ça répond {"status":"ok"}, c'est bon
 
@@ -84,7 +84,7 @@
 4.1  Aller sur https://vercel.com
    → Cliquer "Add New..." → "Project"
    → Importer le dépôt GitHub de Sahel.ai
-   → Root Directory : sélectionner frontend-chat/frontend
+    → Root Directory : sélectionner website
    → Framework Preset : Vite
    → Cliquer "Deploy"
 

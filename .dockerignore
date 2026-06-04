@@ -4,8 +4,8 @@ __pycache__/
 .env
 *.log
 sahel.db
-front-chatdoc/
-frontend-chat/
+website/
+dashboard/
 node_modules/
 .git/
 .gitignore

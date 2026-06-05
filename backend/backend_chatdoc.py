@@ -699,15 +699,47 @@ def detect_language(text: str) -> str:
         "chhal",
         "bchhal",
         "wach",
+        "wash",
         "fin",
         "fayn",
         "kayen",
         "kayn",
         "bghit",
+        "bghina",
         "nheb",
         "shukran",
         "chokran",
         "marhba",
+        "had",
+        "hadou",
+        "dyal",
+        "dial",
+        "dyali",
+        "dyalna",
+        "chnu",
+        "chnou",
+        "chno",
+        "ach",
+        "ash",
+        "ana",
+        "hna",
+        "mzyan",
+        "mzian",
+        "bzf",
+        "bezzaf",
+        "smiya",
+        "chi",
+        "bla",
+        "bhal",
+        "nta",
+        "nti",
+        "ntuma",
+        "wah",
+        "gal",
+        "lgal",
+        "drari",
+        "tnak",
+        "temma",
     }
     if keyword_score(normalized_text, arabic_latin_keywords) > 0:
         return "ar"
@@ -1070,8 +1102,13 @@ def answer_for_business(business: dict, question: str, language: str | None = No
                 "content": (
                     f"Business name: {business['name']}\n"
                     f"Business type: {business['business_type']}\n"
-                    f"Business description: {business.get('description', '')}\n\n"
-                    f"Owner email: {owner_email}\n\n"
+                    f"Business description: {business.get('description', '')}\n"
+                    f"City: {business.get('city', 'Not specified')}\n"
+                    f"Working hours: {business.get('working_hours', 'Not specified')}\n"
+                    f"Services: {business.get('primary_services', 'Not specified')}\n"
+                    f"Highlights: {business.get('highlights', 'Not specified')}\n"
+                    f"General knowledge: {business.get('public_knowledge', 'Not specified')}\n\n"
+                    f"Owner email: {owner_email}\n"
                     f"Owner phone: {owner_phone}\n\n"
                     f"Question: {question}\n\n"
                     f"Document context:\n{context or 'No uploaded document context available.'}"
@@ -1120,8 +1157,13 @@ async def stream_answer_for_business(business: dict, question: str, language: st
             "content": (
                 f"Business name: {business['name']}\n"
                 f"Business type: {business['business_type']}\n"
-                f"Business description: {business.get('description', '')}\n\n"
-                f"Owner email: {owner_email}\n\n"
+                f"Business description: {business.get('description', '')}\n"
+                f"City: {business.get('city', 'Not specified')}\n"
+                f"Working hours: {business.get('working_hours', 'Not specified')}\n"
+                f"Services: {business.get('primary_services', 'Not specified')}\n"
+                f"Highlights: {business.get('highlights', 'Not specified')}\n"
+                f"General knowledge: {business.get('public_knowledge', 'Not specified')}\n\n"
+                f"Owner email: {owner_email}\n"
                 f"Owner phone: {owner_phone}\n\n"
                 f"Question: {question}\n\n"
                 f"Document context:\n{context or 'No uploaded document context available.'}"
@@ -1166,8 +1208,13 @@ async def stream_llm_only(business: dict, question: str, language: str | None = 
             "content": (
                 f"Business name: {business['name']}\n"
                 f"Business type: {business['business_type']}\n"
-                f"Business description: {business.get('description', '')}\n\n"
-                f"Owner email: {owner_email}\n\n"
+                f"Business description: {business.get('description', '')}\n"
+                f"City: {business.get('city', 'Not specified')}\n"
+                f"Working hours: {business.get('working_hours', 'Not specified')}\n"
+                f"Services: {business.get('primary_services', 'Not specified')}\n"
+                f"Highlights: {business.get('highlights', 'Not specified')}\n"
+                f"General knowledge: {business.get('public_knowledge', 'Not specified')}\n\n"
+                f"Owner email: {owner_email}\n"
                 f"Owner phone: {owner_phone}\n\n"
                 f"Question: {question}"
             ),

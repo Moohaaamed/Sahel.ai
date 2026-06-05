@@ -183,6 +183,8 @@ export default function DashboardPage() {
 
     const stats = {};
     const interactions = [];
+    const aggregatedQuestions = {};
+    const aggregatedLang = { ar: 0, fr: 0, en: 0, unknown: 0 };
 
     results.forEach(({ business, analytics }) => {
       if (!analytics) {
@@ -200,6 +202,21 @@ export default function DashboardPage() {
         messages: analytics.total_messages ?? 0,
         responseRate,
       };
+
+      // Use backend's full-data top_questions (based on ALL messages)
+      (analytics.top_questions || []).forEach(({ question, count }) => {
+        aggregatedQuestions[question] = (aggregatedQuestions[question] || 0) + count;
+      });
+
+      // Use backend's full-data language_counts (based on ALL conversations)
+      const langCounts = analytics.language_counts || {};
+      for (const [lang, count] of Object.entries(langCounts)) {
+        if (aggregatedLang[lang] !== undefined) {
+          aggregatedLang[lang] += count;
+        } else {
+          aggregatedLang.unknown += count;
+        }
+      }
 
       (analytics.recent_messages || []).forEach((message) => {
         interactions.push({
@@ -222,34 +239,24 @@ export default function DashboardPage() {
       conversationCounts[key] = (conversationCounts[key] || 0) + 1;
     });
 
-    const questionCounts = {};
-    const langCounts = {};
-    let totalLang = 0;
-    interactions.forEach((item) => {
-      const q = (item.question || '').trim();
-      if (q) {
-        questionCounts[q] = (questionCounts[q] || 0) + 1;
-      }
-      const lang = item.language || 'unknown';
-      langCounts[lang] = (langCounts[lang] || 0) + 1;
-      totalLang++;
-    });
-
     const langLabels = { ar: 'Darija (Arabe)', fr: 'Français', en: 'Anglais', unknown: 'Autre' };
+    const totalLang = Object.values(aggregatedLang).reduce((s, v) => s + v, 0);
 
     setTopQuestions(
-      Object.entries(questionCounts)
+      Object.entries(aggregatedQuestions)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5)
         .map(([q, count]) => ({ q, count })),
     );
 
     setLanguageDistribution(
-      Object.entries(langCounts).map(([lang, count]) => ({
-        lang: langLabels[lang] || lang,
-        pct: totalLang > 0 ? Math.round((count / totalLang) * 100) : 0,
-        color: lang === 'fr' ? 'bg-primary' : lang === 'ar' ? 'bg-secondary' : lang === 'en' ? 'bg-tertiary' : 'bg-outline',
-      })),
+      Object.entries(aggregatedLang)
+        .filter(([_, count]) => count > 0)
+        .map(([lang, count]) => ({
+          lang: langLabels[lang] || lang,
+          pct: totalLang > 0 ? Math.round((count / totalLang) * 100) : 0,
+          color: lang === 'fr' ? 'bg-primary' : lang === 'ar' ? 'bg-secondary' : lang === 'en' ? 'bg-tertiary' : 'bg-outline',
+        })),
     );
 
     setBusinessStats(stats);

@@ -214,5 +214,23 @@
     "chat_url": "/chat/kenza-studio",
     "highlights": "Création sur mesure, Délais rapides, Forfaits PME, Portfolio varié",
     "public_knowledge": "Studio Kenza accompagne les PME marocaines dans leur stratégie digitale. Forfaits : identité visuelle complète à partir de 350€, site web vitrine à partir de 500€, social media pack à partir de 200€/mois. Délai moyen de livraison : 7-15 jours. Portfolio disponible sur demande."
+  },
+  {
+    "id": "a10000000013",
+    "owner_id": "demo-owner",
+    "slug": "saghro",
+    "name": "Hotel Saghro",
+    "business_type": "hotel",
+    "description": "Hôtel 4**** situé en plein centre-ville de Tinghir offrant une vue panoramique sur la vallée de Toudgha et les montagnes de l'Atlas. 65 chambres avec balcon privé, piscine extérieure, restaurant, bar et services hôteliers complets. Une oasis de tranquillité au cœur du sud marocain.",
+    "owner_email": "saghrotinghir@gmail.com",
+    "owner_phone": "+212 524 834 179",
+    "city": "Tinghir",
+    "address": "Av. des FAR, Centre Tinghir, 45800, Tinghir, Maroc",
+    "working_hours": "Réception 24h/24",
+    "primary_services": "Hébergement, Piscine extérieure, Restaurant, Bar, Petit-déjeuner buffet, Room service, Excursions, Laverie, Transfert aéroport, Organisation d'événements",
+    "site_url": "/b/saghro",
+    "chat_url": "/chat/saghro",
+    "highlights": "Vue panoramique vallée Toudgha, Piscine extérieure, 65 chambres climatisées, Restaurant cuisine marocaine et internationale, Proche Gorges du Todgha, Parking gratuit, Wi-Fi gratuit, Personnel multilingue",
+    "public_knowledge": "Hotel Saghro est un hôtel 4 étoiles situé au centre de Tinghir. Il dispose de 65 chambres (simples, doubles, triples) toutes avec salle de bain privée, climatisation, téléphone, coffre-fort et balcon privé. Tarifs : chambre simple à partir de 50€, double à partir de 70€, triple à partir de 90€/nuit. Petit-déjeuner buffet inclus. Check-out avant 12h. Piscine extérieure ouverte de mai à octobre. Restaurant ouvert midi et soir (cuisine marocaine et internationale). Bar ouvert de 10h à 23h. Services : room service 24h/24, laverie, transfert aéroport, excursions vers les Gorges du Todgha (à 9 km) et la Vallée du Dadès. Langues parlées : arabe, français, anglais, espagnol. Parking gratuit. Wi-Fi gratuit dans tout l'hôtel. Animaux acceptés sur demande. Réception ouverte 24h/24."
   }
 ]

@@ -118,5 +118,35 @@
     "chunks": 0,
     "size_bytes": 0,
     "uploaded_at": "2026-06-05T00:00:00+00:00"
+  },
+  {
+    "id": "d000000000013",
+    "business_id": "a10000000013",
+    "file_name": "Brochure Hotel Saghro.pdf",
+    "file_type": "application/pdf",
+    "file_url": "/uploaded_documents/a10000000013/Brochure Hotel Saghro.pdf",
+    "chunks": 0,
+    "size_bytes": 0,
+    "uploaded_at": "2026-06-05T00:00:00+00:00"
+  },
+  {
+    "id": "d000000000014",
+    "business_id": "a10000000013",
+    "file_name": "Menu Restaurant Saghro.pdf",
+    "file_type": "application/pdf",
+    "file_url": "/uploaded_documents/a10000000013/Menu Restaurant Saghro.pdf",
+    "chunks": 0,
+    "size_bytes": 0,
+    "uploaded_at": "2026-06-05T00:00:00+00:00"
+  },
+  {
+    "id": "d000000000015",
+    "business_id": "a10000000013",
+    "file_name": "Tarifs Chambres Saghro.pdf",
+    "file_type": "application/pdf",
+    "file_url": "/uploaded_documents/a10000000013/Tarifs Chambres Saghro.pdf",
+    "chunks": 0,
+    "size_bytes": 0,
+    "uploaded_at": "2026-06-05T00:00:00+00:00"
   }
 ]

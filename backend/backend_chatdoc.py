@@ -1529,6 +1529,85 @@ async def get_business_analytics(identifier: str, authorization: str | None = He
     return analytics_for_business(business["id"])
 
 
+@app.get("/owner/analytics")
+async def get_owner_analytics(authorization: str | None = Header(default=None)):
+    owner = require_owner(authorization)
+    owner_businesses = [b for b in read_businesses() if b.get("owner_id") == owner["id"]]
+    owner_business_ids = {b["id"] for b in owner_businesses}
+    business_names = {b["id"]: b["name"] for b in owner_businesses}
+
+    all_messages = [m for m in read_messages() if m["business_id"] in owner_business_ids]
+
+    messages_by_business = {}
+    for msg in all_messages:
+        messages_by_business.setdefault(msg["business_id"], []).append(msg)
+
+    total_messages = len(all_messages)
+    total_conversations = len({m["conversation_id"] for m in all_messages})
+
+    conversation_languages = {}
+    for msg in all_messages:
+        conversation_languages.setdefault(
+            msg["conversation_id"],
+            msg.get("language") or detect_language(msg.get("question", "")),
+        )
+
+    language_counts = {"ar": 0, "fr": 0, "en": 0, "unknown": 0}
+    for lang in conversation_languages.values():
+        if lang in language_counts:
+            language_counts[lang] += 1
+        else:
+            language_counts["unknown"] += 1
+
+    question_counts = {}
+    for msg in all_messages:
+        q = msg["question"].strip()
+        question_counts[q] = question_counts.get(q, 0) + 1
+
+    top_questions = [
+        {"question": q, "count": c}
+        for q, c in sorted(question_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+    ]
+
+    all_messages.sort(key=lambda m: m.get("created_at", ""), reverse=True)
+    recent = all_messages[:20]
+
+    businesses_data = []
+    for b in owner_businesses:
+        msgs = messages_by_business.get(b["id"], [])
+        recent_for_biz = msgs[-8:]
+        answered = sum(1 for m in recent_for_biz if m.get("answer", "").strip())
+        response_rate = round((answered / len(recent_for_biz)) * 100) if recent_for_biz else 0
+        businesses_data.append({
+            "id": b["id"],
+            "name": b["name"],
+            "messages": len(msgs),
+            "conversations": len({m["conversation_id"] for m in msgs}),
+            "responseRate": response_rate,
+        })
+
+    return {
+        "total_messages": total_messages,
+        "total_conversations": total_conversations,
+        "language_counts": language_counts,
+        "top_questions": top_questions,
+        "recent_messages": [
+            {
+                "id": m.get("id"),
+                "conversation_id": m["conversation_id"],
+                "business_id": m["business_id"],
+                "business_name": business_names.get(m["business_id"], "Unknown"),
+                "language": m.get("language"),
+                "question": m.get("question", ""),
+                "answer": m.get("answer", ""),
+                "created_at": m.get("created_at"),
+            }
+            for m in recent
+        ],
+        "businesses": businesses_data,
+    }
+
+
 @app.get("/businesses/{identifier}/documents")
 async def get_business_documents(identifier: str, authorization: str | None = Header(default=None)):
     owner = require_owner(authorization)

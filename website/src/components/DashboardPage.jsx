@@ -60,26 +60,28 @@ function Icon({ name, className = '' }) {
 }
 
 function AnimatedNumber({ value, duration = 800 }) {
-  const [display, setDisplay] = useState(0);
-  const ref = useRef(null);
-  const started = useRef(false);
+  const [display, setDisplay] = useState(value);
+  const prevRef = useRef(value);
 
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
+    if (prevRef.current === value) return;
+    prevRef.current = value;
     const start = performance.now();
-    const from = 0;
+    const from = display;
     const diff = value - from;
+    if (diff === 0) return;
+    let frame;
     function tick(now) {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
       setDisplay(Math.round(from + diff * progress));
-      if (progress < 1) requestAnimationFrame(tick);
+      if (progress < 1) frame = requestAnimationFrame(tick);
     }
-    requestAnimationFrame(tick);
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
   }, [value, duration]);
 
-  return <span ref={ref}>{display}</span>;
+  return <span>{display}</span>;
 }
 
 export default function DashboardPage() {
@@ -157,7 +159,7 @@ export default function DashboardPage() {
   }, [owner, ownerQuery, ownerToken]);
 
   const loadDashboardData = useCallback(async () => {
-    if (!owner || businesses.length === 0) {
+    if (!owner) {
       setBusinessStats({});
       setRecentInteractions([]);
       setTopQuestions([]);
@@ -166,108 +168,69 @@ export default function DashboardPage() {
       return;
     }
 
-    const results = await Promise.all(
-      businesses.map(async (business) => {
-        try {
-          const response = await fetch(`${API_URL}/businesses/${business.id}/analytics`, {
-            headers: authHeaders(ownerToken),
-          });
-          if (!response.ok) return { business, analytics: null };
-          const analytics = await response.json();
-          return { business, analytics };
-        } catch {
-          return { business, analytics: null };
-        }
-      }),
-    );
-
-    const stats = {};
-    const interactions = [];
-    const aggregatedQuestions = {};
-    const aggregatedLang = { ar: 0, fr: 0, en: 0, unknown: 0 };
-
-    results.forEach(({ business, analytics }) => {
-      if (!analytics) {
-        stats[business.id] = { conversations: 0, messages: 0, responseRate: 0 };
+    try {
+      const response = await fetch(`${API_URL}/owner/analytics`, {
+        headers: authHeaders(ownerToken),
+      });
+      if (!response.ok) {
+        setLoading(false);
         return;
       }
+      const data = await response.json();
 
-      const messages = analytics.recent_messages || [];
-      const answered = messages.filter((message) => (message.answer || '').trim()).length;
-      const responseRate =
-        messages.length > 0 ? Math.round((answered / messages.length) * 100) : 0;
-
-      stats[business.id] = {
-        conversations: analytics.total_conversations ?? 0,
-        messages: analytics.total_messages ?? 0,
-        responseRate,
-      };
-
-      // Use backend's full-data top_questions (based on ALL messages)
-      (analytics.top_questions || []).forEach(({ question, count }) => {
-        aggregatedQuestions[question] = (aggregatedQuestions[question] || 0) + count;
+      const stats = {};
+      (data.businesses || []).forEach((b) => {
+        stats[b.id] = {
+          conversations: b.conversations ?? 0,
+          messages: b.messages ?? 0,
+          responseRate: b.responseRate ?? 0,
+        };
       });
 
-      // Use backend's full-data language_counts (based on ALL conversations)
-      const langCounts = analytics.language_counts || {};
-      for (const [lang, count] of Object.entries(langCounts)) {
-        if (aggregatedLang[lang] !== undefined) {
-          aggregatedLang[lang] += count;
-        } else {
-          aggregatedLang.unknown += count;
-        }
-      }
+      setTopQuestions(
+        (data.top_questions || []).map((item) => ({ q: item.question, count: item.count })),
+      );
 
-      (analytics.recent_messages || []).forEach((message) => {
-        interactions.push({
-          id: message.id,
-          conversationId: message.conversation_id,
-          businessId: business.id,
-          businessName: business.name,
-          language: message.language,
-          question: message.question,
-          createdAt: message.created_at,
-        });
+      const langLabels = { ar: 'Darija (Arabe)', fr: 'Français', en: 'Anglais', unknown: 'Autre' };
+      const langCounts = data.language_counts || {};
+      const totalLang = Object.values(langCounts).reduce((s, v) => s + v, 0);
+      setLanguageDistribution(
+        Object.entries(langCounts)
+          .filter(([_, count]) => count > 0)
+          .map(([lang, count]) => ({
+            lang: langLabels[lang] || lang,
+            pct: totalLang > 0 ? Math.round((count / totalLang) * 100) : 0,
+            color: lang === 'fr' ? 'bg-primary' : lang === 'ar' ? 'bg-secondary' : lang === 'en' ? 'bg-tertiary' : 'bg-outline',
+          })),
+      );
+
+      const interactions = (data.recent_messages || []).map((m) => ({
+        id: m.id,
+        conversationId: m.conversation_id,
+        businessId: m.business_id,
+        businessName: m.business_name,
+        language: m.language,
+        question: m.question,
+        createdAt: m.created_at,
+      }));
+      const conversationCounts = {};
+      interactions.forEach((item) => {
+        const key = `${item.businessId}:${item.conversationId}`;
+        conversationCounts[key] = (conversationCounts[key] || 0) + 1;
       });
-    });
-
-    interactions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    const conversationCounts = {};
-    interactions.forEach((item) => {
-      const key = `${item.businessId}:${item.conversationId}`;
-      conversationCounts[key] = (conversationCounts[key] || 0) + 1;
-    });
-
-    const langLabels = { ar: 'Darija (Arabe)', fr: 'Français', en: 'Anglais', unknown: 'Autre' };
-    const totalLang = Object.values(aggregatedLang).reduce((s, v) => s + v, 0);
-
-    setTopQuestions(
-      Object.entries(aggregatedQuestions)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([q, count]) => ({ q, count })),
-    );
-
-    setLanguageDistribution(
-      Object.entries(aggregatedLang)
-        .filter(([_, count]) => count > 0)
-        .map(([lang, count]) => ({
-          lang: langLabels[lang] || lang,
-          pct: totalLang > 0 ? Math.round((count / totalLang) * 100) : 0,
-          color: lang === 'fr' ? 'bg-primary' : lang === 'ar' ? 'bg-secondary' : lang === 'en' ? 'bg-tertiary' : 'bg-outline',
+      setRecentInteractions(
+        interactions.slice(0, 5).map((item) => ({
+          ...item,
+          messageCount: conversationCounts[`${item.businessId}:${item.conversationId}`] || 1,
         })),
-    );
+      );
 
-    setBusinessStats(stats);
-    setRecentInteractions(
-      interactions.slice(0, 5).map((item) => ({
-        ...item,
-        messageCount: conversationCounts[`${item.businessId}:${item.conversationId}`] || 1,
-      })),
-    );
-    setLoading(false);
-  }, [businesses, owner, ownerToken]);
+      setBusinessStats(stats);
+      setLoading(false);
+    } catch {
+      setLoading(false);
+    }
+  }, [owner, ownerToken]);
 
   useEffect(() => {
     loadDashboardData();

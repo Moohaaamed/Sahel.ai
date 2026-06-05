@@ -1,0 +1,58 @@
+[
+  {
+    "id": "saghro-conv-001",
+    "business_id": "a10000000013",
+    "language": "fr",
+    "visitor_ip": null,
+    "started_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "saghro-conv-002",
+    "business_id": "a10000000013",
+    "language": "en",
+    "visitor_ip": null,
+    "started_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "saghro-conv-003",
+    "business_id": "a10000000013",
+    "language": "ar",
+    "visitor_ip": null,
+    "started_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "saghro-conv-004",
+    "business_id": "a10000000013",
+    "language": "fr",
+    "visitor_ip": null,
+    "started_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "saghro-conv-005",
+    "business_id": "a10000000013",
+    "language": "en",
+    "visitor_ip": null,
+    "started_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "saghro-conv-006",
+    "business_id": "a10000000013",
+    "language": "fr",
+    "visitor_ip": null,
+    "started_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "saghro-conv-007",
+    "business_id": "a10000000013",
+    "language": "ar",
+    "visitor_ip": null,
+    "started_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "saghro-conv-008",
+    "business_id": "a10000000013",
+    "language": "en",
+    "visitor_ip": null,
+    "started_at": "2026-06-05T14:35:06.808685+00:00"
+  }
+]

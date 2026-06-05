@@ -1,0 +1,222 @@
+[
+  {
+    "id": "e61f7a691a9e",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-001",
+    "question": "Bonjour, quels sont les tarifs des chambres ?",
+    "answer": "Nos chambres simples sont à partir de 50€, doubles à partir de 70€ et triples à partir de 90€ par nuit. Le petit-déjeuner buffet est inclus.",
+    "sources": "[]",
+    "language": "fr",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "245c71dc3e53",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-001",
+    "question": "Est-ce que vous avez une piscine ?",
+    "answer": "Oui, nous avons une piscine extérieure ouverte de mai à octobre.",
+    "sources": "[]",
+    "language": "fr",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "bc08b9c4953c",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-001",
+    "question": "Quels sont les horaires du restaurant ?",
+    "answer": "Notre restaurant est ouvert le midi de 12h à 14h30 et le soir de 19h à 22h30.",
+    "sources": "[]",
+    "language": "fr",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "bfedcb14b165",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-001",
+    "question": "Proposez-vous le petit-déjeuner ?",
+    "answer": "Oui, le petit-déjeuner buffet est inclus dans le prix de la chambre.",
+    "sources": "[]",
+    "language": "fr",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "cc16076a72a7",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-002",
+    "question": "Hello, how far is the hotel from Todgha Gorge?",
+    "answer": "The Todgha Gorge is approximately 9 km from Hotel Saghro.",
+    "sources": "[]",
+    "language": "en",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "d2aaeffe2fa8",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-002",
+    "question": "Do you have free parking?",
+    "answer": "Yes, we offer free parking for all our guests.",
+    "sources": "[]",
+    "language": "en",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "c57562956438",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-002",
+    "question": "Is Wi-Fi available?",
+    "answer": "Yes, Wi-Fi is available free of charge throughout the hotel.",
+    "sources": "[]",
+    "language": "en",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "c1ce1419168e",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-003",
+    "question": "السلام عليكم، واش عندكم غرف فاضية هاد السيمانة؟",
+    "answer": "وعليكم السلام. نعم، تتوفر لدينا غرف متاحة هذا الأسبوع.",
+    "sources": "[]",
+    "language": "ar",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "9ed78d39d6fc",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-003",
+    "question": "شحال الثمن ف الليلة؟",
+    "answer": "أسعار الغرف: الغرفة الفردية ابتداء من 50 يورو.",
+    "sources": "[]",
+    "language": "ar",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "2cfa12365668",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-003",
+    "question": "فين كاين الفندق بالضبط؟",
+    "answer": "الفندق يقع في وسط مدينة تنغير.",
+    "sources": "[]",
+    "language": "ar",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "62597a01e67f",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-004",
+    "question": "Bonjour, est-ce que vous avez des chambres avec vue sur la vallée ?",
+    "answer": "Oui, toutes nos chambres disposent d'un balcon privé avec vue panoramique.",
+    "sources": "[]",
+    "language": "fr",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "a2292d49d79a",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-004",
+    "question": "Acceptez-vous les animaux ?",
+    "answer": "Oui, les animaux sont acceptés sur demande préalable.",
+    "sources": "[]",
+    "language": "fr",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "35e4c28bd881",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-004",
+    "question": "Quels sont les moyens de paiement acceptés ?",
+    "answer": "Nous acceptons les paiements en espèces, par carte bancaire.",
+    "sources": "[]",
+    "language": "fr",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "8feb58d0a7b0",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-005",
+    "question": "What excursions do you offer?",
+    "answer": "We offer excursions to Todgha Gorge, Dades Valley, and the Rose Valley.",
+    "sources": "[]",
+    "language": "en",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "78859e6802e5",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-005",
+    "question": "Do you have airport transfer service?",
+    "answer": "Yes, we offer airport transfer service.",
+    "sources": "[]",
+    "language": "en",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "dbbe4832aff3",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-005",
+    "question": "What languages do your staff speak?",
+    "answer": "Our staff speaks Arabic, French, English, and Spanish.",
+    "sources": "[]",
+    "language": "en",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "094419ac4490",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-006",
+    "question": "Avez-vous des salles de réunion ?",
+    "answer": "Oui, nous disposons d'une salle de réunion équipée.",
+    "sources": "[]",
+    "language": "fr",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "778e77d94f18",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-006",
+    "question": "Proposez-vous des formules pour séminaires ?",
+    "answer": "Oui, nous proposons des forfaits séminaires.",
+    "sources": "[]",
+    "language": "fr",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "c2c80bb8a525",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-007",
+    "question": "واش كاين مطعم فالفندق؟",
+    "answer": "نعم، يوجد مطعم في الفندق يقدم المأكولات المغربية.",
+    "sources": "[]",
+    "language": "ar",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "95c6c8fba701",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-007",
+    "question": "بغيت نحجز غرفة لعائلة، شحال الثمن؟",
+    "answer": "الغرفة الثلاثية مناسبة للعائلة بسعر 90 يورو.",
+    "sources": "[]",
+    "language": "ar",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "70b4f15512a7",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-008",
+    "question": "Is there a gym or spa at the hotel?",
+    "answer": "We do not have a gym or spa on site.",
+    "sources": "[]",
+    "language": "en",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  },
+  {
+    "id": "8436b1ecea78",
+    "business_id": "a10000000013",
+    "conversation_id": "saghro-conv-008",
+    "question": "Do you have room service?",
+    "answer": "Yes, room service is available 24 hours a day.",
+    "sources": "[]",
+    "language": "en",
+    "created_at": "2026-06-05T14:35:06.808685+00:00"
+  }
+]

@@ -13,6 +13,9 @@ COPY backend/ .
 
 RUN mkdir -p /data /data/vector_stores /data/uploaded_documents /data/data
 
+# Copy seed data to where DATA_ROOT expects it
+COPY backend/data/ /data/data/
+
 ENV DATA_ROOT=/data
 ENV AUTO_CREATE_TABLES=true
 ENV CORS_ORIGINS=https://sahel-ai.vercel.app,http://localhost:5173

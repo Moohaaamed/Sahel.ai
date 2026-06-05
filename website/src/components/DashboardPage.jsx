@@ -993,6 +993,34 @@ export default function DashboardPage() {
                   Open chatbot
                 </a>
               </div>
+              {/* Intégration — embed widget */}
+              <details className="group bg-surface-container-low/50 border border-hairline-border rounded-xl overflow-hidden mb-md">
+                <summary className="px-md py-sm cursor-pointer font-headline-sm text-headline-sm flex items-center gap-2 select-none hover:bg-surface-blue/20 transition-colors list-none [&::-webkit-details-marker]:hidden">
+                  <span className="material-symbols-outlined text-primary text-lg">code</span>
+                  Intégration — Widget Chat
+                  <span className="material-symbols-outlined ml-auto text-outline group-open:rotate-90 transition-transform">chevron_right</span>
+                </summary>
+                <div className="px-md pb-md space-y-sm">
+                  <p className="font-body-md text-body-md text-on-surface-variant m-0">
+                    Copiez ces deux lignes et collez-les dans le <code className="bg-outline/10 px-1 rounded text-sm">&lt;head&gt;</code> ou juste avant <code className="bg-outline/10 px-1 rounded text-sm">&lt;/body&gt;</code> de votre site existant. Une bulle de chat apparaîtra automatiquement.
+                  </p>
+                  <div className="relative">
+                    <pre className="bg-deep-navy text-green-400 p-sm rounded-xl text-xs leading-relaxed overflow-x-auto m-0 font-mono">{`<script src="${API_URL}/embed/${manageBusiness.slug}.js" defer></script>`}</pre>
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard.writeText(`<script src="${API_URL}/embed/${manageBusiness.slug}.js" defer></script>`)}
+                      className="absolute top-2 right-2 p-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-white text-xs border-0 cursor-pointer transition-colors flex items-center gap-1"
+                      title="Copier le snippet"
+                    >
+                      <span className="material-symbols-outlined !text-[14px]">content_copy</span>
+                    </button>
+                  </div>
+                  <p className="font-label-sm text-label-sm text-outline m-0">
+                    💡 Testez-le sur votre site ou sur une page HTML locale pour vérifier l'affichage.
+                  </p>
+                </div>
+              </details>
+
               <FileUpload
                 businessId={manageBusiness.id}
                 ownerToken={ownerToken}

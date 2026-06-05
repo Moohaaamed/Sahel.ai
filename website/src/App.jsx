@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import DashboardPage from './components/DashboardPage';
 import ChatInterface from './components/ChatInterface';
@@ -9,6 +9,8 @@ import OnboardingFlow from './components/OnboardingFlow';
 import SuccessPage from './components/SuccessPage';
 import AboutPage from './components/AboutPage';
 import FaqPage from './components/FaqPage';
+import ShowcasePage from './components/ShowcasePage';
+import ContactPage from './components/ContactPage';
 import BlogPage from './components/BlogPage';
 import SahelLogo from './components/SahelLogo';
 import MarketingFooter from './components/layout/MarketingFooter';
@@ -891,475 +893,565 @@ function landingCta() {
 }
 
 function LandingPage() {
+  const [openFaq, setOpenFaq] = useState(null);
+  const [chatStep, setChatStep] = useState(0);
+  const chatContainerRef = useRef(null);
+  const [heroChatStep, setHeroChatStep] = useState(0);
+  const heroChatRef = useRef(null);
+  const heroChatStarted = useRef(false);
+  const chatMessages = [
+    { type: 'user', text: "Salam, bghit na3raf l'menu dialkom svp." },
+    { type: 'bot', text: "Wa alaykum salam! Voici notre menu digital du jour. Souhaitez-vous voir nos spécialités ?" },
+    { type: 'user', text: "Oui, chnou 3andkom f tagine ?" },
+    { type: 'bot', text: "Nous avons aujourd'hui: Tagine d'Agneau aux pruneaux, Tagine de Poulet au citron confit, et notre Tagine Végétarien Berbère. Lequel vous tente ?" }
+  ];
+  const heroMessages = [
+    { type: 'bot', text: 'Bonjour ! Bienvenue sur Sahel.ai. Je suis votre assistant IA. Comment puis-je vous aider ?' },
+    { type: 'user', text: 'Salam ! Je cherche un bon restaurant marocain à Marrakech.' },
+    { type: 'bot', text: 'Bien sûr ! Je vous recommande le "Restaurant Atlas" — spécialités traditionnelles, noté 4.8 ⭐. Voulez-vous réserver une table ?' },
+    { type: 'user', text: 'Oui, pour 2 personnes ce soir à 20h.' },
+    { type: 'bot', text: 'Parfait ! Réservation confirmée pour 2 personnes ce soir à 20h au Restaurant Atlas. Un QR code vous sera envoyé. 🎉' }
+  ];
+
   useEffect(() => {
-    const observer = new IntersectionObserver(
+    const revealObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add('opacity-100', 'translate-y-0');
-            entry.target.classList.remove('opacity-0', 'translate-y-8');
+            entry.target.classList.add('active');
           }
         });
       },
-      { threshold: 0.05 }
+      { threshold: 0.1 }
     );
+    document.querySelectorAll('.reveal').forEach((el) => revealObserver.observe(el));
 
-    const sections = document.querySelectorAll('.reveal-section');
-    sections.forEach((section) => {
-      section.classList.add('transition-all', 'duration-700', 'opacity-0', 'translate-y-8');
-      observer.observe(section);
-    });
+    const bentoObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('active');
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+    const bentoGrid = document.querySelector('.bento-stagger');
+    if (bentoGrid) bentoObserver.observe(bentoGrid);
+
+    const nav = document.querySelector('.glass-nav');
+    const handleNav = () => {
+      if (window.scrollY > 50) {
+        nav?.classList.add('scrolled');
+      } else {
+        nav?.classList.remove('scrolled');
+      }
+    };
+    window.addEventListener('scroll', handleNav);
 
     return () => {
-      sections.forEach((section) => observer.unobserve(section));
+      revealObserver.disconnect();
+      bentoObserver.disconnect();
+      window.removeEventListener('scroll', handleNav);
     };
   }, []);
 
-  return (
-    <div className="bg-background text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed page-enter">
-      <MarketingHeader />
-      
-      {/* Hero Section */}
-      <section className="reveal-section relative pt-xl pb-lg px-margin overflow-hidden bg-warm-bg/30">
-        <div className="max-w-7xl mx-auto text-center relative z-10">
-          <h1 className="font-display-lg text-display-lg max-w-4xl mx-auto mb-md leading-tight">
-            Votre commerce en ligne en <span className="italic text-primary">moins de 5 minutes</span>
-          </h1>
-          <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto mb-lg">
-            Transformez votre boutique locale en une puissance digitale. Gérez vos ventes avec l'IA, des mini-sites rapides et des QR codes intelligents.
-          </p>
-          <div className="flex flex-col md:flex-row justify-center gap-sm mb-xl">
-            <a href={landingCta()} className="bg-primary text-on-primary px-lg py-sm rounded-xl font-label-md text-label-md hover:brightness-95 hover:shadow-lg hover:shadow-primary/20 transition-all text-center no-underline">
-              Commencer maintenant
-            </a>
-            <a href="/contact" className="bg-white border border-outline-variant text-on-surface px-lg py-sm rounded-xl font-label-md text-label-md hover:bg-surface-container-low transition-all text-center no-underline">
-              Demander une démo
-            </a>
-          </div>
-          
-          {/* Key Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-md max-w-5xl mx-auto mt-lg">
-            <div className="p-md rounded-xl bg-white/60 hairline border-hairline-border text-center hover:shadow-md transition-shadow">
-              <span className="block font-headline-md text-headline-md text-primary">5 min</span>
-              <span className="text-label-md font-label-md text-outline uppercase tracking-wider">Mise en ligne</span>
-            </div>
-            <div className="p-md rounded-xl bg-white/60 hairline border-hairline-border text-center hover:shadow-md transition-shadow">
-              <span className="block font-headline-md text-headline-md text-primary">3 langues</span>
-              <span className="text-label-md font-label-md text-outline uppercase tracking-wider">Ar, Fr, Eng</span>
-            </div>
-            <div className="p-md rounded-xl bg-white/60 hairline border-hairline-border text-center hover:shadow-md transition-shadow">
-              <span className="block font-headline-md text-headline-md text-primary">0 DH</span>
-              <span className="text-label-md font-label-md text-outline uppercase tracking-wider">Frais d'inscription</span>
-            </div>
-          </div>
-        </div>
-        
-        {/* Background Decorative Elements */}
-        <div className="absolute top-1/4 left-0 w-64 h-64 bg-primary-fixed/20 blur-[100px] -z-10 rounded-full"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-secondary-fixed/20 blur-[120px] -z-10 rounded-full"></div>
-      </section>
+  useEffect(() => {
+    const handleMouse = (e) => {
+      const glow = document.getElementById('cursor-glow');
+      if (glow) {
+        glow.style.left = e.clientX + 'px';
+        glow.style.top = e.clientY + 'px';
+      }
+    };
+    document.addEventListener('mousemove', handleMouse);
+    return () => document.removeEventListener('mousemove', handleMouse);
+  }, []);
 
-      {/* Product Preview — Live Chat Demo */}
-      <section id="produit" className="reveal-section py-xl px-margin bg-background">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-xl items-center">
-            {/* Chat Mockup */}
-            <div className="lg:col-span-3">
-              <div className="rounded-xl overflow-hidden hairline border-hairline-border bg-white shadow-2xl transition-shadow hover:shadow-3xl duration-300">
-                {/* Window chrome */}
-                <div className="flex items-center gap-2 px-4 py-[10px] bg-warm-bg border-b border-hairline-border">
-                  <div className="flex gap-1.5">
-                    <span className="w-3 h-3 rounded-full bg-[#ff5f57]" />
-                    <span className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
-                    <span className="w-3 h-3 rounded-full bg-[#28c840]" />
-                  </div>
-                  <div className="flex-1 text-center">
-                    <div className="inline-flex items-center gap-1.5 bg-white/70 px-3 py-1 rounded-full text-xs text-outline font-medium">
-                      <span className="material-symbols-outlined !text-[14px]">smart_toy</span>
-                      chat.sahel.ai — Assistant IA • En ligne
-                      <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
+  useEffect(() => {
+    if (!heroChatRef.current) return;
+    const ob = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !heroChatStarted.current) {
+          heroChatStarted.current = true;
+          const run = async () => {
+            for (let i = 1; i <= heroMessages.length; i++) {
+              await new Promise((r) => setTimeout(r, 1400));
+              setHeroChatStep(i);
+            }
+          };
+          run();
+        }
+      },
+      { threshold: 0.4 }
+    );
+    ob.observe(heroChatRef.current);
+    return () => ob.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (chatStep >= chatMessages.length) return;
+    const timer = setTimeout(() => {
+      setChatStep((s) => s + 1);
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
+    }, 1800);
+    return () => clearTimeout(timer);
+  }, [chatStep]);
+
+  const faqItems = [
+    { q: "L'IA comprend-elle vraiment le Darija ?", a: "Oui, nous avons spécifiquement entraîné nos modèles sur des corpus de données incluant les subtilités du Darija (arabe marocain dialectal) écrit en caractères latins ou arabes, pour une interaction authentique avec vos clients locaux." },
+    { q: "Puis-je garder mon numéro WhatsApp actuel ?", a: "Absolument. Sahel s'intègre à votre numéro Business actuel via l'API officielle de WhatsApp pour assurer une transition transparente et conserver votre historique client." },
+    { q: "Est-ce facile à configurer sans connaissances techniques ?", a: "C'est notre priorité. La plupart de nos clients lancent leur solution en moins de 15 minutes. Notre équipe vous accompagne d'ailleurs gratuitement lors de la première configuration." }
+  ];
+
+  return (
+    <div className="bg-background text-on-background font-body-md overflow-x-hidden selection:bg-primary/20 page-enter">
+      <div className="cursor-glow" id="cursor-glow"></div>
+
+      {/* Background Orbs */}
+      <div className="orb w-96 h-96 bg-primary-container top-[-10%] left-[-10%]"></div>
+      <div className="orb w-80 h-80 bg-secondary-fixed top-[40%] right-[-5%]"></div>
+
+      <MarketingHeader />
+
+      {/* Hero Section */}
+      <header className="relative pt-40 pb-xl overflow-hidden">
+        <div className="max-w-7xl mx-auto px-margin text-center">
+          <h1 className="font-display-lg text-display-lg mb-md max-w-4xl mx-auto reveal leading-tight">
+            L'intelligence artificielle au service de <span className="italic font-light text-primary">l'artisanat marocain</span>.
+          </h1>
+          <p className="font-body-lg text-body-lg text-on-surface-variant mb-lg max-w-2xl mx-auto reveal" style={{ transitionDelay: '0.1s' }}>
+            Propulsez votre PME dans l'ère numérique. Sahel automatise vos ventes, analyse vos données et sublime votre relation client en un temps record.
+          </p>
+          <div className="flex flex-col sm:flex-row justify-center gap-sm mb-xl reveal" style={{ transitionDelay: '0.2s' }}>
+            <a href={landingCta()} className="bg-primary text-on-primary px-lg py-md rounded-xl font-headline-sm text-lg hover:scale-[1.02] transition-all shadow-xl shadow-primary/25 flex items-center justify-center gap-sm no-underline">
+              Démarrer mon projet <span className="material-symbols-outlined">rocket_launch</span>
+            </a>
+            <a href={ROUTES.contact} className="bg-white border border-outline-variant px-lg py-md rounded-xl font-headline-sm text-lg hover:bg-neutral-gray transition-colors flex items-center justify-center gap-sm no-underline">
+              Demander une démo <span className="material-symbols-outlined">play_circle</span>
+            </a>
+          </div>
+
+          {/* Interactive Mockup - Chat + Mini-site */}
+          <div className="relative max-w-5xl mx-auto reveal" style={{ transitionDelay: '0.3s' }} ref={heroChatRef}>
+            <div className="rounded-2xl overflow-hidden border border-hairline-border shadow-[0_32px_64px_-16px_rgba(0,70,124,0.15)] bg-white">
+              <div className="bg-neutral-gray px-md py-sm border-b border-hairline-border flex items-center gap-2">
+                <div className="flex gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-[#ff5f57]" />
+                  <span className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
+                  <span className="w-3 h-3 rounded-full bg-[#28c840]" />
+                </div>
+                <div className="flex-1 text-center text-xs text-outline/60">sahel.ai — Assistant IA</div>
+              </div>
+              <div className="p-md md:p-lg grid grid-cols-1 md:grid-cols-5 gap-md">
+                {/* Chat Panel */}
+                <div className="md:col-span-3">
+                  <div className="bg-slate-50 rounded-xl border border-hairline-border overflow-hidden">
+                    <div className="bg-white px-sm py-2 border-b border-hairline-border flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-bold">S</div>
+                      <span className="text-xs font-bold text-on-surface">Assistant Sahel</span>
+                      <span className="ml-auto text-[10px] text-green-500 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> En ligne
+                      </span>
+                    </div>
+                    <div className="p-3 min-h-[260px] flex flex-col gap-2 justify-end">
+                      {heroMessages.slice(0, heroChatStep).map((msg, i) => (
+                        <div key={i} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
+                          <div className={`px-3 py-2 rounded-xl text-xs max-w-[85%] leading-relaxed ${
+                            msg.type === 'user'
+                              ? 'bg-primary text-on-primary rounded-br-sm'
+                              : 'bg-white text-on-surface rounded-bl-sm border border-hairline-border shadow-sm'
+                          }`}>
+                            {msg.text}
+                          </div>
+                        </div>
+                      ))}
+                      {heroChatStep < heroMessages.length && heroChatStep > 0 && (
+                        <div className="flex items-start gap-2">
+                          <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-[8px] font-bold shrink-0">S</div>
+                          <div className="flex gap-1 px-3 py-2.5 bg-white rounded-xl border border-hairline-border">
+                            <span className="w-1.5 h-1.5 rounded-full bg-outline/40 animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="w-1.5 h-1.5 rounded-full bg-outline/40 animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="w-1.5 h-1.5 rounded-full bg-outline/40 animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* Conversation */}
-                <div className="p-4 space-y-3 bg-[#f1efe8] min-h-[480px] flex flex-col justify-end">
-                  {/* Context label */}
-                  <div className="text-center mb-1">
-                    <span className="inline-flex items-center gap-1 text-[11px] text-outline font-medium bg-white/60 px-3 py-1 rounded-full border border-hairline-border">
-                      <span className="material-symbols-outlined !text-[12px]">store</span>
-                      Épicerie Atlas — Tinghir
-                    </span>
-                  </div>
-
-                  {/* User message 1 */}
-                  <div className="flex justify-end">
-                    <div className="max-w-[80%] px-4 py-2.5 rounded-xl rounded-br-sm bg-primary text-on-primary text-sm leading-relaxed shadow-sm"
-                      style={{ direction: 'rtl' }}>
-                      السلام عليكم، شنو كاين عندكم فالحلويات؟
+                {/* Mini Website Preview */}
+                <div className="md:col-span-2">
+                  <div className="rounded-xl border border-hairline-border overflow-hidden bg-white h-full flex flex-col">
+                    <div className="h-24 bg-gradient-to-br from-primary to-tertiary-container relative">
+                      <div className="absolute bottom-3 left-3 right-3">
+                        <div className="w-14 h-14 rounded-xl bg-white shadow-md flex items-center justify-center text-primary font-bold text-lg">RA</div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex justify-end">
-                    <span className="text-[10px] text-outline/60 mt-0.5">15:32</span>
-                  </div>
-
-                  {/* AI typing indicator */}
-                  <div className="flex items-start gap-2">
-                    <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-bold shrink-0 shadow-sm">S</div>
-                    <div className="flex gap-1 px-3 py-3 bg-white rounded-xl rounded-bl-sm border border-hairline-border">
-                      <span className="w-2 h-2 rounded-full bg-outline/40 animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-2 h-2 rounded-full bg-outline/40 animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-2 h-2 rounded-full bg-outline/40 animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </div>
-                  </div>
-
-                  {/* AI response 1 */}
-                  <div className="flex items-start gap-2">
-                    <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-bold shrink-0 shadow-sm">S</div>
-                    <div className="max-w-[80%] px-4 py-2.5 rounded-xl rounded-bl-sm bg-white text-on-surface text-sm leading-relaxed border border-hairline-border shadow-sm"
-                      style={{ direction: 'rtl' }}>
-                      وعليكم السلام! 😊 عندنا فهاد الأسبوع:<br />
-                      • الجبن البلدي — 35 درهم للكيلو<br />
-                      • الكوك بطريقة تقليدية — 25 درهم<br />
-                      • الشباكية بالعسل — 40 درهم<br />
-                      شنو تحب تأمر؟
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-[10px] text-outline/60 ml-9">15:32</span>
-                  </div>
-
-                  {/* User message 2 */}
-                  <div className="flex justify-end">
-                    <div className="max-w-[80%] px-4 py-2.5 rounded-xl rounded-br-sm bg-primary text-on-primary text-sm leading-relaxed shadow-sm">
-                      بغيت 2 كيلو جبن وجريدة دالشباكية. واش عندكم توصيل؟
-                    </div>
-                  </div>
-                  <div className="flex justify-end">
-                    <span className="text-[10px] text-outline/60 mt-0.5">15:34</span>
-                  </div>
-
-                  {/* AI response 2 */}
-                  <div className="flex items-start gap-2">
-                    <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-bold shrink-0 shadow-sm">S</div>
-                    <div className="max-w-[80%] px-4 py-2.5 rounded-xl rounded-bl-sm bg-white text-on-surface text-sm leading-relaxed border border-hairline-border shadow-sm">
-                      Bien sûr ! ✅ Voici votre commande :<br />
-                      • 2 kg Jben — 70 DH<br />
-                      • 1 lot Chebakia — 40 DH<br />
-                      <strong>Total : 110 DH</strong><br /><br />
-                      Oui, on livre à Tinghir sans frais supplémentaires 🚚<br />
-                      Vous passez la commande ?
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-[10px] text-outline/60 ml-9">15:34</span>
-                  </div>
-
-                  {/* Input bar mockup */}
-                  <div className="pt-2">
-                    <div className="flex items-center gap-2 px-4 py-3 bg-white rounded-xl border border-hairline-border shadow-sm">
-                      <span className="text-outline/40 text-sm">Écrivez votre message...</span>
-                      <div className="ml-auto w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                        <span className="material-symbols-outlined !text-[16px] text-white">send</span>
+                    <div className="p-3 pt-10 flex-1 flex flex-col gap-1.5">
+                      <h4 className="font-bold text-sm text-on-surface m-0">Restaurant Atlas</h4>
+                      <div className="flex items-center gap-1 text-[10px] text-yellow-500">
+                        <span className="material-symbols-outlined !text-[12px]">star</span>
+                        <span className="material-symbols-outlined !text-[12px]">star</span>
+                        <span className="material-symbols-outlined !text-[12px]">star</span>
+                        <span className="material-symbols-outlined !text-[12px]">star</span>
+                        <span className="material-symbols-outlined !text-[12px]">star</span>
+                        <span className="text-outline ml-1">4.8</span>
+                      </div>
+                      <p className="text-[10px] text-on-surface-variant m-0 leading-relaxed">
+                        Cuisine marocaine · Ouvert 12h-23h · Marrakech
+                      </p>
+                      <div className="mt-auto pt-2 flex items-center gap-1 text-[10px] text-primary">
+                        <span className="material-symbols-outlined !text-[12px]">qr_code_scanner</span>
+                        Menu digital
+                        <span className="ml-auto material-symbols-outlined !text-[12px]">arrow_forward</span>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </header>
 
-            {/* Value Props */}
-            <div className="lg:col-span-2 space-y-5">
-              <div>
-                <span className="text-primary font-label-md text-label-md uppercase tracking-widest">Démo en direct</span>
-                <h2 className="font-headline-md text-headline-md mt-sm mb-2">Votre assistant IA parle la langue de vos clients.</h2>
-                <p className="font-body-md text-body-md text-on-surface-variant leading-relaxed">
-                  Le chatbot RAG de Sahel.ai répond en Darija, Arabe, Français ou Anglais — avec une connaissance précise de votre inventaire et de vos prix.
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-white/50 border border-hairline-border hover:bg-white/80 transition-colors">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-primary !text-[20px]">database</span>
-                  </div>
-                  <div>
-                    <h4 className="font-label-md text-label-md font-semibold text-on-surface">RAG sur vos documents</h4>
-                    <p className="text-body-sm text-on-surface-variant leading-relaxed mt-0.5">Importez vos catalogues, menus ou fiches produits — l'IA apprend et répond avec vos vraies données.</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-white/50 border border-hairline-border hover:bg-white/80 transition-colors">
-                  <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-secondary !text-[20px]">translate</span>
-                  </div>
-                  <div>
-                    <h4 className="font-label-md text-label-md font-semibold text-on-surface">Multilingue naturel</h4>
-                    <p className="text-body-sm text-on-surface-variant leading-relaxed mt-0.5">Darija, Arabe, Français — le client parle sa langue, l'IA comprend et répond.</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-white/50 border border-hairline-border hover:bg-white/80 transition-colors">
-                  <div className="w-10 h-10 rounded-lg bg-tertiary/10 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-tertiary !text-[20px]">qr_code_2</span>
-                  </div>
-                  <div>
-                    <h4 className="font-label-md text-label-md font-semibold text-on-surface">QR Code → Chat → Vente</h4>
-                    <p className="text-body-sm text-on-surface-variant leading-relaxed mt-0.5">Un scan, une question, une commande. Le parcours client le plus court du Maroc.</p>
-                  </div>
+      {/* Master Your Data (RAG) */}
+      <section className="py-xl bg-neutral-gray overflow-hidden">
+        <div className="max-w-7xl mx-auto px-margin flex flex-col md:flex-row items-center gap-xl">
+          <div className="flex-1 reveal">
+            <h2 className="font-headline-md text-headline-md mb-md">Maîtrisez vos données professionnelles.</h2>
+            <p className="text-on-surface-variant font-body-lg text-body-lg mb-lg leading-relaxed">
+              Sahel utilise la technologie de <strong>Génération Augmentée par Récupération (RAG)</strong>. Nous n'utilisons pas seulement une IA générique ; nous entraînons un modèle privé sur vos propres documents : catalogues PDF, menus, inventaires et historiques clients.
+            </p>
+            <div className="space-y-md">
+              <div className="flex gap-sm">
+                <span className="material-symbols-outlined text-primary bg-primary/5 p-2 rounded-lg">security</span>
+                <div>
+                  <h4 className="font-bold text-on-surface">Confidentialité Totale</h4>
+                  <p className="text-on-surface-variant text-sm">Vos données restent dans votre environnement sécurisé au Maroc.</p>
                 </div>
               </div>
-
-              <a href={landingCta()} className="inline-flex items-center gap-2 bg-primary text-on-primary px-6 py-3 rounded-xl font-label-md text-label-md hover:brightness-95 hover:shadow-lg transition-all no-underline font-semibold">
-                Essayer gratuitement
-                <span className="material-symbols-outlined !text-[18px]">arrow_forward</span>
-              </a>
+              <div className="flex gap-sm">
+                <span className="material-symbols-outlined text-primary bg-primary/5 p-2 rounded-lg">psychology</span>
+                <div>
+                  <h4 className="font-bold text-on-surface">IA Contextuelle</h4>
+                  <p className="text-on-surface-variant text-sm">Elle répond avec précision aux questions sur vos stocks ou services spécifiques.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 bg-deep-navy rounded-2xl p-lg relative reveal" style={{ transitionDelay: '0.2s' }}>
+            <div className="absolute top-4 right-4 flex gap-xs">
+              <div className="w-3 h-3 rounded-full bg-red-400"></div>
+              <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+              <div className="w-3 h-3 rounded-full bg-green-400"></div>
+            </div>
+            <div className="mt-md font-mono text-sm text-green-400 space-y-2">
+              <p className="m-0">&gt; Initializing Sahel RAG engine...</p>
+              <p className="m-0">&gt; Loading 14 documents (PDF, CSV, JPEG)...</p>
+              <p className="m-0">&gt; Vectorizing knowledge base...</p>
+              <p className="m-0 text-white">&gt; Query: "Est-ce qu'il reste du Zellige bleu en 10x10?"</p>
+              <p className="m-0 text-blue-400">&gt; Result found in Stock_May.pdf: 14 units remaining.</p>
+              <p className="m-0 text-primary-fixed">&gt; Sahel: "Oui, il nous reste exactement 14 unités de Zellige bleu 10x10 en stock."</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Features Bento Grid */}
-      <section id="fonctionnalites" className="reveal-section py-xl px-margin bg-warm-bg/20">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-lg">
-            <span className="text-primary font-label-md text-label-md uppercase tracking-widest">Fonctionnalités</span>
-            <h2 className="font-headline-md text-headline-md mt-sm font-bold">Une technologie de pointe pour<br/>les PME marocaines.</h2>
+      <section className="py-xl" id="features">
+        <div className="max-w-7xl mx-auto px-margin">
+          <div className="text-center mb-xl reveal">
+            <h2 className="font-headline-md text-headline-md mb-sm">Tout ce dont vous avez besoin pour briller.</h2>
+            <p className="text-on-surface-variant font-body-lg text-body-lg max-w-xl mx-auto">Une suite complète d'outils intelligents pour transformer votre entreprise locale en leader numérique.</p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-md">
-            {/* RAG AI Card */}
-            <div className="md:col-span-8 group relative overflow-hidden bg-white rounded-xl hairline border-hairline-border p-md flex flex-col justify-between hover:border-primary/50 transition-colors shadow-sm hover:shadow-md">
-              <div>
-                <span className="material-symbols-outlined text-primary mb-sm text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>smart_toy</span>
-                <h3 className="font-headline-sm text-headline-sm mb-xs">Chatbot IA RAG</h3>
-                <p className="font-body-md text-body-md text-on-surface-variant max-w-md">L'IA qui connaît votre inventaire. Elle répond aux clients sur WhatsApp et sur votre site 24/7 avec une précision humaine.</p>
-              </div>
-              
-              <div className="mt-md rounded-lg overflow-hidden h-48 bg-surface-container-low border border-hairline-border relative p-sm flex flex-col justify-end gap-xs">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent"></div>
-                {/* Chat Mockup */}
-                <div className="flex gap-xs items-start max-w-[80%] z-10">
-                  <div className="w-6 h-6 rounded-full bg-surface-container flex items-center justify-center text-[10px] font-bold text-outline shrink-0">C</div>
-                  <div className="bg-white px-xs py-[6px] rounded-r-lg rounded-bl-lg border border-hairline-border text-[11px] shadow-sm">
-                    Avez-vous des tables dispo ce soir ?
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-md bento-stagger">
+            {/* Large Card - WhatsApp Assistant */}
+            <div className="md:col-span-8 bg-white p-lg rounded-2xl border border-hairline-border flex flex-col md:flex-row gap-lg group hover:shadow-2xl transition-all reveal">
+              <div className="flex-1">
+                <div className="w-12 h-12 bg-surface-blue rounded-xl flex items-center justify-center text-primary mb-md group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined">smart_toy</span>
                 </div>
-                <div className="flex gap-xs items-start max-w-[85%] self-end flex-row-reverse z-10">
-                  <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-[10px] font-bold text-white shrink-0">S</div>
-                  <div className="bg-primary text-white px-xs py-[6px] rounded-l-lg rounded-br-lg text-[11px] shadow-sm text-left">
-                    Oui ! Nous avons 3 tables libres en terrasse pour ce soir. Vous souhaitez que je réserve au nom de qui ? 😊
-                  </div>
+                <h3 className="font-headline-sm text-headline-sm mb-xs">Assistant WhatsApp Intelligent</h3>
+                <p className="text-on-surface-variant mb-md">Gérez vos réservations, répondez aux questions fréquentes et vendez 24/7 sur WhatsApp avec une IA qui maîtrise le Darija et le Français.</p>
+                <ul className="space-y-xs">
+                  <li className="flex items-center gap-xs text-sm text-primary">
+                    <span className="material-symbols-outlined text-[18px]">verified</span> Réservations automatiques
+                  </li>
+                  <li className="flex items-center gap-xs text-sm text-primary">
+                    <span className="material-symbols-outlined text-[18px]">verified</span> Traduction instantanée des menus
+                  </li>
+                </ul>
+              </div>
+              <div className="flex-1 bg-neutral-gray rounded-xl p-md border border-hairline-border overflow-hidden">
+                <div className="flex flex-col gap-sm">
+                  <div className="bg-white p-sm rounded-lg self-start text-xs max-w-[80%] shadow-sm">Bonjour ! Avez-vous des tables pour ce soir ?</div>
+                  <div className="bg-primary text-on-primary p-sm rounded-lg self-end text-xs max-w-[80%]">Salaam ! Oui, il nous reste 3 tables disponibles pour 20h. Voulez-vous réserver ?</div>
                 </div>
               </div>
             </div>
 
-            {/* Mini-sites Card */}
-            <div className="md:col-span-4 bg-primary text-on-primary rounded-xl p-md flex flex-col justify-between overflow-hidden relative shadow-sm hover:shadow-lg transition-all group">
+            {/* Small Card - Telegram Bot */}
+            <div className="md:col-span-4 bg-white p-lg rounded-2xl border border-hairline-border flex flex-col group hover:shadow-2xl transition-all reveal">
               <div>
-                <span className="material-symbols-outlined mb-sm text-3xl">language</span>
-                <h3 className="font-headline-sm text-headline-sm mb-xs text-white">Mini-sites Ultra-rapides</h3>
-                <p className="font-body-md text-body-md opacity-80">Votre catalogue digital optimisé pour le mobile et le SEO local.</p>
-              </div>
-              
-              <div className="mt-md -mr-md relative">
-                {/* Visual Store Catalogue Mockup */}
-                <div className="w-full h-32 bg-white/10 rounded-tl-xl border-l border-t border-white/20 p-xs flex flex-col gap-xs transition-transform group-hover:translate-x-1 group-hover:translate-y-1">
-                  <div className="w-16 h-3 bg-white/30 rounded-full"></div>
-                  <div className="grid grid-cols-2 gap-xs">
-                    <div className="bg-white/5 border border-white/10 rounded p-xs flex flex-col gap-1 text-left">
-                      <div className="w-full h-10 bg-white/10 rounded"></div>
-                      <div className="w-10 h-2 bg-white/30 rounded-full"></div>
-                      <div className="w-6 h-2 bg-white/45 rounded-full"></div>
-                    </div>
-                    <div className="bg-white/5 border border-white/10 rounded p-xs flex flex-col gap-1 text-left">
-                      <div className="w-full h-10 bg-white/10 rounded"></div>
-                      <div className="w-8 h-2 bg-white/30 rounded-full"></div>
-                      <div className="w-5 h-2 bg-white/45 rounded-full"></div>
-                    </div>
-                  </div>
+                <div className="w-12 h-12 bg-surface-blue rounded-xl flex items-center justify-center text-primary mb-md group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined">send</span>
                 </div>
+                <h3 className="font-headline-sm text-headline-sm mb-xs">Assistant Telegram</h3>
+                <p className="text-on-surface-variant">Retrouvez le même assistant IA sur Telegram. Gérez commandes et questions depuis l'application que vous préférez.</p>
               </div>
+              <ul className="space-y-xs mt-auto pt-md">
+                <li className="flex items-center gap-xs text-sm text-primary">
+                  <span className="material-symbols-outlined text-[18px]">verified</span> Notifications en temps réel
+                </li>
+                <li className="flex items-center gap-xs text-sm text-primary">
+                  <span className="material-symbols-outlined text-[18px]">verified</span> Multi-plateforme
+                </li>
+              </ul>
             </div>
 
-            {/* QR Codes */}
-            <div className="md:col-span-4 bg-white rounded-xl hairline border-hairline-border p-md flex flex-col justify-between hover:border-primary/50 transition-colors shadow-sm hover:shadow-md">
-              <div>
-                <span className="material-symbols-outlined text-tertiary mb-sm text-3xl">qr_code_2</span>
-                <h3 className="font-headline-sm text-headline-sm mb-xs">QR Codes Dynamiques</h3>
-                <p className="font-body-md text-body-md text-on-surface-variant">Lien direct entre votre boutique physique et votre inventaire digital.</p>
+            {/* Row 2 - Dashboard */}
+            <div className="md:col-span-4 bg-surface-blue p-lg rounded-2xl border border-hairline-border group reveal">
+              <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-primary mb-md shadow-sm group-hover:-translate-y-1 transition-transform">
+                <span className="material-symbols-outlined">analytics</span>
               </div>
-              <div className="flex justify-center items-center mt-md bg-surface-container-low border border-hairline-border rounded-lg p-sm h-32">
-                <span className="material-symbols-outlined text-6xl text-outline-variant animate-pulse">qr_code_2</span>
-              </div>
+              <h3 className="font-headline-sm text-headline-sm mb-xs">Dashboard Analytique</h3>
+              <p className="text-on-surface-variant">Visualisez vos performances en temps réel : ventes, produits phares et satisfaction client.</p>
             </div>
 
-            {/* Analytics */}
-            <div className="md:col-span-8 bg-surface-blue rounded-xl p-md flex flex-col justify-between overflow-hidden shadow-sm hover:shadow-md">
-              <div className="flex justify-between items-start">
-                <div>
-                  <span className="material-symbols-outlined text-primary mb-sm text-3xl">insights</span>
-                  <h3 className="font-headline-sm text-headline-sm mb-xs">Analyses en temps réel</h3>
-                  <p className="font-body-md text-body-md text-on-surface-variant">Comprenez ce que vos clients achètent et pourquoi.</p>
+            {/* Row 2 - Site Web */}
+            <div className="md:col-span-8 bg-white p-lg rounded-2xl border border-hairline-border flex flex-col md:flex-row-reverse gap-lg group reveal">
+              <div className="flex-1">
+                <div className="w-12 h-12 bg-secondary-container rounded-xl flex items-center justify-center text-secondary mb-md group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined">language</span>
                 </div>
-                <div className="bg-white px-sm py-xs rounded-full hairline border-hairline-border flex items-center gap-xs shadow-sm">
-                  <div className="w-2 h-2 rounded-full bg-secondary animate-pulse"></div>
-                  <span className="text-label-sm font-label-sm font-semibold">Live data</span>
-                </div>
+                <h3 className="font-headline-sm text-headline-sm mb-xs">Site Web Auto-généré</h3>
+                <p className="text-on-surface-variant">Votre boutique en ligne est créée automatiquement à partir de vos réseaux sociaux. Aucune compétence technique requise.</p>
               </div>
-              
-              <div className="mt-md flex gap-xs items-end h-24">
-                <div className="w-full bg-primary/20 rounded-t h-[60%] hover:bg-primary/30 transition-colors duration-150"></div>
-                <div className="w-full bg-primary/40 rounded-t h-[80%] hover:bg-primary/50 transition-colors duration-150"></div>
-                <div className="w-full bg-primary rounded-t h-[100%] hover:bg-primary/90 transition-colors duration-150"></div>
-                <div className="w-full bg-primary/30 rounded-t h-[50%] hover:bg-primary/45 transition-colors duration-150"></div>
-                <div className="w-full bg-primary/60 rounded-t h-[90%] hover:bg-primary/70 transition-colors duration-150"></div>
+              <div className="flex-1 rounded-xl bg-neutral-gray p-sm border border-hairline-border overflow-hidden">
+                <div className="grid grid-cols-2 gap-xs">
+                  <div className="h-20 bg-white rounded-lg shadow-sm"></div>
+                  <div className="h-20 bg-white rounded-lg shadow-sm"></div>
+                  <div className="h-20 bg-white rounded-lg shadow-sm col-span-2"></div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* How it Works Timeline */}
-      <section className="reveal-section py-xl px-margin bg-background">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-xl">
-            <h2 className="font-headline-md text-headline-md">Prêt en 3 étapes simples</h2>
-          </div>
-          
-          <div className="relative space-y-lg">
-            {/* Vertical Line */}
-            <div className="absolute left-6 md:left-1/2 top-0 bottom-0 w-px bg-hairline-border"></div>
-            
-            {/* Step 1 */}
-            <div className="relative flex flex-col md:flex-row items-start md:items-center gap-md md:gap-lg">
-              <div className="md:w-1/2 text-right hidden md:block">
-                <h3 className="font-headline-sm text-headline-sm">Connectez votre stock</h3>
-                <p className="text-on-surface-variant font-body-md">Importez vos produits via Excel ou simplement en prenant des photos.</p>
-              </div>
-              <div className="z-10 w-12 h-12 rounded-full bg-primary text-on-primary flex items-center justify-center font-headline-sm text-headline-sm shadow-lg shadow-primary/20 shrink-0">
-                1
-              </div>
-              <div className="md:w-1/2 md:hidden pl-10">
-                <h3 className="font-headline-sm text-headline-sm">Connectez votre stock</h3>
-                <p className="text-on-surface-variant font-body-md">Importez vos produits via Excel ou simplement en prenant des photos.</p>
-              </div>
-              <div className="md:w-1/2 hidden md:block"></div>
-            </div>
-
-            {/* Step 2 */}
-            <div className="relative flex flex-col md:flex-row items-start md:items-center gap-md md:gap-lg">
-              <div className="md:w-1/2 hidden md:block"></div>
-              <div className="z-10 w-12 h-12 rounded-full bg-primary text-on-primary flex items-center justify-center font-headline-sm text-headline-sm shadow-lg shadow-primary/20 shrink-0">
-                2
-              </div>
-              <div className="md:w-1/2 pl-10 md:pl-0 text-left">
-                <h3 className="font-headline-sm text-headline-sm">Activez l'IA Sahel</h3>
-                <p className="text-on-surface-variant font-body-md">L'IA apprend vos prix et vos stocks pour répondre aux clients instantanément.</p>
+      {/* Local Impact */}
+      <section className="py-xl bg-warm-bg/20" id="local-impact">
+        <div className="max-w-7xl mx-auto px-margin">
+          <div className="flex flex-col md:flex-row items-center gap-xl">
+            <div className="flex-1 reveal">
+              <h2 className="font-headline-md text-headline-md mb-md">Inclusion numérique pour <span className="italic font-light">chaque</span> PME.</h2>
+              <p className="text-on-surface-variant font-body-lg text-body-lg mb-lg leading-relaxed">
+                Au Maroc, des milliers d'artisans et de commerçants locaux sont exclus de l'économie numérique par manque de temps ou de ressources techniques. Sahel brise ces barrières en offrant des outils puissants, abordables et locaux.
+              </p>
+              <div className="grid grid-cols-2 gap-md">
+                <div className="p-md bg-white rounded-xl shadow-sm border border-hairline-border">
+                  <p className="text-3xl font-display-lg text-primary mb-1">500+</p>
+                  <p className="text-sm font-label-md text-on-surface-variant">PME Accompagnées</p>
+                </div>
+                <div className="p-md bg-white rounded-xl shadow-sm border border-hairline-border">
+                  <p className="text-3xl font-display-lg text-primary mb-1">24/7</p>
+                  <p className="text-sm font-label-md text-on-surface-variant">Support Local</p>
+                </div>
               </div>
             </div>
-
-            {/* Step 3 */}
-            <div className="relative flex flex-col md:flex-row items-start md:items-center gap-md md:gap-lg">
-              <div className="md:w-1/2 text-right hidden md:block">
-                <h3 className="font-headline-sm text-headline-sm">Vendez partout</h3>
-                <p className="text-on-surface-variant font-body-md">Partagez votre lien sur WhatsApp, Instagram ou affichez vos QR codes en magasin.</p>
+            <div className="flex-1 reveal" style={{ transitionDelay: '0.2s' }}>
+              <div className="rounded-3xl overflow-hidden shadow-2xl relative group">
+                <div className="w-full h-[400px] bg-gradient-to-br from-primary/80 to-tertiary-container flex items-center justify-center text-white font-display-lg text-6xl group-hover:scale-105 transition-transform duration-700">
+                  <span className="material-symbols-outlined text-8xl">precision_manufacturing</span>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-deep-navy/80 to-transparent flex items-end p-lg">
+                  <p className="text-white font-headline-sm italic text-xl leading-relaxed">"Sahel nous a permis de toucher des clients partout au monde tout en restant dans notre atelier à Fès."</p>
+                </div>
               </div>
-              <div className="z-10 w-12 h-12 rounded-full bg-primary text-on-primary flex items-center justify-center font-headline-sm text-headline-sm shadow-lg shadow-primary/20 shrink-0">
-                3
-              </div>
-              <div className="md:w-1/2 md:hidden pl-10">
-                <h3 className="font-headline-sm text-headline-sm">Vendez partout</h3>
-                <p className="text-on-surface-variant font-body-md">Partagez votre lien sur WhatsApp, Instagram ou affichez vos QR codes en magasin.</p>
-              </div>
-              <div className="md:w-1/2 hidden md:block"></div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="tarifs" className="reveal-section py-xl px-margin bg-surface-container-low border-t border-hairline-border">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-xl">
-            <h2 className="font-headline-md text-headline-md">Tarification transparente</h2>
-            <p className="text-on-surface-variant mt-sm">Pas de frais cachés. Annulez à tout moment.</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-lg max-w-4xl mx-auto">
-            {/* Free Tier */}
-            <div className="bg-white rounded-xl hairline border-hairline-border p-lg flex flex-col justify-between hover:shadow-xl hover:border-outline-variant transition-all duration-300">
-              <div>
-                <span className="text-label-md font-label-md text-outline uppercase tracking-widest">Essentiel</span>
-                <div className="flex items-baseline gap-xs mt-sm text-left">
-                  <span className="font-headline-md text-headline-md">0 DH</span>
-                  <span className="text-on-surface-variant font-label-md">/ mois</span>
+      {/* Live Demo Simulation */}
+      <section className="py-xl overflow-hidden">
+        <div className="max-w-3xl mx-auto px-margin text-center">
+          <h2 className="font-headline-md text-headline-md mb-xl reveal">Vivez l'expérience Sahel</h2>
+          <div className="bg-white border border-hairline-border rounded-3xl shadow-2xl overflow-hidden reveal" style={{ transitionDelay: '0.2s' }}>
+            <div className="bg-neutral-gray px-md py-sm border-b border-hairline-border flex items-center justify-between">
+              <div className="flex items-center gap-sm">
+                <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white">
+                  <span className="material-symbols-outlined text-[20px]">smart_toy</span>
                 </div>
-                <p className="text-on-surface-variant font-body-md mt-md text-left">Parfait pour démarrer votre digitalisation.</p>
-                
-                <ul className="mt-lg space-y-sm pl-0">
-                  <li className="flex items-center gap-sm font-label-md text-left">
-                    <span className="material-symbols-outlined text-secondary text-lg">check_circle</span>
-                    Mini-site catalogue
-                  </li>
-                  <li className="flex items-center gap-sm font-label-md text-left">
-                    <span className="material-symbols-outlined text-secondary text-lg">check_circle</span>
-                    Jusqu'à 50 produits
-                  </li>
-                  <li className="flex items-center gap-sm font-label-md text-left">
-                    <span className="material-symbols-outlined text-secondary text-lg">check_circle</span>
-                    QR Codes basiques
-                  </li>
-                </ul>
+                <div className="text-left">
+                  <p className="font-bold text-sm">Assistant Sahel</p>
+                  <p className="text-[10px] text-green-500 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> En ligne
+                  </p>
+                </div>
               </div>
-              <a href={landingCta()} className="w-full mt-xl bg-white border border-outline-variant text-on-surface py-sm rounded-xl font-label-md hover:bg-surface-container-low transition-all text-center no-underline font-semibold block">
-                Commencer gratuitement
+              <span className="material-symbols-outlined text-on-surface-variant">more_vert</span>
+            </div>
+            <div className="p-md h-[300px] overflow-y-auto bg-slate-50 flex flex-col gap-md" ref={chatContainerRef}>
+              {chatMessages.slice(0, chatStep).map((msg, i) => (
+                <div key={i} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`px-4 py-2.5 rounded-2xl text-sm shadow-sm max-w-[80%] ${
+                    msg.type === 'user'
+                      ? 'bg-primary text-on-primary rounded-tr-none'
+                      : 'bg-white text-on-surface rounded-tl-none border border-hairline-border'
+                  }`}>
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+              {chatStep < chatMessages.length && chatStep > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold shrink-0">S</div>
+                  <div className="flex gap-1 px-3 py-3 bg-white rounded-xl border border-hairline-border">
+                    <span className="w-2 h-2 rounded-full bg-outline/40 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-2 h-2 rounded-full bg-outline/40 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-2 h-2 rounded-full bg-outline/40 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="p-md border-t border-hairline-border flex gap-sm bg-white">
+              <div className="flex-1 bg-neutral-gray rounded-full px-md py-2 text-left text-on-surface-variant text-sm">Tapez votre message...</div>
+              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white">
+                <span className="material-symbols-outlined">send</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Trust & Security */}
+      <section className="py-xl bg-deep-navy text-white">
+        <div className="max-w-7xl mx-auto px-margin">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-xl">
+            <div className="reveal">
+              <span className="material-symbols-outlined text-primary-fixed text-4xl mb-md">lock_person</span>
+              <h3 className="font-headline-sm text-headline-sm mb-sm">Protection des données</h3>
+              <p className="text-white/60 text-sm leading-relaxed">Vos documents ne sont pas utilisés pour entraîner des modèles publics. Le traitement IA passe par un tiers de confiance (Groq) et vos données restent sous votre contrôle.</p>
+            </div>
+            <div className="reveal" style={{ transitionDelay: '0.1s' }}>
+              <span className="material-symbols-outlined text-primary-fixed text-4xl mb-md">verified_user</span>
+              <h3 className="font-headline-sm text-headline-sm mb-sm">Authentification Sécurisée</h3>
+              <p className="text-white/60 text-sm leading-relaxed">Connexion protégée par JWT, mots de passe hachés (PBKDF2), et support Google OAuth. Votre tableau de bord est accessible uniquement par vous.</p>
+            </div>
+            <div className="reveal" style={{ transitionDelay: '0.2s' }}>
+              <span className="material-symbols-outlined text-primary-fixed text-4xl mb-md">history</span>
+              <h3 className="font-headline-sm text-headline-sm mb-sm">Sauvegarde Intégrée</h3>
+              <p className="text-white/60 text-sm leading-relaxed">Le chatbot conserve l'historique de vos conversations. Vous pouvez exporter vos données ou supprimer votre compte à tout moment depuis votre dashboard.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section className="py-xl" id="pricing">
+        <div className="max-w-7xl mx-auto px-margin">
+          <div className="text-center mb-xl reveal">
+            <h2 className="font-headline-md text-headline-md mb-sm">Un investissement pour votre futur.</h2>
+            <p className="text-on-surface-variant font-body-lg text-body-lg">Simple, transparent, sans engagement.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-lg items-end">
+            {/* Free */}
+            <div className="p-lg bg-white border border-hairline-border rounded-2xl reveal group hover:shadow-xl transition-all">
+              <p className="font-label-sm uppercase text-on-surface-variant mb-md">Gratuit</p>
+              <div className="flex items-baseline gap-1 mb-md">
+                <span className="text-4xl font-display-lg font-bold">0 DH</span>
+                <span className="text-on-surface-variant">/ mois</span>
+              </div>
+              <p className="text-sm text-on-surface-variant mb-lg">Idéal pour découvrir Sahel sans engagement.</p>
+              <ul className="space-y-sm mb-lg pl-0">
+                <li className="flex items-center gap-sm text-sm">
+                  <span className="material-symbols-outlined text-green-500 text-lg">check_circle</span> Site vitrine standard
+                </li>
+                <li className="flex items-center gap-sm text-sm">
+                  <span className="material-symbols-outlined text-green-500 text-lg">check_circle</span> 50 commandes/mois
+                </li>
+                <li className="flex items-center gap-sm text-sm">
+                  <span className="material-symbols-outlined text-green-500 text-lg">check_circle</span> QR Code basique
+                </li>
+              </ul>
+              <a href={landingCta()} className="w-full block text-center py-3 rounded-xl bg-primary text-on-primary font-label-md shadow-sm hover:shadow-md hover:scale-[1.02] transition-all no-underline">
+                Commencer gratuit
               </a>
             </div>
 
-            {/* Pro Tier */}
-            <div className="bg-white rounded-xl border-2 border-primary p-lg flex flex-col justify-between relative shadow-2xl shadow-primary/5 hover:scale-[1.02] transition-transform duration-300">
-              <div className="absolute -top-4 right-8 bg-primary text-on-primary text-label-sm font-label-sm px-sm py-1 rounded-full font-bold">
-                RECOMMANDÉ
+            {/* Pro */}
+            <div className="p-lg bg-white border-2 border-primary rounded-2xl reveal relative scale-105 shadow-2xl shadow-primary/10">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-on-primary px-4 py-1 rounded-full text-[10px] uppercase font-bold tracking-widest">Recommandé</div>
+              <p className="font-label-sm uppercase text-primary mb-md font-bold">Business Pro</p>
+              <div className="flex items-baseline gap-1 mb-md">
+                <span className="text-5xl font-display-lg font-bold">850</span>
+                <span className="text-on-surface-variant">DH/mois</span>
               </div>
-              <div>
-                <span className="text-primary font-label-md text-label-md uppercase tracking-widest font-bold block text-left">Croissance Pro</span>
-                <div className="flex items-baseline gap-xs mt-sm text-primary text-left">
-                  <span className="font-headline-md text-headline-md font-bold">290 DH</span>
-                  <span className="text-on-surface-variant font-label-md">/ mois</span>
-                </div>
-                <p className="text-on-surface-variant font-body-md mt-md text-left">La solution complète pour les PME ambitieuses.</p>
-                
-                <ul className="mt-lg space-y-sm pl-0">
-                  <li className="flex items-center gap-sm font-label-md text-left">
-                    <span className="material-symbols-outlined text-primary text-lg">check_circle</span>
-                    Chatbot IA RAG (WhatsApp + Web)
-                  </li>
-                  <li className="flex items-center gap-sm font-label-md text-left">
-                    <span className="material-symbols-outlined text-primary text-lg">check_circle</span>
-                    Produits illimités
-                  </li>
-                  <li className="flex items-center gap-sm font-label-md text-left">
-                    <span className="material-symbols-outlined text-primary text-lg">check_circle</span>
-                    Analyses avancées &amp; CRM
-                  </li>
-                  <li className="flex items-center gap-sm font-label-md text-left">
-                    <span className="material-symbols-outlined text-primary text-lg">check_circle</span>
-                    Support prioritaire 24/7
-                  </li>
-                </ul>
-              </div>
-              <a href={landingCta()} className="w-full mt-xl bg-primary text-on-primary py-sm rounded-xl font-label-md hover:brightness-95 hover:shadow-lg transition-all text-center no-underline font-semibold block">
-                Essai gratuit de 14 jours
+              <p className="text-sm text-on-surface-variant mb-lg">La solution complète pour les commerçants ambitieux.</p>
+              <ul className="space-y-sm mb-lg pl-0">
+                <li className="flex items-center gap-sm text-sm"><span className="material-symbols-outlined text-green-500 text-lg">check_circle</span> Assistant IA WhatsApp &amp; Web</li>
+                <li className="flex items-center gap-sm text-sm"><span className="material-symbols-outlined text-green-500 text-lg">check_circle</span> Menu QR Interactif</li>
+                <li className="flex items-center gap-sm text-sm"><span className="material-symbols-outlined text-green-500 text-lg">check_circle</span> Commandes illimitées</li>
+                <li className="flex items-center gap-sm text-sm"><span className="material-symbols-outlined text-green-500 text-lg">check_circle</span> Dashboard analytique</li>
+              </ul>
+              <a href={landingCta()} className="w-full block text-center py-4 rounded-xl bg-primary text-on-primary font-label-md shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all no-underline">
+                Essayer 7 jours gratuit
               </a>
             </div>
+
+            {/* Enterprise */}
+            <div className="p-lg bg-white border border-hairline-border rounded-2xl reveal group hover:shadow-xl transition-all">
+              <p className="font-label-sm uppercase text-on-surface-variant mb-md">Enterprise</p>
+              <div className="flex items-baseline gap-1 mb-md">
+                <span className="text-4xl font-display-lg font-bold">Sur</span>
+                <span className="text-on-surface-variant">mesure</span>
+              </div>
+              <p className="text-sm text-on-surface-variant mb-lg">Pour les franchises et les grandes entreprises.</p>
+              <ul className="space-y-sm mb-lg pl-0">
+                <li className="flex items-center gap-sm text-sm"><span className="material-symbols-outlined text-green-500 text-lg">check_circle</span> Gestion multi-boutiques</li>
+                <li className="flex items-center gap-sm text-sm"><span className="material-symbols-outlined text-green-500 text-lg">check_circle</span> API Intégration sur mesure</li>
+                <li className="flex items-center gap-sm text-sm"><span className="material-symbols-outlined text-green-500 text-lg">check_circle</span> Support dédié 24/7</li>
+              </ul>
+              <a href={ROUTES.contact} className="w-full block text-center py-3 rounded-xl border border-outline-variant font-label-md hover:bg-neutral-gray transition-colors no-underline text-on-surface">
+                Nous contacter
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="py-xl bg-neutral-gray" id="faq">
+        <div className="max-w-3xl mx-auto px-margin">
+          <h2 className="font-headline-md text-headline-md text-center mb-xl reveal">Questions fréquentes</h2>
+          <div className="space-y-md reveal">
+            {faqItems.map((item, i) => (
+              <div key={i} className="border border-hairline-border rounded-xl bg-white overflow-hidden">
+                <button
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  className="w-full px-lg py-md flex items-center justify-between text-left focus:outline-none transition-colors hover:bg-slate-50 cursor-pointer border-0 bg-transparent"
+                >
+                  <span className="font-bold text-on-surface">{item.q}</span>
+                  <span className={`material-symbols-outlined transition-transform ${openFaq === i ? 'rotate-45' : ''}`}>
+                    {openFaq === i ? 'remove' : 'add'}
+                  </span>
+                </button>
+                <div className={`px-lg pb-md text-on-surface-variant text-sm leading-relaxed ${openFaq === i ? 'block' : 'hidden'}`}>
+                  {item.a}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="reveal-section py-xl px-margin bg-primary text-on-primary">
-        <div className="max-w-7xl mx-auto text-center">
+      <section className="py-xl px-margin bg-primary text-on-primary">
+        <div className="max-w-7xl mx-auto text-center reveal">
           <h2 className="font-headline-md text-headline-md mb-md text-white">Rejoignez la révolution de l'e-commerce local.</h2>
           <p className="font-body-lg text-body-lg opacity-80 mb-lg max-w-2xl mx-auto text-white">Plus de 500 commerces marocains utilisent déjà Sahel.ai pour booster leurs ventes.</p>
           <a href={landingCta()} className="inline-block bg-white text-primary px-xl py-md rounded-xl font-headline-sm text-headline-sm hover:bg-surface-blue transition-all no-underline font-semibold">
@@ -1373,112 +1465,6 @@ function LandingPage() {
   );
 }
 
-function ContactPage() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!name.trim() || !email.trim() || !message.trim()) {
-      alert("Veuillez remplir tous les champs.");
-      return;
-    }
-    setSubmitted(true);
-  };
-
-  return (
-    <div className="bg-background text-on-surface min-h-screen flex flex-col justify-between page-enter">
-      <div>
-        <MarketingHeader />
-        
-        <section className="py-xl px-margin">
-          <div className="max-w-xl mx-auto bg-white rounded-2xl hairline border-hairline-border p-md md:p-lg shadow-2xl hover:border-primary/30 transition-colors">
-            <a href={ROUTES.home} className="inline-flex items-center gap-xs text-on-surface-variant font-label-md no-underline hover:text-primary mb-md">
-              <span className="material-symbols-outlined !text-[18px]">arrow_back</span>
-              Retour à l'accueil
-            </a>
-            
-            {submitted ? (
-              <div className="text-center py-lg animate-fade-in flex flex-col items-center gap-md">
-                <div className="w-16 h-16 bg-surface-blue rounded-full flex items-center justify-center text-primary mb-xs">
-                  <span className="material-symbols-outlined !text-[36px]">check_circle</span>
-                </div>
-                <h2 className="font-headline-md text-headline-md text-on-surface m-0">Merci pour votre intérêt !</h2>
-                <p className="font-body-md text-body-md text-on-surface-variant leading-relaxed max-w-sm m-0">
-                  Votre demande de démonstration pour Sahel.ai a bien été reçue. Notre équipe vous contactera par email à <strong>{email}</strong> dans les plus brefs délais.
-                </p>
-                <button
-                  onClick={() => {
-                    setSubmitted(false);
-                    setName('');
-                    setEmail('');
-                    setMessage('');
-                  }}
-                  className="mt-md bg-primary hover:bg-primary-container text-on-primary font-bold py-2.5 px-6 rounded-xl shadow-lg shadow-primary/10 transition-all active:scale-95 text-center font-label-md text-label-md border-0 cursor-pointer"
-                >
-                  Envoyer un autre message
-                </button>
-              </div>
-            ) : (
-              <>
-                <h1 className="font-display-lg text-display-lg mt-md mb-md">Parlons de votre commerce</h1>
-                <p className="font-body-md text-body-md text-on-surface-variant mb-lg leading-relaxed text-left">
-                  Pour une mise en place, une question commerciale ou un accompagnement personnalisé, n'hésitez pas à contacter l'équipe Sahel.ai.
-                </p>
-                
-                <form onSubmit={handleSubmit} className="grid gap-md">
-                  <label className="grid gap-xs text-on-surface font-semibold text-label-md text-left">
-                    Nom complet
-                    <input 
-                      type="text" 
-                      placeholder="Votre nom" 
-                      required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-xl px-4 py-3 text-body-md bg-transparent"
-                    />
-                  </label>
-                  <label className="grid gap-xs text-on-surface font-semibold text-label-md text-left">
-                    Adresse email
-                    <input 
-                      type="email" 
-                      placeholder="vous@example.com" 
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-xl px-4 py-3 text-body-md bg-transparent"
-                    />
-                  </label>
-                  <label className="grid gap-xs text-on-surface font-semibold text-label-md text-left">
-                    Message
-                    <textarea 
-                      rows="4" 
-                      placeholder="Expliquez votre besoin" 
-                      required
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      className="border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-xl px-4 py-3 text-body-md bg-transparent resize-y text-left"
-                    ></textarea>
-                  </label>
-                  <button 
-                    type="submit" 
-                    className="bg-primary hover:bg-primary-container text-on-primary font-bold py-3 px-6 rounded-xl shadow-lg shadow-primary/10 transition-all active:scale-95 text-center font-label-md text-label-md border-0 cursor-pointer"
-                  >
-                    Envoyer la demande
-                  </button>
-                </form>
-              </>
-            )}
-          </div>
-        </section>
-      </div>
-
-      <MarketingFooter />
-    </div>
-  );
-}
 
 function Section({ number, title, children }) {
   return (
@@ -1508,9 +1494,6 @@ function LegalPage({ title }) {
               <span className="material-symbols-outlined !text-[18px]">arrow_back</span>
               Retour à l&apos;accueil
             </a>
-            <span className="bg-surface-blue text-primary text-label-md font-label-md px-sm py-1 rounded-full border border-primary/20">
-              Sahel.ai
-            </span>
             <h1 className="font-display-lg text-display-lg mt-md mb-md">{title}</h1>
 
             {isPrivacy ? (
@@ -2003,6 +1986,10 @@ function App() {
 
   if (path === '/about') {
     return <AboutPage />;
+  }
+
+  if (path === '/showcase') {
+    return <ShowcasePage />;
   }
 
   if (path === '/faq') {

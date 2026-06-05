@@ -20,7 +20,7 @@ export default function MarketingHeader() {
 
   return (
     <>
-      <header className="bg-background dark:bg-deep-navy sticky top-0 z-50 border-b border-hairline-border dark:border-outline-variant">
+      <header className="bg-background dark:bg-deep-navy glass-nav sticky top-0 z-50 border-b border-hairline-border dark:border-outline-variant">
         <nav className="flex justify-between items-center w-full px-margin py-xs max-w-7xl mx-auto h-16">
           <div className="flex items-center gap-md">
             <a href={ROUTES.home} className="flex items-center gap-xs no-underline">
@@ -28,6 +28,9 @@ export default function MarketingHeader() {
             </a>
             <div className="hidden md:flex gap-md">
               <a className="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary dark:hover:text-primary-fixed transition-colors font-label-md text-label-md no-underline" href="/" onClick={(e) => { if (window.location.pathname === '/') { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}>Solutions</a>
+              <a className="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary dark:hover:text-primary-fixed transition-colors font-label-md text-label-md no-underline" href={ROUTES.showcase}>
+                Vitrines
+              </a>
               <a className="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary dark:hover:text-primary-fixed transition-colors font-label-md text-label-md no-underline" href={ROUTES.about}>
                 À propos
               </a>

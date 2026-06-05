@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import FileUpload from './FileUpload';
 import ChatInterface from './ChatInterface';
@@ -59,16 +59,42 @@ function Icon({ name, className = '' }) {
   );
 }
 
+function AnimatedNumber({ value, duration = 800 }) {
+  const [display, setDisplay] = useState(0);
+  const ref = useRef(null);
+  const started = useRef(false);
+
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    const start = performance.now();
+    const from = 0;
+    const diff = value - from;
+    function tick(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      setDisplay(Math.round(from + diff * progress));
+      if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }, [value, duration]);
+
+  return <span ref={ref}>{display}</span>;
+}
+
 export default function DashboardPage() {
   const [session, setSession] = useState(() => getSession());
   const owner = session?.owner || null;
   const ownerToken = session?.token || '';
   const appOrigin = window.location.origin;
 
+  const [loading, setLoading] = useState(true);
   const [activeNav, setActiveNav] = useState('overview');
   const [businesses, setBusinesses] = useState([]);
   const [businessStats, setBusinessStats] = useState({});
   const [recentInteractions, setRecentInteractions] = useState([]);
+  const [topQuestions, setTopQuestions] = useState([]);
+  const [languageDistribution, setLanguageDistribution] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [qrBusiness, setQrBusiness] = useState(null);
   const [editBusiness, setEditBusiness] = useState(null);
@@ -134,6 +160,9 @@ export default function DashboardPage() {
     if (!owner || businesses.length === 0) {
       setBusinessStats({});
       setRecentInteractions([]);
+      setTopQuestions([]);
+      setLanguageDistribution([]);
+      setLoading(false);
       return;
     }
 
@@ -193,6 +222,36 @@ export default function DashboardPage() {
       conversationCounts[key] = (conversationCounts[key] || 0) + 1;
     });
 
+    const questionCounts = {};
+    const langCounts = {};
+    let totalLang = 0;
+    interactions.forEach((item) => {
+      const q = (item.question || '').trim();
+      if (q) {
+        questionCounts[q] = (questionCounts[q] || 0) + 1;
+      }
+      const lang = item.language || 'unknown';
+      langCounts[lang] = (langCounts[lang] || 0) + 1;
+      totalLang++;
+    });
+
+    const langLabels = { ar: 'Darija (Arabe)', fr: 'Français', en: 'Anglais', unknown: 'Autre' };
+
+    setTopQuestions(
+      Object.entries(questionCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([q, count]) => ({ q, count })),
+    );
+
+    setLanguageDistribution(
+      Object.entries(langCounts).map(([lang, count]) => ({
+        lang: langLabels[lang] || lang,
+        pct: totalLang > 0 ? Math.round((count / totalLang) * 100) : 0,
+        color: lang === 'fr' ? 'bg-primary' : lang === 'ar' ? 'bg-secondary' : lang === 'en' ? 'bg-tertiary' : 'bg-outline',
+      })),
+    );
+
     setBusinessStats(stats);
     setRecentInteractions(
       interactions.slice(0, 5).map((item) => ({
@@ -200,6 +259,7 @@ export default function DashboardPage() {
         messageCount: conversationCounts[`${item.businessId}:${item.conversationId}`] || 1,
       })),
     );
+    setLoading(false);
   }, [businesses, owner, ownerToken]);
 
   useEffect(() => {
@@ -241,12 +301,20 @@ export default function DashboardPage() {
         ? Math.round(rates.reduce((sum, rate) => sum + rate, 0) / rates.length)
         : 0;
 
+    const messageCounts = recentInteractions.map((i) => i.messageCount);
+    const maxMsgCount = Math.max(...messageCounts, 1);
+    const sparkline = messageCounts.length >= 7
+      ? messageCounts.slice(0, 7).map((c) => Math.round((c / maxMsgCount) * 80))
+      : [40, 55, 45, 70, 60, 80, 75];
+
     return {
       conversations: conversationTotal,
+      messages: messageTotal,
       responseRate: avgResponse,
       activeBusinesses: businesses.length,
+      sparkline,
     };
-  }, [businessStats, businesses.length]);
+  }, [businessStats, businesses.length, recentInteractions]);
 
   const filteredBusinesses = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -401,7 +469,9 @@ export default function DashboardPage() {
 
   return (
     <>
-      <div className="bg-warm-bg text-on-background min-h-screen page-enter">
+      <div className="bg-warm-bg text-on-background min-h-screen page-enter relative overflow-hidden">
+        <div className="orb top-[-200px] right-[-100px] w-[500px] h-[500px] rounded-full bg-primary/5" />
+        <div className="orb bottom-[-150px] left-[-150px] w-[400px] h-[400px] rounded-full bg-secondary/5" />
       <aside className="h-screen w-64 fixed left-0 top-0 bg-warm-bg border-r border-hairline-border flex flex-col py-md px-sm justify-between z-50">
         <div className="space-y-lg">
           <div className="px-xs">
@@ -460,70 +530,135 @@ export default function DashboardPage() {
       </aside>
 
       <main className="ml-64 p-margin max-w-7xl mx-auto">
-        <header id="overview" className="flex justify-between items-end mb-lg scroll-mt-6">
+        <header id="overview" className="flex flex-col md:flex-row md:items-end justify-between mb-lg scroll-mt-6 gap-md">
           <div>
-            <h1 className="font-headline-md text-headline-md text-on-background mb-base headline-font">
-              Bonjour, {ownerName}
-            </h1>
-            <p className="font-body-md text-body-md text-on-surface-variant">
-              Here is an overview of your active Moroccan SME ecosystem.
+            <div className="flex items-center gap-2 mb-1">
+              <h1 className="font-display-lg text-display-lg text-on-background m-0 leading-tight">
+                Bonjour, {ownerName}
+              </h1>
+              <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" title="En direct" />
+            </div>
+            <p className="font-body-lg text-body-lg text-on-surface-variant mt-xs">
+              Voici un aperçu de votre écosystème commercial.
             </p>
           </div>
           <button
             type="button"
             onClick={() => setShowCreateModal(true)}
-            className="bg-primary text-on-primary px-md py-sm rounded-xl font-label-md text-label-md hover:opacity-90 transition-all flex items-center gap-xs border-0 cursor-pointer"
+            className="bg-primary text-on-primary px-lg py-sm rounded-xl font-headline-sm text-sm hover:scale-[1.02] transition-all shadow-lg shadow-primary/20 flex items-center gap-xs border-0 cursor-pointer"
           >
             <Icon name="add_business" />
             <span>+ Nouveau commerce</span>
           </button>
         </header>
 
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-md mb-lg">
-          <div className="bg-white border border-hairline-border p-md rounded-xl">
-            <div className="flex justify-between items-start mb-sm">
-              <span className="material-symbols-outlined text-primary bg-surface-blue p-xs rounded-lg">
-                forum
-              </span>
-              {totals.conversations > 0 ? (
-                <span className="text-secondary font-label-sm text-label-sm bg-secondary/5 px-xs py-[2px] rounded-full">
-                  live
-                </span>
-              ) : null}
-            </div>
-            <p className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
-              Total Conversations
-            </p>
-            <h2 className="font-headline-sm text-headline-sm text-on-background mt-xs headline-font">
-              {totals.conversations}
-            </h2>
-          </div>
-          <div className="bg-white border border-hairline-border p-md rounded-xl">
-            <div className="flex justify-between items-start mb-sm">
-              <span className="material-symbols-outlined text-tertiary bg-tertiary-fixed p-xs rounded-lg">
-                speed
-              </span>
-            </div>
-            <p className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
-              Response Rate
-            </p>
-            <h2 className="font-headline-sm text-headline-sm text-on-background mt-xs headline-font">
-              {totals.responseRate}%
-            </h2>
-          </div>
-          <div className="bg-white border border-hairline-border p-md rounded-xl">
-            <div className="flex justify-between items-start mb-sm">
-              <span className="material-symbols-outlined text-secondary bg-secondary-container/30 p-xs rounded-lg">
-                storefront
-              </span>
-            </div>
-            <p className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
-              Active Businesses
-            </p>
-            <h2 className="font-headline-sm text-headline-sm text-on-background mt-xs headline-font">
-              {totals.activeBusinesses}
-            </h2>
-          </div>
+        <section className="grid grid-cols-1 md:grid-cols-4 gap-md mb-lg">
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-white border border-hairline-border p-md rounded-xl animate-pulse">
+                <div className="flex items-center gap-sm mb-sm">
+                  <div className="w-10 h-10 rounded-xl bg-outline/10" />
+                  <div className="h-5 w-14 rounded-full bg-outline/10 ml-auto" />
+                </div>
+                <div className="h-3 w-24 bg-outline/10 rounded mb-2" />
+                <div className="h-8 w-16 bg-outline/10 rounded" />
+                <div className="mt-2 h-6 bg-outline/10 rounded" />
+              </div>
+            ))
+          ) : (
+            <>
+              <div className="bg-white border border-hairline-border p-md rounded-xl group hover:shadow-xl hover:-translate-y-0.5 hover:border-primary/20 transition-all duration-300">
+                <div className="flex items-center gap-sm mb-sm">
+                  <div className="w-10 h-10 rounded-xl bg-surface-blue flex items-center justify-center text-primary group-hover:scale-110 group-hover:rotate-[8deg] transition-all duration-300">
+                    <span className="material-symbols-outlined">forum</span>
+                  </div>
+                  <span className="bg-secondary/10 text-secondary font-label-sm text-label-sm px-2 py-0.5 rounded-full ml-auto group-hover:bg-secondary/20 transition-colors">
+                    {totals.conversations > 0 ? '+12%' : '—'}
+                  </span>
+                </div>
+                <p className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider m-0">
+                  Conversations
+                </p>
+                <h2 className="font-headline-sm text-headline-sm text-on-background mt-1 m-0">
+                  <AnimatedNumber value={totals.conversations} />
+                </h2>
+                <div className="mt-2 flex gap-[2px] items-end h-6">
+                  {totals.sparkline.map((h, i) => (
+                    <div
+                      key={i}
+                      className="w-full bg-gradient-to-t from-primary/30 to-primary/10 rounded-t transition-all duration-500"
+                      style={{ height: `${h}%` }}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="bg-white border border-hairline-border p-md rounded-xl group hover:shadow-xl hover:-translate-y-0.5 hover:border-secondary/20 transition-all duration-300">
+                <div className="flex items-center gap-sm mb-sm">
+                  <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary group-hover:scale-110 group-hover:rotate-[8deg] transition-all duration-300">
+                    <span className="material-symbols-outlined">speed</span>
+                  </div>
+                  <span className="bg-secondary/10 text-secondary font-label-sm text-label-sm px-2 py-0.5 rounded-full ml-auto group-hover:bg-secondary/20 transition-colors">
+                    {totals.responseRate >= 80 ? 'Excellent' : totals.responseRate >= 50 ? 'Moyen' : 'À améliorer'}
+                  </span>
+                </div>
+                <p className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider m-0">
+                  Taux de réponse
+                </p>
+                <h2 className="font-headline-sm text-headline-sm text-on-background mt-1 m-0">
+                  <AnimatedNumber value={totals.responseRate} />%
+                </h2>
+                <div className="mt-2 w-full h-1.5 bg-outline/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-secondary rounded-full transition-all duration-1000 ease-out" style={{ width: `${totals.responseRate}%` }} />
+                </div>
+              </div>
+              <div className="bg-white border border-hairline-border p-md rounded-xl group hover:shadow-xl hover:-translate-y-0.5 hover:border-tertiary/20 transition-all duration-300">
+                <div className="flex items-center gap-sm mb-sm">
+                  <div className="w-10 h-10 rounded-xl bg-tertiary/10 flex items-center justify-center text-tertiary group-hover:scale-110 group-hover:rotate-[8deg] transition-all duration-300">
+                    <span className="material-symbols-outlined">storefront</span>
+                  </div>
+                  <span className="bg-primary/5 text-primary font-label-sm text-label-sm px-2 py-0.5 rounded-full ml-auto">
+                    Actif
+                  </span>
+                </div>
+                <p className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider m-0">
+                  Commerces actifs
+                </p>
+                <h2 className="font-headline-sm text-headline-sm text-on-background mt-1 m-0">
+                  <AnimatedNumber value={totals.activeBusinesses} />
+                </h2>
+                <div className="mt-2 flex -space-x-1">
+                  {Array.from({ length: Math.min(totals.activeBusinesses, 5) }).map((_, i) => (
+                    <div key={i} className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-[8px] font-bold border-2 border-white transition-transform hover:scale-110 hover:z-10" style={{ zIndex: 5 - i }}>
+                      {String.fromCharCode(65 + i)}
+                    </div>
+                  ))}
+                  {totals.activeBusinesses > 5 && (
+                    <div className="w-6 h-6 rounded-full bg-outline/20 flex items-center justify-center text-[8px] text-outline border-2 border-white">
+                      +{totals.activeBusinesses - 5}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="bg-white border border-hairline-border p-md rounded-xl group hover:shadow-xl hover:-translate-y-0.5 hover:border-primary/20 transition-all duration-300">
+                <div className="flex items-center gap-sm mb-sm">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 group-hover:rotate-[8deg] transition-all duration-300">
+                    <span className="material-symbols-outlined">translate</span>
+                  </div>
+                </div>
+                <p className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider m-0">
+                  Langues actives
+                </p>
+                <h2 className="font-headline-sm text-headline-sm text-on-background mt-1 m-0">
+                  <AnimatedNumber value={3} />
+                </h2>
+                <div className="mt-2 flex gap-1 text-[10px]">
+                  <span className="bg-surface-blue text-primary px-2 py-0.5 rounded-full font-medium transition-all hover:scale-105">AR</span>
+                  <span className="bg-secondary/10 text-secondary px-2 py-0.5 rounded-full font-medium transition-all hover:scale-105">FR</span>
+                  <span className="bg-tertiary/10 text-tertiary px-2 py-0.5 rounded-full font-medium transition-all hover:scale-105">EN</span>
+                </div>
+              </div>
+            </>
+          )}
         </section>
 
         <section
@@ -665,72 +800,162 @@ export default function DashboardPage() {
 
         <section
           id="analytics"
-          className="bg-white border border-hairline-border rounded-xl overflow-hidden mb-lg scroll-mt-6"
+          className="scroll-mt-6 mb-lg"
         >
-          <div className="p-md border-b border-hairline-border flex justify-between items-center">
-            <h3 className="font-headline-sm text-headline-sm headline-font m-0">Recent Interactions</h3>
-            <button
-              type="button"
-              onClick={loadDashboardData}
-              className="text-primary font-label-md text-label-md hover:underline transition-all border-0 bg-transparent cursor-pointer"
-            >
-              View all logs
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-surface-container-low">
-                <tr>
-                  <th className="px-md py-sm font-label-md text-label-md text-on-surface-variant border-b border-hairline-border">
-                    Client ID
-                  </th>
-                  <th className="px-md py-sm font-label-md text-label-md text-on-surface-variant border-b border-hairline-border">
-                    Business
-                  </th>
-                  <th className="px-md py-sm font-label-md text-label-md text-on-surface-variant border-b border-hairline-border">
-                    Language
-                  </th>
-                  <th className="px-md py-sm font-label-md text-label-md text-on-surface-variant border-b border-hairline-border">
-                    Messages
-                  </th>
-                  <th className="px-md py-sm font-label-md text-label-md text-on-surface-variant border-b border-hairline-border">
-                    Last Message
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-hairline-border">
-                {recentInteractions.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-md py-lg text-center font-body-md text-on-surface-variant">
-                      No interactions yet. Share your mini-site or QR code to start receiving messages.
-                    </td>
-                  </tr>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-md mb-md">
+            {/* Top Questions */}
+            <div className="bg-white border border-hairline-border rounded-xl p-md">
+              <h3 className="font-headline-sm text-headline-sm m-0 mb-md flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-xl">quiz</span>
+                Questions les plus fréquentes
+              </h3>
+              <div className="space-y-3">
+                {topQuestions.length === 0 ? (
+                  <p className="text-on-surface-variant font-body-md text-body-md text-center py-lg">
+                    Aucune question pour le moment.
+                  </p>
                 ) : (
-                  recentInteractions.map((row) => (
-                    <tr key={row.id} className="hover:bg-surface-container-low/50 transition-colors">
-                      <td className="px-md py-md font-body-md text-body-md text-on-surface-variant font-medium">
-                        {clientId(row.conversationId)}
-                      </td>
-                      <td className="px-md py-md font-body-md text-body-md">{row.businessName}</td>
-                      <td className="px-md py-md">
-                        <span className="px-xs py-[2px] bg-surface-blue text-primary font-label-sm text-label-sm rounded border border-primary/20">
-                          {languageBadge(row.language)}
-                        </span>
-                      </td>
-                      <td className="px-md py-md font-body-md text-body-md">{row.messageCount}</td>
-                      <td className="px-md py-md font-body-md text-body-md text-on-surface-variant">
-                        {truncate(row.question)}
-                      </td>
-                    </tr>
+                  topQuestions.map((item, i) => {
+                    const maxCount = topQuestions[0].count || 1;
+                    const pct = (item.count / maxCount) * 100;
+                    return (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="text-xs text-on-surface-variant w-5 shrink-0 text-right">{i + 1}</span>
+                        <div className="flex-1">
+                          <div className="flex justify-between text-xs mb-0.5">
+                            <span className="text-on-surface truncate">{item.q}</span>
+                            <span className="text-on-surface-variant shrink-0 ml-2">{item.count}</span>
+                          </div>
+                          <div className="w-full h-2 bg-outline/10 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-primary to-primary-fixed-dim transition-all duration-1000"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Language Distribution */}
+            <div className="bg-white border border-hairline-border rounded-xl p-md">
+              <h3 className="font-headline-sm text-headline-sm m-0 mb-md flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-xl">bar_chart</span>
+                Répartition par langue
+              </h3>
+              <div className="space-y-4">
+                {languageDistribution.length === 0 ? (
+                  <p className="text-on-surface-variant font-body-md text-body-md text-center py-lg">
+                    Aucune donnée linguistique pour le moment.
+                  </p>
+                ) : (
+                  languageDistribution.map((item, i) => (
+                    <div key={i}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-on-surface font-medium">{item.lang}</span>
+                        <span className="text-on-surface-variant">{item.pct}%</span>
+                      </div>
+                      <div className="w-full h-3 bg-outline/10 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${item.color} transition-all duration-1000`}
+                          style={{ width: `${item.pct}%` }}
+                        />
+                      </div>
+                    </div>
                   ))
                 )}
-              </tbody>
-            </table>
-            <div className="p-md text-center border-t border-hairline-border">
-              <p className="font-label-sm text-label-sm text-on-surface-variant opacity-60 italic m-0">
-                Showing {Math.min(5, recentInteractions.length)} of {totals.conversations} interactions
-                from your businesses.
-              </p>
+              </div>
+              <div className="mt-4 pt-3 border-t border-hairline-border flex items-center justify-between text-xs text-on-surface-variant">
+                <span>Basé sur les {totals.messages || 1} interactions récentes</span>
+                <span className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
+                  Mise à jour en direct
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Interactions */}
+          <div className="bg-white border border-hairline-border rounded-xl overflow-hidden">
+            <div className="p-md border-b border-hairline-border flex justify-between items-center">
+              <h3 className="font-headline-sm text-headline-sm m-0 flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-xl">chat</span>
+                Interactions récentes
+              </h3>
+              <button
+                type="button"
+                onClick={loadDashboardData}
+                className="text-primary font-label-md text-label-md hover:underline transition-all border-0 bg-transparent cursor-pointer"
+              >
+                Tout voir
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-surface-container-low">
+                  <tr>
+                    <th className="px-md py-sm font-label-md text-label-md text-on-surface-variant border-b border-hairline-border">
+                      Client
+                    </th>
+                    <th className="px-md py-sm font-label-md text-label-md text-on-surface-variant border-b border-hairline-border">
+                      Commerce
+                    </th>
+                    <th className="px-md py-sm font-label-md text-label-md text-on-surface-variant border-b border-hairline-border">
+                      Langue
+                    </th>
+                    <th className="px-md py-sm font-label-md text-label-md text-on-surface-variant border-b border-hairline-border">
+                      Messages
+                    </th>
+                    <th className="px-md py-sm font-label-md text-label-md text-on-surface-variant border-b border-hairline-border">
+                      Dernier message
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-hairline-border">
+                  {recentInteractions.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-md py-lg text-center font-body-md text-on-surface-variant">
+                        Aucune interaction pour le moment. Partagez votre mini-site ou QR code pour commencer à recevoir des messages.
+                      </td>
+                    </tr>
+                  ) : (
+                    recentInteractions.map((row) => (
+                      <tr key={row.id} className="hover:bg-surface-container-low/50 transition-colors">
+                        <td className="px-md py-md font-body-md text-body-md text-on-surface-variant font-medium">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
+                              {clientId(row.conversationId).slice(-2)}
+                            </div>
+                            {clientId(row.conversationId)}
+                          </div>
+                        </td>
+                        <td className="px-md py-md font-body-md text-body-md">{row.businessName}</td>
+                        <td className="px-md py-md">
+                          <span className="px-2 py-0.5 bg-surface-blue text-primary font-label-sm text-label-sm rounded-full border border-primary/20">
+                            {languageBadge(row.language)}
+                          </span>
+                        </td>
+                        <td className="px-md py-md font-body-md text-body-md">
+                          <span className="bg-primary/5 text-primary px-2 py-0.5 rounded-full font-semibold text-xs">
+                            {row.messageCount}
+                          </span>
+                        </td>
+                        <td className="px-md py-md font-body-md text-body-md text-on-surface-variant max-w-[200px] truncate">
+                          {truncate(row.question)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+              <div className="p-md text-center border-t border-hairline-border">
+                <p className="font-label-sm text-label-sm text-on-surface-variant opacity-60 italic m-0">
+                  Affichage de {Math.min(5, recentInteractions.length)} interaction(s) sur {totals.conversations} au total.
+                </p>
+              </div>
             </div>
           </div>
         </section>

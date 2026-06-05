@@ -13,7 +13,7 @@ const TECH_STACK = [
   { name: 'FAISS', color: '#000000' },
   { name: 'HuggingFace', color: '#FFD21E' },
   { name: 'Supabase', color: '#3ECF8E' },
-  { name: 'Koyeb', color: '#D7E45C' },
+  { name: 'HF Spaces', color: '#FF9D00' },
 ];
 
 function AboutSection({ id, className = '', children }) {
@@ -164,7 +164,7 @@ export default function AboutPage() {
             <p className="text-on-surface-variant font-body-md m-0 max-w-2xl">
               Stack réelle du produit Sahel.ai&nbsp;: mini-sites React, API FastAPI, RAG avec FAISS et
               embeddings HuggingFace, inférence Groq, base PostgreSQL hébergée sur Supabase, déploiement API
-              sur Koyeb.
+              sur HuggingFace Spaces (Docker).
             </p>
             <div className="grid grid-cols-2 gap-xs">
               {TECH_STACK.map((item) => (

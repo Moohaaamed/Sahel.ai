@@ -1,52 +1,122 @@
 [
   {
-    "id": "22731213f053",
-    "business_id": "6be4e86b2c8a",
-    "file_name": "PFE_Projet.pdf",
+    "id": "d000000000001",
+    "business_id": "a10000000001",
+    "file_name": "Menu Restaurant Amoudou.pdf",
     "file_type": "application/pdf",
-    "file_url": "/uploaded_documents/6be4e86b2c8a/PFE_Projet.pdf",
+    "file_url": "/uploaded_documents/a10000000001/Menu Restaurant Amoudou.pdf",
     "chunks": 0,
-    "size_bytes": 338378,
-    "uploaded_at": "2026-06-03T14:53:49.482338+00:00"
+    "size_bytes": 0,
+    "uploaded_at": "2026-06-05T00:00:00+00:00"
   },
   {
-    "id": "3330eaa3e8be",
-    "business_id": "6efe87b2e45a",
-    "file_name": "saghro.pdf",
+    "id": "d000000000002",
+    "business_id": "a10000000002",
+    "file_name": "Carte Poissonnerie Ajami.pdf",
     "file_type": "application/pdf",
-    "file_url": "/uploaded_documents/6efe87b2e45a/saghro.pdf",
+    "file_url": "/uploaded_documents/a10000000002/Carte Poissonnerie Ajami.pdf",
     "chunks": 0,
-    "size_bytes": 154407,
-    "uploaded_at": "2026-06-03T15:03:43.332290+00:00"
+    "size_bytes": 0,
+    "uploaded_at": "2026-06-05T00:00:00+00:00"
   },
   {
-    "id": "4e2981ada944",
-    "business_id": "6609ea99cc4c",
-    "file_name": "saghro.pdf",
+    "id": "d000000000003",
+    "business_id": "a10000000003",
+    "file_name": "Menu Dégustation Riad Snan.pdf",
     "file_type": "application/pdf",
-    "file_url": "/uploaded_documents/6609ea99cc4c/saghro.pdf",
-    "chunks": 4,
-    "size_bytes": 154407,
-    "uploaded_at": "2026-06-04T00:10:36.728039+00:00"
+    "file_url": "/uploaded_documents/a10000000003/Menu Dégustation Riad Snan.pdf",
+    "chunks": 0,
+    "size_bytes": 0,
+    "uploaded_at": "2026-06-05T00:00:00+00:00"
   },
   {
-    "id": "490ad1ce1e52",
-    "business_id": "6ae136762cd8",
-    "file_name": "saghro.pdf",
+    "id": "d000000000004",
+    "business_id": "a10000000004",
+    "file_name": "Brochure Hôtel Tichka.pdf",
     "file_type": "application/pdf",
-    "file_url": "/uploaded_documents/6ae136762cd8/saghro.pdf",
-    "chunks": 4,
-    "size_bytes": 154407,
-    "uploaded_at": "2026-06-04T00:38:42.114500+00:00"
+    "file_url": "/uploaded_documents/a10000000004/Brochure Hôtel Tichka.pdf",
+    "chunks": 0,
+    "size_bytes": 0,
+    "uploaded_at": "2026-06-05T00:00:00+00:00"
   },
   {
-    "id": "0020a8b85d0d",
-    "business_id": "dc3d1c1f39ef",
-    "file_name": "saghro.pdf",
+    "id": "d000000000005",
+    "business_id": "a10000000005",
+    "file_name": "Tarifs Suites El Fenn.pdf",
     "file_type": "application/pdf",
-    "file_url": "/uploaded_documents/dc3d1c1f39ef/saghro.pdf",
-    "chunks": 4,
-    "size_bytes": 154407,
-    "uploaded_at": "2026-06-04T01:08:57.439076+00:00"
+    "file_url": "/uploaded_documents/a10000000005/Tarifs Suites El Fenn.pdf",
+    "chunks": 0,
+    "size_bytes": 0,
+    "uploaded_at": "2026-06-05T00:00:00+00:00"
+  },
+  {
+    "id": "d000000000006",
+    "business_id": "a10000000006",
+    "file_name": "Services Kasbah Toubkal.pdf",
+    "file_type": "application/pdf",
+    "file_url": "/uploaded_documents/a10000000006/Services Kasbah Toubkal.pdf",
+    "chunks": 0,
+    "size_bytes": 0,
+    "uploaded_at": "2026-06-05T00:00:00+00:00"
+  },
+  {
+    "id": "d000000000007",
+    "business_id": "a10000000007",
+    "file_name": "Tarifs Auto-Hall 2026.pdf",
+    "file_type": "application/pdf",
+    "file_url": "/uploaded_documents/a10000000007/Tarifs Auto-Hall 2026.pdf",
+    "chunks": 0,
+    "size_bytes": 0,
+    "uploaded_at": "2026-06-05T00:00:00+00:00"
+  },
+  {
+    "id": "d000000000008",
+    "business_id": "a10000000008",
+    "file_name": "Menu Prestations Salon Hicham.pdf",
+    "file_type": "application/pdf",
+    "file_url": "/uploaded_documents/a10000000008/Menu Prestations Salon Hicham.pdf",
+    "chunks": 0,
+    "size_bytes": 0,
+    "uploaded_at": "2026-06-05T00:00:00+00:00"
+  },
+  {
+    "id": "d000000000009",
+    "business_id": "a10000000009",
+    "file_name": "Brochure Cabinet El Amrani.pdf",
+    "file_type": "application/pdf",
+    "file_url": "/uploaded_documents/a10000000009/Brochure Cabinet El Amrani.pdf",
+    "chunks": 0,
+    "size_bytes": 0,
+    "uploaded_at": "2026-06-05T00:00:00+00:00"
+  },
+  {
+    "id": "d000000000010",
+    "business_id": "a10000000010",
+    "file_name": "Catalogue Tinfou.pdf",
+    "file_type": "application/pdf",
+    "file_url": "/uploaded_documents/a10000000010/Catalogue Tinfou.pdf",
+    "chunks": 0,
+    "size_bytes": 0,
+    "uploaded_at": "2026-06-05T00:00:00+00:00"
+  },
+  {
+    "id": "d000000000011",
+    "business_id": "a10000000011",
+    "file_name": "Catalogue Épicerie Bab El Hadid.pdf",
+    "file_type": "application/pdf",
+    "file_url": "/uploaded_documents/a10000000011/Catalogue Épicerie Bab El Hadid.pdf",
+    "chunks": 0,
+    "size_bytes": 0,
+    "uploaded_at": "2026-06-05T00:00:00+00:00"
+  },
+  {
+    "id": "d000000000012",
+    "business_id": "a10000000012",
+    "file_name": "Portfolio Studio Kenza.pdf",
+    "file_type": "application/pdf",
+    "file_url": "/uploaded_documents/a10000000012/Portfolio Studio Kenza.pdf",
+    "chunks": 0,
+    "size_bytes": 0,
+    "uploaded_at": "2026-06-05T00:00:00+00:00"
   }
 ]

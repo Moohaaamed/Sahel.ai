@@ -1075,9 +1075,12 @@ def answer_for_business(business: dict, question: str, language: str | None = No
         if exc.status_code != 404:
             raise
         if documents_for_business(business["id"]):
-            rebuild_business_store(business["id"])
-            store = load_store(business["id"])
-            relevant_docs = store.similarity_search(question, k=3)
+            try:
+                rebuild_business_store(business["id"])
+                store = load_store(business["id"])
+                relevant_docs = store.similarity_search(question, k=3)
+            except HTTPException:
+                pass
 
     context = "\n".join(doc.page_content for doc in relevant_docs)
     owner_email = business.get("owner_email") or "Not provided"
@@ -1133,9 +1136,12 @@ async def stream_answer_for_business(business: dict, question: str, language: st
         if exc.status_code != 404:
             raise
         if documents_for_business(business["id"]):
-            rebuild_business_store(business["id"])
-            store = load_store(business["id"])
-            relevant_docs = store.similarity_search(question, k=3)
+            try:
+                rebuild_business_store(business["id"])
+                store = load_store(business["id"])
+                relevant_docs = store.similarity_search(question, k=3)
+            except HTTPException:
+                pass
 
     context = "\n".join(doc.page_content for doc in relevant_docs)
     owner_email = business.get("owner_email") or "Not provided"

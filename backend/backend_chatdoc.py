@@ -1,15 +1,22 @@
 import asyncio
+import base64
+import html
 import json
+import logging
 import os
 import re
+import secrets
 import shutil
 import hashlib
 import hmac
+import random
 import smtplib
+import time
 import unicodedata
 from datetime import datetime, timedelta, timezone
 from email.mime.text import MIMEText
 from pathlib import Path
+from collections import defaultdict
 from typing import List
 from uuid import uuid4
 
@@ -18,7 +25,7 @@ import jwt
 import numpy as np
 from pypdf import PdfReader
 import io
-from fastapi import FastAPI, File, Header, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect, Query
+from fastapi import FastAPI, File, Header, HTTPException, Request, Response, UploadFile, WebSocket, WebSocketDisconnect, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -28,8 +35,11 @@ from groq import Groq
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import CharacterTextSplitter
 from pydantic import BaseModel, Field
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
-from storage import import_json_table, init_database, read_table, write_table
+from storage import import_json_table, read_table, write_table
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
@@ -37,6 +47,34 @@ if not GROQ_API_KEY:
 
 client = Groq(api_key=GROQ_API_KEY)
 app = FastAPI(title="Sahel.ai RAG API")
+
+limiter = Limiter(key_func=get_remote_address, default_limits=[os.getenv("RATE_LIMIT_DEFAULT", "30/minute")])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+RATE_LIMIT_AUTH = os.getenv("RATE_LIMIT_AUTH", "5/minute")
+RATE_LIMIT_CHAT = os.getenv("RATE_LIMIT_CHAT", "20/minute")
+RATE_LIMIT_WS = int(os.getenv("RATE_LIMIT_WS", "30"))
+
+_ws_requests: dict[str, list[float]] = defaultdict(list)
+_WS_WINDOW = 60.0
+_WS_CLEANUP_INTERVAL = 300.0
+_last_ws_cleanup = time.time()
+
+def _check_ws_rate_limit(ip: str) -> bool:
+    global _last_ws_cleanup
+    now = time.time()
+    if now - _last_ws_cleanup > _WS_CLEANUP_INTERVAL:
+        cutoff = now - _WS_WINDOW
+        stale = [k for k, v in _ws_requests.items() if not any(t > cutoff for t in v)]
+        for k in stale:
+            del _ws_requests[k]
+        _last_ws_cleanup = now
+    _ws_requests[ip] = [t for t in _ws_requests[ip] if now - t < _WS_WINDOW]
+    if len(_ws_requests[ip]) >= RATE_LIMIT_WS:
+        return False
+    _ws_requests[ip].append(now)
+    return True
 
 origins = (
     os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
@@ -47,9 +85,82 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "Origin"],
 )
+
+
+@app.middleware("http")
+async def _session_cookie_to_auth(request: Request, call_next):
+    if "authorization" not in request.headers:
+        token = request.cookies.get("session")
+        if token:
+            scope = dict(request.scope)
+            scope["headers"] = [
+                (k, v) for k, v in request.scope["headers"] if k != b"authorization"
+            ] + [(b"authorization", f"Bearer {token}".encode())]
+            request = Request(scope)
+    return await call_next(request)
+
+
+def _set_session_cookie(response: Response, token: str, expires_at: str) -> None:
+    try:
+        expires_dt = datetime.fromisoformat(expires_at)
+        max_age = int((expires_dt - datetime.now(timezone.utc)).total_seconds())
+    except (ValueError, TypeError):
+        max_age = 86400
+    response.set_cookie(
+        key="session",
+        value=token,
+        httponly=True,
+        samesite="lax",
+        max_age=max(max_age, 0),
+        path="/",
+    )
+
+
+def _clear_session_cookie(response: Response) -> None:
+    response.set_cookie(
+        key="session",
+        value="",
+        httponly=True,
+        samesite="lax",
+        max_age=0,
+        path="/",
+    )
+
+
+@app.middleware("http")
+async def _security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "0"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+    return response
+
+
+@app.middleware("http")
+async def _csrf_protection(request: Request, call_next):
+    if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+        origin = request.headers.get("origin")
+        referer = request.headers.get("referer")
+        if not origin and not referer:
+            return await call_next(request)
+        allowed = False
+        if origin:
+            allowed = any(origin.rstrip("/") == o.rstrip("/") for o in origins)
+        if not allowed and referer:
+            allowed = any(
+                referer.rstrip("/").startswith(o.rstrip("/"))
+                for o in origins
+            )
+        if not allowed:
+            raise HTTPException(status_code=403, detail="CSRF check failed.")
+    return await call_next(request)
+
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_ROOT = Path(os.getenv("DATA_ROOT", str(BASE_DIR)))
@@ -73,7 +184,6 @@ jinja_env = Environment(
 for folder in (VECTOR_STORE_ROOT, UPLOAD_ROOT, DATA_DIR):
     folder.mkdir(exist_ok=True)
 
-init_database()
 for table_name, json_path in {
     "owners": OWNERS_FILE,
     "businesses": BUSINESSES_FILE,
@@ -128,6 +238,7 @@ class BusinessCreate(BaseModel):
     patente: str | None = Field(default=None, max_length=30)
     cnss: str | None = Field(default=None, max_length=30)
     legal_form: str | None = Field(default=None, max_length=50)
+    social_media: str | None = Field(default=None, max_length=2000)
 
 
 class Business(BusinessCreate):
@@ -158,6 +269,7 @@ class BusinessUpdate(BaseModel):
     patente: str | None = Field(default=None, max_length=30)
     cnss: str | None = Field(default=None, max_length=30)
     legal_form: str | None = Field(default=None, max_length=50)
+    social_media: str | None = Field(default=None, max_length=2000)
 
 
 class DocumentMetadata(BaseModel):
@@ -187,6 +299,21 @@ class OwnerLogin(BaseModel):
     password: str = Field(min_length=6, max_length=120)
 
 
+class ForgotPassword(BaseModel):
+    email: str = Field(min_length=5, max_length=120)
+
+
+class ResetPassword(BaseModel):
+    email: str = Field(min_length=5, max_length=120)
+    code: str = Field(min_length=8, max_length=8)
+    new_password: str = Field(min_length=6, max_length=120)
+
+
+class VerifyResetCode(BaseModel):
+    email: str = Field(min_length=5, max_length=120)
+    code: str = Field(min_length=8, max_length=8)
+
+
 class GoogleLogin(BaseModel):
     credential: str
 
@@ -196,6 +323,15 @@ class OwnerPublic(BaseModel):
     full_name: str
     email: str
     created_at: str
+    picture: str | None = None
+
+
+class ProfileUpdate(BaseModel):
+    full_name: str | None = None
+    email: str | None = None
+    current_password: str | None = None
+    new_password: str | None = None
+    profile_photo: str | None = None
 
 
 class AuthResponse(BaseModel):
@@ -204,11 +340,21 @@ class AuthResponse(BaseModel):
     expires_at: str
 
 
+class VerifyToken(BaseModel):
+    token: str = Field(min_length=1)
+
+
 class InquiryCreate(BaseModel):
     name: str = Field(min_length=2, max_length=80)
     contact: str = Field(min_length=3, max_length=120)
     message: str = Field(min_length=2, max_length=1000)
     conversation_id: str | None = Field(default=None, max_length=80)
+
+
+class ContactCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=80)
+    email: str = Field(min_length=5, max_length=120)
+    message: str = Field(min_length=2, max_length=2000)
 
 
 class InquiryStatusUpdate(BaseModel):
@@ -323,7 +469,7 @@ def hash_password(password: str, salt: str | None = None) -> str:
         "sha256",
         password.encode("utf-8"),
         current_salt.encode("utf-8"),
-        120_000,
+        600_000,
     ).hex()
     return f"{current_salt}${digest}"
 
@@ -385,14 +531,20 @@ def require_owner(authorization: str | None) -> dict:
     return verify_owner_token(authorization.removeprefix("Bearer ").strip())
 
 
-def default_owner() -> dict:
+def default_owner() -> dict | None:
+    demo_email = os.getenv("DEMO_OWNER_EMAIL")
+    demo_password = os.getenv("DEMO_OWNER_PASSWORD")
+    if not demo_email or not demo_password:
+        return None
     return {
         "id": "demo-owner",
         "full_name": "Demo Owner",
-        "email": "demo@sahel.ai",
-        "password_hash": hash_password("demo123"),
+        "email": demo_email,
+        "password_hash": hash_password(demo_password),
         "verified": "true",
         "verification_token": None,
+        "reset_code": None,
+        "reset_code_expires": None,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -404,6 +556,7 @@ def public_owner(owner: dict) -> dict:
         "email": owner["email"],
         "verified": "true" if owner.get("verified") in (None, "true", True) else "false",
         "created_at": owner["created_at"],
+        "picture": owner.get("picture"),
     }
 
 
@@ -449,21 +602,57 @@ def send_verification_email(owner: dict) -> None:
                 server.login(smtp_user, smtp_pass)
                 server.send_message(msg)
             return
-        except Exception:
-            pass
+        except Exception as e:
+            logging.error("SMTP send_verification_email failed: %s", e)
 
-    print(f"\n=== VERIFICATION EMAIL (SMTP not configured) ===")
-    print(f"To: {owner['email']}")
-    print(f"Link: {verify_url}")
-    print(f"==================================================\n")
+    logging.warning("\n=== VERIFICATION EMAIL (SMTP not configured) ===")
+    logging.warning("To: %s", owner['email'])
+    logging.warning("==================================================\n")
+
+
+def send_reset_code_email(owner: dict, code: str) -> None:
+    smtp_host = os.getenv("SMTP_HOST")
+    smtp_port = os.getenv("SMTP_PORT", "587")
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_pass = os.getenv("SMTP_PASS")
+
+    subject = "Password reset code — Sahel.ai"
+    body = (
+        f"Hello {owner['full_name']},\n\n"
+        f"Use the code below to reset your Sahel.ai password:\n\n"
+        f"{code}\n\n"
+        f"This code expires in 15 minutes.\n\n"
+        f"If you didn't request this, you can ignore this email.\n\n"
+        f"Sahel.ai — Digital presence for Moroccan businesses"
+    )
+
+    if all([smtp_host, smtp_user, smtp_pass]):
+        try:
+            msg = MIMEText(body, _charset="utf-8")
+            msg["Subject"] = subject
+            msg["From"] = smtp_user
+            msg["To"] = owner["email"]
+            with smtplib.SMTP(smtp_host, int(smtp_port), timeout=10) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_pass)
+                server.send_message(msg)
+            return
+        except Exception as e:
+            logging.error("SMTP send_reset_code failed: %s", e)
+
+    logging.warning("\n=== RESET CODE (SMTP not configured) ===")
+    logging.warning("To: %s", owner['email'])
+    logging.warning("==========================================\n")
 
 
 def read_owners() -> list[dict]:
     owners = read_table("owners")
     if owners:
         return owners
-    owners = [default_owner()]
-    write_owners(owners)
+    demo = default_owner()
+    if demo:
+        owners = [demo]
+        write_owners(owners)
     return owners
 
 
@@ -520,6 +709,7 @@ BUSINESS_OPTIONAL_DEFAULTS = {
     "patente": None,
     "cnss": None,
     "legal_form": None,
+    "social_media": None,
 }
 
 COVER_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
@@ -563,6 +753,7 @@ def business_profile_fields(payload: BusinessCreate | BusinessUpdate) -> dict:
         "patente": payload.patente,
         "cnss": payload.cnss,
         "legal_form": payload.legal_form,
+        "social_media": payload.social_media,
     }
 
 
@@ -617,6 +808,68 @@ def read_inquiries() -> list[dict]:
 
 def write_inquiries(inquiries: list[dict]) -> None:
     write_table("inquiries", inquiries)
+
+
+def read_contacts() -> list[dict]:
+    return read_table("contacts")
+
+
+def write_contacts(contacts: list[dict]) -> None:
+    write_table("contacts", contacts)
+
+
+def send_contact_email(contact: dict) -> None:
+    smtp_host = os.getenv("SMTP_HOST")
+    smtp_port = os.getenv("SMTP_PORT", "587")
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_pass = os.getenv("SMTP_PASS")
+    notify_to = os.getenv("NOTIFICATION_EMAIL")
+
+    if not notify_to:
+        return
+
+    if not all([smtp_host, smtp_user, smtp_pass, notify_to]):
+        return
+
+    subject = f"New contact from {contact['name']} — Sahel.ai"
+    body = (
+        f"New contact message received!\n\n"
+        f"Name: {contact['name']}\n"
+        f"Email: {contact['email']}\n"
+        f"Message: {contact['message']}\n\n"
+        f"Sahel.ai — Digital presence for Moroccan businesses"
+    )
+
+    try:
+        msg = MIMEText(body, _charset="utf-8")
+        msg["Subject"] = subject
+        msg["From"] = smtp_user
+        msg["To"] = notify_to
+        with smtplib.SMTP(smtp_host, int(smtp_port), timeout=10) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.send_message(msg)
+        logging.info("Contact notification sent to %s", notify_to)
+    except Exception as e:
+        logging.error("Failed to send contact notification: %s", e)
+
+
+def save_contact(payload: ContactCreate) -> dict:
+    contact = {
+        "id": uuid4().hex[:12],
+        "name": payload.name.strip(),
+        "email": payload.email.strip().lower(),
+        "message": payload.message.strip(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    contacts = read_contacts()
+    contacts.append(contact)
+    write_contacts(contacts)
+    try:
+        send_contact_email(contact)
+    except Exception as e:
+        logging.error("send_contact_email failed: %s", e)
+    return contact
 
 
 def normalize_language_text(value: str) -> str:
@@ -839,8 +1092,9 @@ def send_notification_email(business: dict, inquiry: dict) -> None:
             server.starttls()
             server.login(smtp_user, smtp_pass)
             server.send_message(msg)
-    except Exception:
-        pass
+        logging.info("Inquiry notification sent to %s", notify_to)
+    except Exception as e:
+        logging.error("Failed to send inquiry notification: %s", e)
 
 
 def save_inquiry(business: dict, payload: InquiryCreate) -> dict:
@@ -859,8 +1113,8 @@ def save_inquiry(business: dict, payload: InquiryCreate) -> dict:
     write_inquiries(inquiries)
     try:
         send_notification_email(business, inquiry)
-    except Exception:
-        pass
+    except Exception as e:
+        logging.error("send_notification_email failed: %s", e)
     return inquiry
 
 
@@ -989,7 +1243,7 @@ def documents_for_business(business_id: str) -> list[dict]:
     return sorted(documents, key=lambda item: item["uploaded_at"], reverse=True)
 
 
-def upsert_document_metadata(business_id: str, file_path: Path, chunks: int) -> dict:
+def upsert_document_metadata(business_id: str, file_path: Path, chunks: int, original_name: str | None = None) -> dict:
     documents = sync_documents_from_uploads()
     file_name = file_path.name
     existing = next(
@@ -1005,6 +1259,7 @@ def upsert_document_metadata(business_id: str, file_path: Path, chunks: int) -> 
         "id": existing["id"] if existing else uuid4().hex[:12],
         "business_id": business_id,
         "file_name": file_name,
+        "original_name": original_name or file_name,
         "file_type": file_type,
         "file_url": f"/uploaded_documents/{business_id}/{file_name}",
         "chunks": chunks,
@@ -1289,7 +1544,8 @@ async def health_check():
 
 
 @app.post("/owners/register")
-async def register_owner(payload: OwnerRegister):
+@limiter.limit(RATE_LIMIT_AUTH)
+async def register_owner(request: Request, payload: OwnerRegister):
     owners = read_owners()
     email = normalize_email(payload.email)
     if any(owner["email"] == email for owner in owners):
@@ -1303,6 +1559,8 @@ async def register_owner(payload: OwnerRegister):
         "password_hash": hash_password(payload.password),
         "verified": "false",
         "verification_token": verification_token,
+        "reset_code": None,
+        "reset_code_expires": None,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     owners.append(owner)
@@ -1314,22 +1572,26 @@ async def register_owner(payload: OwnerRegister):
     }
 
 
-@app.get("/owners/verify", response_model=AuthResponse)
-async def verify_owner_email(token: str = Query(...)):
+@app.post("/owners/verify", response_model=AuthResponse)
+@limiter.limit(RATE_LIMIT_AUTH)
+async def verify_owner_email(request: Request, payload: VerifyToken, response: Response):
     owners = read_owners()
-    owner = next((o for o in owners if o.get("verification_token") == token), None)
+    owner = next((o for o in owners if o.get("verification_token") == payload.token), None)
     if not owner:
         raise HTTPException(status_code=400, detail="Invalid or expired verification token.")
 
     owner["verified"] = "true"
     owner["verification_token"] = None
     write_owners(owners)
-    return {"owner": public_owner(owner), **create_owner_session(owner["id"])}
+    session = create_owner_session(owner["id"])
+    _set_session_cookie(response, session["token"], session["expires_at"])
+    return {"owner": public_owner(owner), **session}
 
 
 @app.post("/owners/resend-verification")
-async def resend_verification(email: str = Query(...)):
-    owner = find_owner_by_email(email)
+@limiter.limit(RATE_LIMIT_AUTH)
+async def resend_verification(request: Request, payload: ForgotPassword):
+    owner = find_owner_by_email(payload.email)
     if not owner:
         raise HTTPException(status_code=404, detail="No account found with this email.")
     if owner_verified(owner):
@@ -1346,8 +1608,91 @@ async def resend_verification(email: str = Query(...)):
     return {"message": "Verification email resent. Please check your inbox."}
 
 
+@app.post("/owners/forgot-password")
+@limiter.limit(RATE_LIMIT_AUTH)
+async def forgot_password(request: Request, payload: ForgotPassword):
+    owner = find_owner_by_email(payload.email)
+    if not owner:
+        return {"message": "If that email exists, a reset code has been sent."}
+
+    code = secrets.token_urlsafe(6)[:8]
+    owner["reset_code"] = code
+    owner["reset_code_expires"] = (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()
+
+    owners = read_owners()
+    for i, o in enumerate(owners):
+        if o["id"] == owner["id"]:
+            owners[i] = owner
+            break
+    write_owners(owners)
+    send_reset_code_email(owner, code)
+    return {"message": "If that email exists, a reset code has been sent."}
+
+
+@app.post("/owners/verify-reset-code")
+@limiter.limit(RATE_LIMIT_AUTH)
+async def verify_reset_code(request: Request, payload: VerifyResetCode):
+    owner = find_owner_by_email(payload.email)
+    if not owner:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset code.")
+
+    if owner.get("reset_code") != payload.code:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset code.")
+
+    expires = owner.get("reset_code_expires")
+    if expires:
+        try:
+            expires_dt = datetime.fromisoformat(expires)
+            if expires_dt.tzinfo is None:
+                expires_dt = expires_dt.replace(tzinfo=timezone.utc)
+            if datetime.now(timezone.utc) > expires_dt:
+                raise HTTPException(status_code=400, detail="Reset code has expired. Please request a new one.")
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=400, detail="Invalid or expired reset code.")
+
+    return {"valid": True}
+
+
+@app.post("/owners/reset-password")
+@limiter.limit(RATE_LIMIT_AUTH)
+async def reset_password(request: Request, payload: ResetPassword):
+    owner = find_owner_by_email(payload.email)
+    if not owner:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset code.")
+
+    if owner.get("reset_code") != payload.code:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset code.")
+
+    expires = owner.get("reset_code_expires")
+    if not expires:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset code.")
+
+    try:
+        expires_dt = datetime.fromisoformat(expires)
+        if expires_dt.tzinfo is None:
+            expires_dt = expires_dt.replace(tzinfo=timezone.utc)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="Invalid or expired reset code.")
+
+    if datetime.now(timezone.utc) > expires_dt:
+        raise HTTPException(status_code=400, detail="Reset code has expired. Please request a new one.")
+
+    owner["password_hash"] = hash_password(payload.new_password)
+    owner["reset_code"] = None
+    owner["reset_code_expires"] = None
+
+    owners = read_owners()
+    for i, o in enumerate(owners):
+        if o["id"] == owner["id"]:
+            owners[i] = owner
+            break
+    write_owners(owners)
+    return {"message": "Password has been reset successfully."}
+
+
 @app.post("/owners/login", response_model=AuthResponse)
-async def login_owner(payload: OwnerLogin):
+@limiter.limit(RATE_LIMIT_AUTH)
+async def login_owner(request: Request, payload: OwnerLogin, response: Response):
     owner = find_owner_by_email(payload.email)
     if not owner or not verify_password(payload.password, owner.get("password_hash", "")):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
@@ -1356,11 +1701,14 @@ async def login_owner(payload: OwnerLogin):
             status_code=403,
             detail="Please verify your email before logging in. Check your inbox or request a new verification link.",
         )
-    return {"owner": public_owner(owner), **create_owner_session(owner["id"])}
+    session = create_owner_session(owner["id"])
+    _set_session_cookie(response, session["token"], session["expires_at"])
+    return {"owner": public_owner(owner), **session}
 
 
 @app.post("/owners/google-login", response_model=AuthResponse)
-async def google_login(payload: GoogleLogin):
+@limiter.limit(RATE_LIMIT_AUTH)
+async def google_login(request: Request, payload: GoogleLogin, response: Response):
     import httpx
     client_id = os.getenv("GOOGLE_CLIENT_ID")
     if not client_id:
@@ -1397,6 +1745,8 @@ async def google_login(payload: GoogleLogin):
             "password_hash": "",
             "verified": "true",
             "verification_token": None,
+            "reset_code": None,
+            "reset_code_expires": None,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         owners.append(owner)
@@ -1410,7 +1760,15 @@ async def google_login(payload: GoogleLogin):
                 break
         write_owners(owners)
 
-    return {"owner": public_owner(owner), **create_owner_session(owner["id"])}
+    session = create_owner_session(owner["id"])
+    _set_session_cookie(response, session["token"], session["expires_at"])
+    return {"owner": public_owner(owner), **session}
+
+
+@app.post("/owners/logout")
+async def logout_owner(response: Response):
+    _clear_session_cookie(response)
+    return {"message": "Logged out."}
 
 
 @app.get("/owners/{owner_id}", response_model=OwnerPublic)
@@ -1419,6 +1777,53 @@ async def get_owner(owner_id: str, authorization: str | None = Header(default=No
     if owner["id"] != owner_id:
         raise HTTPException(status_code=403, detail="You can only access your own owner profile.")
     return public_owner(owner)
+
+
+PROFILE_PHOTOS_DIR = DATA_ROOT / "profile_photos"
+PROFILE_PHOTOS_DIR.mkdir(exist_ok=True)
+
+
+@app.put("/owners/profile")
+async def update_owner_profile(payload: ProfileUpdate, authorization: str | None = Header(default=None)):
+    owner = require_owner(authorization)
+    owners = read_owners()
+    idx = next((i for i, o in enumerate(owners) if o["id"] == owner["id"]), None)
+    if idx is None:
+        raise HTTPException(status_code=404, detail="Owner not found")
+
+    if payload.full_name is not None:
+        owner["full_name"] = payload.full_name
+    if payload.email is not None:
+        owner["email"] = normalize_email(payload.email)
+    if payload.new_password:
+        if not payload.current_password:
+            raise HTTPException(status_code=400, detail="Current password is required to change password.")
+        if not verify_password(payload.current_password, owner["password_hash"]):
+            raise HTTPException(status_code=400, detail="Current password is incorrect")
+        if len(payload.new_password) < 6:
+            raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+        owner["password_hash"] = hash_password(payload.new_password)
+    if payload.profile_photo:
+        try:
+            header, encoded = payload.profile_photo.split(",", 1)
+            ext = "png"
+            if "jpeg" in header or "jpg" in header:
+                ext = "jpg"
+            elif "webp" in header:
+                ext = "webp"
+            elif "gif" in header:
+                ext = "gif"
+            photo_data = base64.b64decode(encoded)
+            photo_path = PROFILE_PHOTOS_DIR / f"{owner['id']}.{ext}"
+            with open(photo_path, "wb") as f:
+                f.write(photo_data)
+            owner["picture"] = f"/profile_photos/{owner['id']}.{ext}"
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid profile photo data")
+
+    owners[idx] = owner
+    write_owners(owners)
+    return {"owner": public_owner(owner)}
 
 
 @app.get("/businesses")
@@ -1473,6 +1878,19 @@ async def update_business(identifier: str, payload: BusinessUpdate, authorizatio
     normalize_business_record(business)
     write_businesses(businesses)
     return business
+
+
+@app.delete("/businesses/{identifier}")
+async def delete_business(identifier: str, authorization: str | None = Header(default=None)):
+    owner = require_owner(authorization)
+    businesses = read_businesses()
+    business = next((item for item in businesses if item["id"] == identifier or item["slug"] == identifier), None)
+    if not business:
+        raise HTTPException(status_code=404, detail="Business not found.")
+    if business.get("owner_id") != owner["id"]:
+        raise HTTPException(status_code=403, detail="This business belongs to another owner.")
+    write_businesses([item for item in businesses if item["id"] != business["id"]])
+    return {"message": "Business deleted.", "id": business["id"]}
 
 
 @app.post("/businesses/{identifier}/cover", response_model=Business)
@@ -1665,7 +2083,8 @@ async def get_business_inquiries(identifier: str, authorization: str | None = He
 
 
 @app.post("/businesses/{identifier}/inquiries")
-async def create_business_inquiry(identifier: str, payload: InquiryCreate):
+@limiter.limit(RATE_LIMIT_CHAT)
+async def create_business_inquiry(identifier: str, payload: InquiryCreate, request: Request):
     business = find_business(identifier)
     if not business:
         raise HTTPException(status_code=404, detail="Business not found.")
@@ -1700,6 +2119,12 @@ async def update_business_inquiry_status(
     return inquiry
 
 
+@app.post("/api/contact")
+@limiter.limit(RATE_LIMIT_AUTH)
+async def create_contact_message(request: Request, payload: ContactCreate):
+    return save_contact(payload)
+
+
 @app.post("/businesses/{business_id}/documents")
 async def upload_business_document(
     business_id: str,
@@ -1711,8 +2136,10 @@ async def upload_business_document(
     if not file.filename or not (file.filename.lower().endswith(".pdf") or file.filename.lower().endswith(".txt")):
         raise HTTPException(status_code=400, detail="Only PDF and TXT files are supported.")
 
-    file_name = Path(file.filename).name
-    file_path = business_upload_path(business["id"]) / file_name
+    original_name = Path(file.filename).name
+    ext = Path(original_name).suffix
+    safe_name = f"{uuid4().hex[:16]}{ext}"
+    file_path = business_upload_path(business["id"]) / safe_name
 
     try:
         with file_path.open("wb") as saved_file:
@@ -1720,14 +2147,15 @@ async def upload_business_document(
 
         texts = process_document(file_path)
         if not texts:
+            file_path.unlink(missing_ok=True)
             raise HTTPException(status_code=400, detail="No readable text found in this document.")
 
-        document = upsert_document_metadata(business["id"], file_path, len(texts))
+        document = upsert_document_metadata(business["id"], file_path, len(texts), original_name)
         chunks = rebuild_business_store(business["id"])
         return {
             "business_id": business["id"],
             "document": document,
-            "filename": file_name,
+            "filename": original_name,
             "chunks": chunks,
             "message": "Document uploaded and indexed successfully.",
         }
@@ -1736,20 +2164,21 @@ async def upload_business_document(
 
 
 @app.post("/businesses/{identifier}/chat")
-async def ask_business_question(identifier: str, request: QueryRequest, http_request: Request):
+@limiter.limit(RATE_LIMIT_CHAT)
+async def ask_business_question(identifier: str, query: QueryRequest, request: Request):
     business = find_business(identifier)
     if not business:
         raise HTTPException(status_code=404, detail="Business not found.")
-    language = detect_language(request.question)
-    response = answer_for_business(business, request.question, language)
+    language = detect_language(query.question)
+    response = answer_for_business(business, query.question, language)
     conversation_id = save_chat_message(
         business_id=business["id"],
-        question=request.question,
+        question=query.question,
         answer=response["answer"],
         sources=response["sources"],
-        conversation_id=request.conversation_id,
+        conversation_id=query.conversation_id,
         language=language,
-        visitor_ip=http_request.client.host if http_request.client else None,
+        visitor_ip=request.client.host if request.client else None,
     )
     return {**response, "conversation_id": conversation_id, "language": language}
 
@@ -1757,6 +2186,10 @@ async def ask_business_question(identifier: str, request: QueryRequest, http_req
 # ── WebSocket streaming chat ──────────────────────────────────────────────
 @app.websocket("/chat/stream")
 async def chat_stream(websocket: WebSocket, business_slug: str = Query(default="demo")):
+    client_ip = websocket.client.host if websocket.client else "unknown"
+    if not _check_ws_rate_limit(client_ip):
+        await websocket.close(code=1008, reason="Rate limit exceeded")
+        return
     await websocket.accept()
     business = find_business(business_slug)
     if not business:
@@ -1771,6 +2204,9 @@ async def chat_stream(websocket: WebSocket, business_slug: str = Query(default="
             use_rag = data.get("rag", True)
             if not text:
                 continue
+            if len(text) > 1000:
+                await websocket.send_json({"error": "Message too long (max 1000 characters)."})
+                continue
 
             if use_rag:
                 async for token in stream_answer_for_business(business, text):
@@ -1779,17 +2215,18 @@ async def chat_stream(websocket: WebSocket, business_slug: str = Query(default="
                 async for token in stream_llm_only(business, text):
                     await websocket.send_text(token)
     except WebSocketDisconnect:
-        pass
+        logging.info("WebSocket disconnected")
     except Exception as exc:
+        logging.error("WebSocket error: %s", exc)
         try:
             await websocket.send_text(f"Error: {exc}")
-        except Exception:
-            pass
+        except Exception as e2:
+            logging.error("WebSocket send error: %s", e2)
     finally:
         try:
             await websocket.close()
-        except Exception:
-            pass
+        except Exception as e3:
+            logging.error("WebSocket close error: %s", e3)
 
 
 # ── Frontend-aligned REST endpoints (global, uses default/demo business) ──
@@ -1864,8 +2301,9 @@ async def upload_document_legacy(
 
 
 @app.post("/query/{business_id}")
-async def ask_question_legacy(business_id: str, request: QueryRequest, http_request: Request):
-    return await ask_business_question(business_id, request, http_request)
+@limiter.limit(RATE_LIMIT_CHAT)
+async def ask_question_legacy(business_id: str, query: QueryRequest, request: Request):
+    return await ask_business_question(business_id, query, request)
 
 
 # ── Embed script ─────────────────────────────────────────────────────────
@@ -1889,9 +2327,9 @@ async def embed_script(slug: str, request: Request):
 
     js = jinja_env.get_template("embed_widget.js").render(
         slug=slug,
-        business_name=business["name"],
-        greeting=labels["greeting"],
-        placeholder=labels["placeholder"],
+        business_name=html.escape(business["name"]),
+        greeting=html.escape(labels["greeting"]),
+        placeholder=html.escape(labels["placeholder"]),
         ws_url=f"{ws_base}/chat/stream",
         api_url=base_url,
     )
@@ -1991,9 +2429,12 @@ async def business_qr_code(slug: str, request: Request):
 
 
 app.mount("/uploaded_documents", StaticFiles(directory=str(UPLOAD_ROOT)), name="uploaded_documents")
+app.mount("/profile_photos", StaticFiles(directory=str(PROFILE_PHOTOS_DIR)), name="profile_photos")
 
 
 if __name__ == "__main__":
     import uvicorn
 
+    if not os.getenv("SITE_URL"):
+        logging.warning("SITE_URL is not set — using localhost fallback for email links")
     uvicorn.run(app, host="0.0.0.0", port=8000)

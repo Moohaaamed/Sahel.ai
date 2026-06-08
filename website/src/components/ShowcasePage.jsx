@@ -1,16 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { API_URL } from '../config';
+import { ROUTES } from '../lib/routes';
+import { useLanguage } from '../i18n';
 import MarketingHeader from './layout/MarketingHeader';
 import MarketingFooter from './layout/MarketingFooter';
-
-const CATEGORIES = [
-  { key: 'all', label: 'Toutes', icon: 'apps' },
-  { key: 'restaurant', label: 'Restaurants', icon: 'restaurant' },
-  { key: 'hotel', label: 'Hôtels & Riads', icon: 'bed' },
-  { key: 'service', label: 'Services', icon: 'build' },
-  { key: 'retail', label: 'Commerces', icon: 'storefront' },
-  { key: 'autre', label: 'Autres', icon: 'category' },
-];
 
 function categoryKey(type) {
   const t = (type || '').toLowerCase();
@@ -36,19 +29,40 @@ function coverFor(business) {
 }
 
 export default function ShowcasePage() {
+  const { t } = useLanguage();
   const [businesses, setBusinesses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeCategory, setActiveCategory] = useState('all');
+
+  const CATEGORIES = useMemo(() => [
+    { key: 'all', label: t('showcase.all'), icon: 'apps' },
+    { key: 'restaurant', label: t('showcase.restaurants'), icon: 'restaurant' },
+    { key: 'hotel', label: t('showcase.hotels'), icon: 'bed' },
+    { key: 'service', label: t('showcase.services'), icon: 'build' },
+    { key: 'retail', label: t('showcase.shops'), icon: 'storefront' },
+    { key: 'autre', label: t('showcase.other'), icon: 'category' },
+  ], [t]);
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${API_URL}/businesses`)
-      .then((res) => res.json())
+    setError(null);
+    const controller = new AbortController();
+    fetch(`${API_URL}/businesses`, { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error('error');
+        return res.json();
+      })
       .then((data) => {
         setBusinesses(data.businesses || []);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((err) => {
+        if (err.name === 'AbortError') return;
+        setLoading(false);
+        setError(true);
+      });
+    return () => controller.abort();
   }, []);
 
   const grouped = {};
@@ -73,11 +87,10 @@ export default function ShowcasePage() {
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-lg">
               <h1 className="font-display-lg text-display-lg m-0 leading-tight">
-                Vitrines <span className="text-primary">Digitales</span>
+                {t('showcase.title')}
               </h1>
               <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto mt-md">
-                Découvrez les commerces marocains qui utilisent Sahel.ai pour offrir une expérience
-                intelligente à leurs clients. Cliquez sur une vitrine pour discuter avec leur assistant IA.
+                {t('showcase.subtitle')}
               </p>
             </div>
 
@@ -91,11 +104,10 @@ export default function ShowcasePage() {
                     key={cat.key}
                     type="button"
                     onClick={() => setActiveCategory(cat.key)}
-                    className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-label-md text-label-md border transition-all cursor-pointer ${
-                      isActive
+                    className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-label-md text-label-md border transition-all cursor-pointer ${isActive
                         ? 'bg-primary text-on-primary border-primary shadow-md'
                         : 'bg-white text-on-surface-variant border-hairline-border hover:border-primary/30 hover:text-primary'
-                    }`}
+                      }`}
                   >
                     <span className="material-symbols-outlined text-[16px]">{cat.icon}</span>
                     <span>{cat.label}</span>
@@ -118,22 +130,28 @@ export default function ShowcasePage() {
                   </div>
                 ))}
               </div>
+            ) : error ? (
+              <div className="text-center py-2xl">
+                <span className="material-symbols-outlined text-6xl text-warning mb-md">cloud_off</span>
+                <p className="font-body-lg text-body-lg text-on-surface-variant">{t('common.error')}</p>
+                <button onClick={() => window.location.reload()} className="mt-md bg-primary text-white px-md py-xs rounded no-underline border-0 cursor-pointer">{t('common.retry')}</button>
+              </div>
             ) : !hasBusinesses ? (
               <div className="text-center py-2xl">
                 <span className="material-symbols-outlined text-6xl text-outline-variant mb-md">storefront</span>
-                <p className="font-body-lg text-body-lg text-on-surface-variant">Aucune vitrine pour le moment.</p>
+                <p className="font-body-lg text-body-lg text-on-surface-variant">{t('showcase.empty')}</p>
               </div>
             ) : filtered.length === 0 ? (
               <div className="text-center py-2xl">
                 <span className="material-symbols-outlined text-6xl text-outline-variant mb-md">search_off</span>
-                <p className="font-body-lg text-body-lg text-on-surface-variant">Aucune vitrine dans cette catégorie.</p>
+                <p className="font-body-lg text-body-lg text-on-surface-variant">{t('showcase.emptyFilter')}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md">
                 {filtered.map((b) => (
                   <a
                     key={b.id}
-                    href={`/business/${b.slug}`}
+                    href={ROUTES.miniSite(b.slug)}
                     className="group bg-white border border-hairline-border rounded-xl overflow-hidden no-underline transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-primary/30"
                   >
                     <div className="h-48 bg-surface-variant relative overflow-hidden">
@@ -153,10 +171,10 @@ export default function ShowcasePage() {
                       )}
                       <div className="absolute top-3 right-3">
                         <span className="px-2 py-0.5 bg-white/90 backdrop-blur-sm text-on-surface font-label-sm text-label-sm rounded-full border border-hairline-border">
-                          {categoryKey(b.business_type) === 'restaurant' ? 'Restaurant' :
-                           categoryKey(b.business_type) === 'hotel' ? 'Hôtel / Riad' :
-                           categoryKey(b.business_type) === 'service' ? 'Service' :
-                           categoryKey(b.business_type) === 'retail' ? 'Commerce' : 'Autre'}
+                          {categoryKey(b.business_type) === 'restaurant' ? t('onboarding.restaurant') :
+                            categoryKey(b.business_type) === 'hotel' ? t('onboarding.hotel') :
+                              categoryKey(b.business_type) === 'service' ? t('onboarding.services') :
+                                categoryKey(b.business_type) === 'retail' ? t('onboarding.shop') : t('showcase.other')}
                         </span>
                       </div>
                     </div>
@@ -169,8 +187,28 @@ export default function ShowcasePage() {
                           {b.description}
                         </p>
                       )}
+                      {(() => {
+                        try {
+                          const sm = JSON.parse(b.social_media || '{}');
+                          const entries = Object.entries(sm).filter(([, v]) => v && v.trim()).slice(0, 4);
+                          if (entries.length === 0) return null;
+                          return (
+                            <div className="flex flex-wrap gap-1.5 mt-2" onClick={(e) => e.stopPropagation()}>
+                              {entries.map(([platform, url]) => (
+                                <a key={platform} href={url} target="_blank" rel="noopener noreferrer"
+                                  className="w-6 h-6 rounded-full bg-surface-container-high flex items-center justify-center hover:bg-primary/10 transition-colors"
+                                  title={platform}>
+                                  <span className="material-symbols-outlined text-[14px] text-on-surface-variant">
+                                    {platform === 'instagram' ? 'camera_alt' : platform === 'facebook' ? 'facebook' : platform === 'linkedin' ? 'work' : platform === 'twitter' ? 'alternate_email' : platform === 'tiktok' ? 'music_note' : platform === 'youtube' ? 'play_circle' : 'link'}
+                                  </span>
+                                </a>
+                              ))}
+                            </div>
+                          );
+                        } catch { return null; }
+                      })()}
                       <div className="mt-3 flex items-center gap-1 text-primary font-label-md text-label-md">
-                        <span>Visiter la vitrine</span>
+                        <span>{t('showcase.visit')}</span>
                         <span className="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
                       </div>
                     </div>

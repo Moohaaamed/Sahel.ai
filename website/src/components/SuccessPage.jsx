@@ -3,6 +3,7 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { ROUTES, loginUrl } from '../lib/routes';
 import { getLastBusiness, getSession } from '../lib/session';
 import SahelLogo from './SahelLogo';
+import { useLanguage, LanguageSwitcher } from '../i18n';
 
 function cleanPhone(val) {
   return (val || '').replace(/[^\d+]/g, '');
@@ -18,8 +19,9 @@ function buildWhatsAppShareUrl(phone, message) {
 }
 
 export default function SuccessPage() {
+  const { t } = useLanguage();
   const session = getSession();
-  const [business, setBusiness] = useState(() => getLastBusiness());
+  const [business] = useState(() => getLastBusiness());
   const [toast, setToast] = useState('');
   const [accordionOpen, setAccordionOpen] = useState(false);
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
@@ -57,7 +59,7 @@ export default function SuccessPage() {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const copyText = async (value, message = 'Lien copié !') => {
+  const copyText = async (value, message = t('common.copied')) => {
     try {
       await navigator.clipboard.writeText(value);
       showToast(message);
@@ -82,7 +84,7 @@ export default function SuccessPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToast('QR code téléchargé');
+    showToast(t('success.qrDownloaded'));
   };
 
   if (!business) {
@@ -105,13 +107,13 @@ export default function SuccessPage() {
               href={ROUTES.contact}
               className="text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors no-underline"
             >
-              Support
+                {t('footer.support')}
             </a>
             <a
               href={ROUTES.dashboard}
               className="bg-primary text-on-primary font-label-md text-label-md px-4 py-2 rounded-lg active:scale-95 duration-100 no-underline"
             >
-              Tableau de bord
+              {t('nav.dashboard')}
             </a>
           </div>
         </div>
@@ -130,12 +132,10 @@ export default function SuccessPage() {
             </div>
           </div>
           <h1 className="font-display-lg text-display-lg text-on-surface mb-xs m-0">
-            Félicitations ! Votre chatbot est prêt
+            {t('success.title')}
           </h1>
           <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto m-0">
-            Votre assistant IA pour{' '}
-            <span className="font-semibold text-on-surface">{business.name}</span> est configuré et prêt à
-            accueillir vos clients 24/7.
+            {t('success.subtitle', { name: business.name })}
           </p>
           <div className="mt-lg flex flex-col sm:flex-row justify-center gap-sm">
             <a
@@ -145,14 +145,14 @@ export default function SuccessPage() {
               className="btn-primary-ui px-lg py-3 font-label-md text-label-md flex items-center justify-center gap-xs no-underline"
             >
               <span className="material-symbols-outlined">visibility</span>
-              Voir mon mini-site
+              {t('success.viewSite')}
             </a>
             <a
               href={ROUTES.dashboard}
               className="btn-outline-ui px-lg py-3 font-label-md text-label-md text-on-surface flex items-center justify-center gap-xs no-underline"
             >
               <span className="material-symbols-outlined">edit</span>
-              Modifier les réponses
+              {t('success.editResponses')}
             </a>
           </div>
         </section>
@@ -161,7 +161,7 @@ export default function SuccessPage() {
           <div className="lg:col-span-7 space-y-md">
             <div className="flat-card p-md">
               <h3 className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-sm m-0">
-                Partager votre lien public
+                {t('success.shareLink')}
               </h3>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-xs">
                 <input
@@ -176,7 +176,7 @@ export default function SuccessPage() {
                   className="btn-primary-ui px-md py-3 font-label-md text-label-md whitespace-nowrap"
                   onClick={() => copyText(siteUrl)}
                 >
-                  Copier le lien
+                  {t('success.copyLink')}
                 </button>
               </div>
             </div>
@@ -190,19 +190,18 @@ export default function SuccessPage() {
                   <span className="font-label-sm text-label-sm text-center">{business.name}</span>
                 </div>
                 <div className="md:w-2/3">
-                  <h3 className="font-headline-sm text-headline-sm text-on-surface mb-xs m-0">Kit QR Code</h3>
+                  <h3 className="font-headline-sm text-headline-sm text-on-surface mb-xs m-0">{t('success.qrKit')}</h3>
                   <p className="font-body-md text-body-md text-on-surface-variant mb-md m-0">
-                    Imprimez ce QR code pour permettre à vos clients d&apos;accéder instantanément à votre
-                    concierge IA depuis vos chambres ou votre réception.
+                    {t('success.qrDesc')}
                   </p>
                   <ul className="space-y-xs mb-md list-none p-0 m-0">
                     <li className="flex items-start gap-xs font-body-md text-body-md text-on-surface">
                       <span className="material-symbols-outlined text-primary text-[18px]">check_circle</span>
-                      <span>À imprimer sur vos cartes de visite</span>
+                      <span>{t('success.qrBusinessCard')}</span>
                     </li>
                     <li className="flex items-start gap-xs font-body-md text-body-md text-on-surface">
                       <span className="material-symbols-outlined text-primary text-[18px]">check_circle</span>
-                      <span>À afficher sur les tables de chevet</span>
+                      <span>{t('success.qrBedside')}</span>
                     </li>
                   </ul>
                   <button
@@ -211,7 +210,7 @@ export default function SuccessPage() {
                     onClick={downloadQr}
                   >
                     <span className="material-symbols-outlined">download</span>
-                    Télécharger le QR code (PNG)
+                    {t('success.downloadQr')}
                   </button>
                 </div>
               </div>
@@ -224,10 +223,10 @@ export default function SuccessPage() {
                 </div>
                 <div className="flex-grow min-w-0">
                   <h3 className="font-label-md text-label-md text-secondary uppercase tracking-wider mb-base m-0">
-                    Contact direct
+                    {t('success.directContact')}
                   </h3>
                   <p className="font-body-md text-body-md text-on-surface-variant m-0">
-                    Envoyez votre mini-site directement à vos clients via WhatsApp
+                    {t('success.directContactDesc')}
                     {business.owner_phone ? (
                       <>
                         {' '}
@@ -245,11 +244,11 @@ export default function SuccessPage() {
                     rel="noreferrer"
                     className="bg-secondary text-white px-md py-3 rounded-[6px] font-label-md text-label-md hover:bg-[#005a41] flex items-center gap-xs transition-colors no-underline whitespace-nowrap shrink-0"
                   >
-                    Partager sur WhatsApp
+                    {t('success.shareWhatsapp')}
                   </a>
                 ) : (
                   <span className="font-label-sm text-label-sm text-outline">
-                    Ajoutez un numéro WhatsApp dans votre profil pour activer le partage.
+                    {t('success.whatsappHint')}
                   </span>
                 )}
               </div>
@@ -265,7 +264,7 @@ export default function SuccessPage() {
                 <div className="flex items-center gap-sm">
                   <span className="material-symbols-outlined text-on-surface-variant">code</span>
                   <span className="font-label-md text-label-md text-on-surface uppercase tracking-wider">
-                    Intégration sur votre site
+                    {t('success.integration')}
                   </span>
                 </div>
                 <span
@@ -279,8 +278,7 @@ export default function SuccessPage() {
               {accordionOpen ? (
                 <div className="px-md pb-md">
                   <p className="font-body-md text-body-md text-on-surface-variant mb-md m-0">
-                    Ajoutez une bulle de chat flottante sur votre site web existant en copiant ce code avant la
-                    balise &lt;/body&gt;.
+                    {t('success.integrationDesc')}
                   </p>
                   <div className="bg-deep-navy p-md rounded border border-hairline-border relative group">
                     <code className="font-mono text-[12px] text-primary-fixed block leading-relaxed break-all whitespace-pre-wrap">
@@ -289,8 +287,8 @@ export default function SuccessPage() {
                     <button
                       type="button"
                       className="absolute top-2 right-2 p-1 text-outline-variant hover:text-white transition-colors border-0 bg-transparent cursor-pointer"
-                      onClick={() => copyText(widgetSnippet, 'Code copié !')}
-                      aria-label="Copier le code"
+                      onClick={() => copyText(widgetSnippet, t('common.copied'))}
+                      aria-label={t('common.copy')}
                     >
                       <span className="material-symbols-outlined text-[20px]">content_copy</span>
                     </button>
@@ -320,14 +318,14 @@ export default function SuccessPage() {
                     className="absolute inset-0 rounded-xl bg-primary/10 opacity-0 group-hover/phone:opacity-100 transition-opacity flex items-center justify-center no-underline z-10"
                   >
                     <span className="bg-white text-primary px-sm py-1 rounded-full font-label-sm text-label-sm shadow-sm">
-                      Aperçu
+                      {t('success.previewSite')}
                     </span>
                   </a>
                 </div>
               </div>
               <div className="p-md text-center border-t border-hairline-border bg-white relative z-20">
                 <p className="font-label-sm text-label-sm text-on-surface-variant m-0 mb-xs">
-                  L&apos;interface s&apos;adapte parfaitement à tous vos appareils.
+                  {t('success.responsive')}
                 </p>
                 <a
                   href={sitePath}
@@ -335,7 +333,7 @@ export default function SuccessPage() {
                   rel="noreferrer"
                   className="text-primary font-label-sm text-label-sm hover:underline no-underline"
                 >
-                  Ouvrir l&apos;aperçu du mini-site
+                  {t('success.previewSite')}
                 </a>
               </div>
             </div>
@@ -344,29 +342,29 @@ export default function SuccessPage() {
               <div className="absolute -right-8 -top-8 w-24 h-24 bg-primary/5 rounded-full blur-2xl" />
               <div className="relative">
                 <h3 className="font-headline-sm text-headline-sm text-on-surface mb-xs m-0">
-                  Gérez vos conversations
+                  {t('success.manageConversations')}
                 </h3>
                 <p className="font-body-md text-body-md text-on-surface-variant mb-md m-0">
-                  Accédez au dashboard complet : statistiques, historique des chats et notifications en temps réel.
+                  {t('success.manageConversationsDesc')}
                 </p>
                 <a
                   href={ROUTES.dashboard}
                   className="btn-primary-ui w-full py-3 font-label-md text-label-md flex items-center justify-center no-underline"
                 >
-                  Accéder au tableau de bord
+                  {t('success.goToDashboard')}
                 </a>
               </div>
             </div>
 
             <div className="p-md text-center">
               <p className="font-label-sm text-label-sm text-on-surface-variant mb-xs m-0">
-                Besoin d&apos;aide pour l&apos;installation ?
+                {t('success.needHelp')}
               </p>
               <a
                 className="text-primary font-label-sm text-label-sm hover:underline no-underline"
                 href={ROUTES.contact}
               >
-                Consulter notre centre d&apos;aide
+                {t('success.helpCenter')}
               </a>
             </div>
           </div>
@@ -389,48 +387,49 @@ export default function SuccessPage() {
               <SahelLogo size={28} textClass="font-headline-sm italic text-on-surface" />
             </span>
             <p className="text-on-surface-variant font-label-sm text-label-sm m-0">
-              Digitalisation pour les PME marocaines.
+              {t('success.digitalization')}
             </p>
           </div>
           <div>
-            <h4 className="font-label-md text-label-md text-on-surface mb-sm m-0">Produit</h4>
+            <h4 className="font-label-md text-label-md text-on-surface mb-sm m-0">{t('footer.product')}</h4>
             <ul className="space-y-xs list-none p-0 m-0">
               <li>
                 <a className="text-on-surface-variant font-body-md text-body-md hover:text-primary underline" href="/#fonctionnalites">
-                  Chatbot
+                  {t('footer.chatbot')}
                 </a>
               </li>
               <li>
                 <a className="text-on-surface-variant font-body-md text-body-md hover:text-primary underline" href="/#fonctionnalites">
-                  Intégrations
+                  {t('footer.integrations')}
                 </a>
               </li>
             </ul>
           </div>
           <div>
-            <h4 className="font-label-md text-label-md text-on-surface mb-sm m-0">Société</h4>
+            <h4 className="font-label-md text-label-md text-on-surface mb-sm m-0">{t('footer.company')}</h4>
             <ul className="space-y-xs list-none p-0 m-0">
               <li>
                 <a className="text-on-surface-variant font-body-md text-body-md hover:text-primary underline" href={ROUTES.about}>
-                  À propos
+                  {t('footer.about')}
                 </a>
               </li>
               <li>
                 <a className="text-on-surface-variant font-body-md text-body-md hover:text-primary underline" href={ROUTES.contact}>
-                  Contact
+                  {t('footer.contact')}
                 </a>
               </li>
             </ul>
           </div>
           <div className="col-span-2 md:col-span-4 mt-md border-t border-hairline-border pt-md flex flex-col sm:flex-row justify-between gap-sm">
-            <span className="text-on-surface-variant font-label-sm text-label-sm">© 2026 Sahel.ai. Powered by Minnova.</span>
-            <div className="flex gap-md">
+            <span className="text-on-surface-variant font-label-sm text-label-sm">{t('footer.copyright', { year: new Date().getFullYear() })}</span>
+            <div className="flex gap-md items-center">
               <a className="text-on-surface-variant font-label-sm text-label-sm hover:text-primary no-underline" href={ROUTES.terms}>
-                Legal
+                {t('footer.legal')}
               </a>
               <a className="text-on-surface-variant font-label-sm text-label-sm hover:text-primary no-underline" href={ROUTES.contact}>
-                Support
+              {t('footer.support')}
               </a>
+              <LanguageSwitcher />
             </div>
           </div>
         </div>

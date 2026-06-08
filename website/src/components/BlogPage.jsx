@@ -1,9 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ROUTES } from '../lib/routes';
+import { useLanguage } from '../i18n';
 import MarketingHeader from './layout/MarketingHeader';
 import MarketingFooter from './layout/MarketingFooter';
-
-const CATEGORIES = ['Tous', 'Tutoriel', 'Guide', 'Conseils', 'Cas client', 'Actualité'];
 
 const BLOG_POSTS = [
   {
@@ -77,8 +76,18 @@ const CATEGORY_ICONS = {
 };
 
 export default function BlogPage() {
+  const { t } = useLanguage();
   const [selectedPost, setSelectedPost] = useState(null);
   const [activeCategory, setActiveCategory] = useState('Tous');
+
+  const CATEGORIES = useMemo(() => [
+    { value: 'Tous', label: t('blog.all') },
+    { value: 'Tutoriel', label: t('blog.tutorial') },
+    { value: 'Guide', label: t('blog.guide') },
+    { value: 'Conseils', label: t('blog.tips') },
+    { value: 'Cas client', label: t('blog.caseStudy') },
+    { value: 'Actualité', label: t('blog.news') },
+  ], [t]);
 
   const filteredPosts = activeCategory === 'Tous'
     ? BLOG_POSTS
@@ -98,32 +107,32 @@ export default function BlogPage() {
           <div className="text-center mb-xl">
             <a href={ROUTES.home} className="inline-flex items-center gap-xs text-on-surface-variant font-label-md no-underline hover:text-primary mb-md">
               <span className="material-symbols-outlined !text-[18px]">arrow_back</span>
-              Retour à l&apos;accueil
+              {t('common.backToHome')}
             </a>
             <h1 className="font-display-lg text-display-lg text-on-surface m-0 mb-sm">
-              Blog & Guides
+              {t('blog.title')}
             </h1>
             <p className="font-body-lg text-body-lg text-on-surface-variant m-0 max-w-2xl mx-auto">
-              Articles, tutoriels et conseils pour propulser votre commerce marocain grâce à l&apos;IA et au digital.
+              {t('blog.subtitle')}
             </p>
           </div>
 
           <div className="flex flex-wrap gap-sm justify-center mb-xl">
             {CATEGORIES.map(cat => {
-              const count = cat === 'Tous' ? BLOG_POSTS.length : (categoryCounts[cat] || 0);
+              const count = cat.value === 'Tous' ? BLOG_POSTS.length : (categoryCounts[cat.value] || 0);
               return (
                 <button
-                  key={cat}
+                  key={cat.value}
                   type="button"
-                  onClick={() => setActiveCategory(cat)}
+                  onClick={() => setActiveCategory(cat.value)}
                   className={`px-4 py-2 rounded-full font-label-md text-label-md border transition-all cursor-pointer ${
-                    activeCategory === cat
+                    activeCategory === cat.value
                       ? 'bg-primary text-on-primary border-primary'
                       : 'bg-white text-on-surface-variant border-hairline-border hover:border-primary hover:text-primary'
                   }`}
                 >
-                  {cat}
-                  <span className={`ml-1.5 text-xs ${activeCategory === cat ? 'text-on-primary/70' : 'text-outline'}`}>
+                  {cat.label}
+                  <span className={`ml-1.5 text-xs ${activeCategory === cat.value ? 'text-on-primary/70' : 'text-outline'}`}>
                     ({count})
                   </span>
                 </button>
@@ -164,7 +173,7 @@ export default function BlogPage() {
                     onClick={() => setSelectedPost(post)}
                     className="text-primary font-label-md text-label-md hover:underline flex items-center gap-xs border-0 bg-transparent cursor-pointer p-0"
                   >
-                    <span>Lire l&apos;article</span>
+                    <span>{t('blog.readArticle')}</span>
                     <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                   </button>
                 </div>
@@ -181,7 +190,7 @@ export default function BlogPage() {
               type="button"
               onClick={() => setSelectedPost(null)}
               className="absolute top-4 right-4 text-outline-variant hover:text-on-surface p-2 rounded-full border-0 bg-transparent cursor-pointer flex items-center justify-center"
-              aria-label="Fermer"
+              aria-label={t('common.close')}
             >
               <span className="material-symbols-outlined text-[24px]">close</span>
             </button>
@@ -215,7 +224,7 @@ export default function BlogPage() {
                 onClick={() => setSelectedPost(null)}
                 className="btn-primary-ui px-lg py-2.5 font-label-md text-label-md"
               >
-                Fermer l&apos;article
+                {t('blog.closeArticle')}
               </button>
             </div>
           </div>

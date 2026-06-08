@@ -39,7 +39,10 @@ class OwnerModel(Base):
     password_hash = Column(String(200), nullable=False)
     verified = Column(String(5), nullable=False, default="true")
     verification_token = Column(String(200), nullable=True)
+    reset_code = Column(String(10), nullable=True)
+    reset_code_expires = Column(String(40), nullable=True)
     created_at = Column(String(40), nullable=False)
+    picture = Column(String(320), nullable=True)
 
 
 class BusinessModel(Base):
@@ -70,6 +73,7 @@ class BusinessModel(Base):
     patente = Column(String(30), nullable=True)
     cnss = Column(String(30), nullable=True)
     legal_form = Column(String(50), nullable=True)
+    social_media = Column(Text, nullable=True)
 
 
 class DocumentModel(Base):
@@ -122,6 +126,16 @@ class InquiryModel(Base):
     updated_at = Column(String(40), nullable=True)
 
 
+class ContactModel(Base):
+    __tablename__ = "contacts"
+
+    id = Column(String(80), primary_key=True)
+    name = Column(String(80), nullable=False)
+    email = Column(String(120), nullable=False)
+    message = Column(Text, nullable=False)
+    created_at = Column(String(40), nullable=False)
+
+
 TABLE_MODELS = {
     "owners": OwnerModel,
     "businesses": BusinessModel,
@@ -129,6 +143,7 @@ TABLE_MODELS = {
     "conversations": ConversationModel,
     "messages": MessageModel,
     "inquiries": InquiryModel,
+    "contacts": ContactModel,
 }
 
 
@@ -154,12 +169,19 @@ def run_migrations():
                 "patente": "VARCHAR(30)",
                 "cnss": "VARCHAR(30)",
                 "legal_form": "VARCHAR(50)",
+                "social_media": "TEXT",
             },
             "owners": {
                 "verified": "VARCHAR(5)",
                 "verification_token": "VARCHAR(200)",
+                "reset_code": "VARCHAR(10)",
+                "reset_code_expires": "VARCHAR(40)",
+                "picture": "VARCHAR(320)",
             },
         }.items():
+            allowed_tables = {"businesses", "owners"}
+            if table_name not in allowed_tables:
+                raise ValueError(f"Unexpected table: {table_name}")
             columns = [c["name"] for c in inspector.get_columns(table_name)]
             for col, col_type in new_cols.items():
                 if col not in columns:
@@ -238,3 +260,6 @@ def import_json_table(table_name: str, json_path: Path) -> None:
         rows = json.loads(json_path.read_text(encoding="cp1252"))
     if rows:
         write_table(table_name, rows)
+
+
+init_database()

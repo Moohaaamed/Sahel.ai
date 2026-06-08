@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { ROUTES } from '../lib/routes';
+import { useLanguage, LanguageSwitcher } from '../i18n';
 import SahelLogo from './SahelLogo';
 
-const DEVELOPER_PORTRAIT =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuARROvAJR91eu1tJrfbWLq9mLaK8lMa_WsYaMoNAw9TktTdvCXXLEz9XtL8OYp5iFEMLHbCgc-OPDW36p04xdd4QAUQsWwlhKHbSzfDCPY1qCMDa5Q7FDTzJzNd0WWJGV1vvfOJOWDHYHo76jOlWNlO-q0EoX9h9wvetm7gbIMJPsLVxDLZqvIEeP2hxp4ylhGLzwUZ6731TSitGcILx9dFJISt64WxEOY_Frd3XyXmt5WRq91VPsA7nokgQU1_GjO06TM2kkMADlVk';
+const DEVELOPER_PORTRAIT = null;
 
 const TECH_STACK = [
   { name: 'React', color: '#61DAFB' },
@@ -25,6 +25,8 @@ function AboutSection({ id, className = '', children }) {
 }
 
 export default function AboutPage() {
+  const { t } = useLanguage();
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -60,7 +62,7 @@ export default function AboutPage() {
             href={ROUTES.contact}
             className="bg-primary text-on-primary px-sm py-xs rounded text-label-md active:scale-95 transition-all no-underline"
           >
-            Nous contacter
+            {t('nav.contact')}
           </a>
         </div>
       </header>
@@ -68,22 +70,17 @@ export default function AboutPage() {
       <main className="flex flex-col flex-1">
         <AboutSection className="pt-xl pb-lg bg-background" id="vision">
           <div className="max-w-[1280px] mx-auto flex flex-col gap-sm">
-            <span className="text-primary font-label-sm tracking-widest uppercase">Notre Vision</span>
+            <span className="text-primary font-label-sm tracking-widest uppercase">{t('about.ourVision')}</span>
             <h1 className="font-display-lg text-display-lg text-on-surface m-0">
-              Rendre l&apos;IA accessible
+              {t('about.headline')}
             </h1>
             <p className="font-body-lg text-body-lg text-on-surface-variant max-w-lg m-0">
-              Au Maroc, près de{' '}
-              <span className="font-bold text-on-surface">93&nbsp;% des PME</span> manquent encore
-              d&apos;une présence digitale structurée.{' '}
-              <span className="italic font-headline-sm text-primary">Sahel</span>, qui signifie «&nbsp;facile&nbsp;»
-              en arabe, est notre réponse à ce défi.
+              {t('about.description')}
             </p>
             <div className="mt-md p-sm bg-surface-blue rounded-xl flex items-start gap-sm">
               <span className="material-symbols-outlined text-primary shrink-0">lightbulb</span>
               <p className="text-label-md text-on-primary-fixed-variant leading-relaxed m-0">
-                L&apos;intelligence artificielle ne doit pas être un luxe technologique, mais un artisanat
-                numérique au service de l&apos;économie locale.
+                {t('about.quote')}
               </p>
             </div>
           </div>
@@ -92,7 +89,7 @@ export default function AboutPage() {
         <AboutSection className="py-xl" id="mission">
           <div className="max-w-[1280px] mx-auto flex flex-col gap-lg">
             <div className="flex flex-col gap-sm">
-              <h2 className="font-headline-md text-headline-md text-on-surface m-0">L&apos;Essence du Projet</h2>
+              <h2 className="font-headline-md text-headline-md text-on-surface m-0">{t('about.essence')}</h2>
               <div className="h-1 w-12 bg-primary rounded-full" />
             </div>
             <div className="grid grid-cols-1 gap-md">
@@ -100,20 +97,18 @@ export default function AboutPage() {
                 <div className="w-10 h-10 bg-primary/10 rounded flex items-center justify-center mb-sm text-primary">
                   <span className="material-symbols-outlined">auto_fix</span>
                 </div>
-                <h3 className="font-headline-sm text-headline-sm mb-xs mt-0">Automatisation Locale</h3>
+                <h3 className="font-headline-sm text-headline-sm mb-xs mt-0">{t('about.localAutomation')}</h3>
                 <p className="text-on-surface-variant leading-relaxed m-0">
-                  Nous traduisons le savoir-faire métier des entreprises marocaines en agents intelligents,
-                  capables de gérer les interactions clients sans aucune complexité technique pour le gérant.
+                  {t('about.localAutomationDesc')}
                 </p>
               </div>
               <div className="bg-surface-container-lowest p-md border border-hairline-border rounded-lg">
                 <div className="w-10 h-10 bg-primary/10 rounded flex items-center justify-center mb-sm text-primary">
                   <span className="material-symbols-outlined">chat</span>
                 </div>
-                <h3 className="font-headline-sm text-headline-sm mb-xs mt-0">Zéro Barrière</h3>
+                <h3 className="font-headline-sm text-headline-sm mb-xs mt-0">{t('about.zeroBarrier')}</h3>
                 <p className="text-on-surface-variant leading-relaxed m-0">
-                  Notre mission est de supprimer la «&nbsp;peur de l&apos;écran&nbsp;». Sahel.ai est conçu comme un
-                  outil de productivité intuitif, aussi simple qu&apos;une conversation.
+                  {t('about.zeroBarrierDesc')}
                 </p>
               </div>
             </div>
@@ -122,25 +117,29 @@ export default function AboutPage() {
 
         <AboutSection className="py-xl bg-surface-container-low" id="team">
           <div className="max-w-[1280px] mx-auto flex flex-col gap-md">
-            <h2 className="font-headline-md text-headline-md text-on-surface m-0">Le Développeur</h2>
+            <h2 className="font-headline-md text-headline-md text-on-surface m-0">{t('about.developer')}</h2>
             <div className="bg-background border border-hairline-border p-md rounded-lg flex flex-col items-center text-center">
-              <div className="w-24 h-24 rounded-full overflow-hidden mb-sm border-2 border-primary/20">
-                <img
-                  alt="Portrait de Mouhamed, développeur Sahel.ai"
-                  className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500"
-                  src={DEVELOPER_PORTRAIT}
-                />
+              <div className="w-24 h-24 rounded-full overflow-hidden mb-sm border-2 border-primary/20 flex items-center justify-center bg-primary-fixed">
+                {DEVELOPER_PORTRAIT ? (
+                  <img
+                    alt="Portrait de Mouhamed, développeur Sahel.ai"
+                    className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500"
+                    src={DEVELOPER_PORTRAIT}
+                  />
+                ) : (
+                  <span className="text-3xl font-bold text-primary">M</span>
+                )}
               </div>
-              <h3 className="font-headline-sm text-headline-sm text-on-surface m-0">MOUHAMED</h3>
-              <p className="text-primary font-label-md mt-1 mb-0">Développeur — EST Meknès</p>
+              <h3 className="font-headline-sm text-headline-sm text-on-surface m-0">{t('about.developerName')}</h3>
+              <p className="text-primary font-label-md mt-1 mb-0">{t('about.developerTitle')}</p>
               <p className="text-on-surface-variant font-label-sm text-label-sm mt-2 mb-0 uppercase tracking-widest">
-                Génie Informatique DUT 2e année
+                {t('about.developerSubtitle')}
               </p>
               <div className="flex gap-sm mt-md">
                 <a
                   href={ROUTES.contact}
                   className="material-symbols-outlined text-outline hover:text-primary transition-colors no-underline"
-                  aria-label="Contacter par email"
+                  aria-label={t('about.contactEmail')}
                 >
                   alternate_email
                 </a>
@@ -149,7 +148,7 @@ export default function AboutPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="material-symbols-outlined text-outline hover:text-primary transition-colors no-underline"
-                  aria-label="Profil GitHub"
+                  aria-label={t('about.githubProfile')}
                 >
                   terminal
                 </a>
@@ -160,11 +159,9 @@ export default function AboutPage() {
 
         <AboutSection className="py-xl bg-background" id="stack">
           <div className="max-w-[1280px] mx-auto flex flex-col gap-md">
-            <h2 className="font-headline-md text-headline-md text-on-surface m-0">Architecture Technique</h2>
+            <h2 className="font-headline-md text-headline-md text-on-surface m-0">{t('about.techArchitecture')}</h2>
             <p className="text-on-surface-variant font-body-md m-0 max-w-2xl">
-              Stack réelle du produit Sahel.ai&nbsp;: mini-sites React, API FastAPI, RAG avec FAISS et
-              embeddings HuggingFace, inférence Groq, base PostgreSQL hébergée sur Supabase, déploiement API
-              sur HuggingFace Spaces (Docker).
+              {t('about.techDesc')}
             </p>
             <div className="grid grid-cols-2 gap-xs">
               {TECH_STACK.map((item) => (
@@ -182,15 +179,13 @@ export default function AboutPage() {
 
         <AboutSection className="py-xl bg-surface-blue" id="academic">
           <div className="max-w-[1280px] mx-auto flex flex-col gap-sm">
-            <h2 className="font-headline-md text-headline-md text-primary m-0">Contexte Académique</h2>
+            <h2 className="font-headline-md text-headline-md text-primary m-0">{t('about.academicContext')}</h2>
             <p className="font-body-md text-body-md text-on-primary-fixed-variant leading-relaxed m-0">
-              Ce projet est réalisé dans le cadre du{' '}
-              <span className="font-bold">Projet de Fin d&apos;Études (PFE)</span> au sein de l&apos;
-              <span className="font-bold">École Supérieure de Technologie de Meknès (EST Meknès)</span>.
+              {t('about.academicDesc')}
             </p>
             <div className="mt-md flex items-center gap-md">
               <div className="flex-1 h-px bg-primary/20" />
-              <span className="font-label-sm text-primary/60">EST MEKNÈS 2026</span>
+              <span className="font-label-sm text-primary/60">{t('about.estLabel')}</span>
               <div className="flex-1 h-px bg-primary/20" />
             </div>
           </div>
@@ -204,24 +199,27 @@ export default function AboutPage() {
           </a>
           <nav className="flex flex-wrap justify-center gap-md">
             <a className="text-body-md text-on-surface-variant hover:text-primary transition-colors no-underline" href="#mission">
-              Mission
+              {t('about.mission')}
             </a>
             <a className="text-body-md text-on-surface-variant hover:text-primary transition-colors no-underline" href="#team">
-              Équipe
+              {t('about.team')}
             </a>
             <a className="text-body-md text-on-surface-variant hover:text-primary transition-colors no-underline" href="#stack">
-              Stack
+              {t('about.stack')}
             </a>
             <a
               className="text-body-md text-on-surface-variant hover:text-primary transition-colors no-underline"
               href={ROUTES.privacy}
             >
-              Confidentialité
+              {t('about.privacy')}
             </a>
           </nav>
           <p className="font-label-sm text-label-sm text-secondary text-center m-0">
-            © 2026 Sahel.ai. Empowering Moroccan SMEs through digital craftsmanship.
+            {t('footer.copyright', { year: new Date().getFullYear() })}
           </p>
+          <div className="mt-4 flex justify-center">
+            <LanguageSwitcher />
+          </div>
         </div>
       </footer>
     </div>

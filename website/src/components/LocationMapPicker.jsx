@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useLanguage } from '../i18n';
 
 const DEFAULT_CENTER = { lat: 33.5731, lng: -7.5898 };
 const LEAFLET_CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
@@ -53,11 +54,12 @@ export default function LocationMapPicker({
   onLocationChange,
   className = '',
 }) {
+  const { t } = useLanguage();
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
   const [searching, setSearching] = useState(false);
-  const [hint, setHint] = useState('Cliquez sur la carte pour placer votre commerce.');
+  const [hint, setHint] = useState(t('locationPicker.clickToPlace'));
 
   const lat = parseFloat(latitude);
   const lng = parseFloat(longitude);
@@ -72,14 +74,14 @@ export default function LocationMapPicker({
         markerRef.current.on('dragend', () => {
           const pos = markerRef.current.getLatLng();
           onLocationChange(pos.lat, pos.lng);
-          setHint(`Position : ${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`);
+          setHint(t('locationPicker.position', { lat: pos.lat.toFixed(5), lng: pos.lng.toFixed(5) }));
         });
       }
       if (fly) map.flyTo(latLng, Math.max(map.getZoom(), 15), { duration: 0.6 });
       onLocationChange(latLng[0], latLng[1]);
-      setHint(`Position : ${latLng[0].toFixed(5)}, ${latLng[1].toFixed(5)}`);
+      setHint(t('locationPicker.position', { lat: latLng[0].toFixed(5), lng: latLng[1].toFixed(5) }));
     },
-    [onLocationChange],
+    [onLocationChange, t],
   );
 
   useEffect(() => {
@@ -108,7 +110,7 @@ export default function LocationMapPicker({
         mapRef.current = map;
       })
       .catch(() => {
-        setHint('Carte indisponible — utilisez la recherche ci-dessous.');
+        setHint(t('locationPicker.mapUnavailable'));
       });
 
     return () => {
@@ -138,7 +140,7 @@ export default function LocationMapPicker({
         setMarker(window.L, mapRef.current, [result.lat, result.lng]);
         onLocationChange(result.lat, result.lng, result.displayName);
       } else {
-        setHint('Adresse introuvable. Essayez une recherche plus précise.');
+        setHint(t('locationPicker.addressNotFound'));
       }
     } finally {
       setSearching(false);
@@ -151,7 +153,7 @@ export default function LocationMapPicker({
         <input
           type="text"
           className="flex-grow bg-background border border-hairline-border rounded px-sm py-xs font-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-          placeholder="Rechercher une adresse ou un lieu..."
+          placeholder={t('locationPicker.searchPlaceholder')}
           defaultValue={searchQuery}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
@@ -170,14 +172,14 @@ export default function LocationMapPicker({
             runSearch(input?.value);
           }}
         >
-          {searching ? 'Recherche...' : 'Explorer'}
+          {searching ? t('locationPicker.searching') : t('locationPicker.explore')}
         </button>
       </div>
       <p className="font-label-sm text-label-sm text-on-surface-variant m-0">{hint}</p>
       <div
         ref={containerRef}
         className="w-full h-[280px] rounded-lg border border-hairline-border z-0"
-        aria-label="Carte interactive — cliquez pour choisir l'emplacement"
+        aria-label={t('locationPicker.mapAria')}
       />
     </div>
   );

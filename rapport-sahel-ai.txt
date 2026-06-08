@@ -863,8 +863,7 @@ commerce.
 
 10.4 Base de Données — Supabase
 
-  URL : postgresql://postgres.mohjmzzcxjmmkmvheame:...@aws-1-eu-central-1
-         .pooler.supabase.com:5432/postgres
+  URL : postgresql://[REDACTED]@[REDACTED]:5432/postgres
 
   Caractéristiques :
     - PostgreSQL 15 hébergé (plan gratuit : 500 MB)

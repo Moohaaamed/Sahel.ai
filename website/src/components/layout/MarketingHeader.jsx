@@ -3,9 +3,11 @@ import { ROUTES } from '../../lib/routes';
 import { getSession, clearSession } from '../../lib/session';
 import ConsentBanner from '../ConsentBanner';
 import SahelLogo from '../SahelLogo';
+import { useLanguage, LanguageSwitcher } from '../../i18n';
 
 export default function MarketingHeader() {
   const [session, setSession] = useState(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     setSession(getSession());
@@ -27,44 +29,45 @@ export default function MarketingHeader() {
               <SahelLogo size={28} textClass="font-headline-sm text-headline-sm font-bold text-on-background dark:text-surface-bright" />
             </a>
             <div className="hidden md:flex gap-md">
-              <a className="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary dark:hover:text-primary-fixed transition-colors font-label-md text-label-md no-underline" href="/" onClick={(e) => { if (window.location.pathname === '/') { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}>Solutions</a>
+              <a className="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary dark:hover:text-primary-fixed transition-colors font-label-md text-label-md no-underline" href="/" onClick={(e) => { if (window.location.pathname === '/') { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}>{t('nav.solutions')}</a>
               <a className="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary dark:hover:text-primary-fixed transition-colors font-label-md text-label-md no-underline" href={ROUTES.showcase}>
-                Vitrines
+{t('nav.showcases')}
               </a>
               <a className="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary dark:hover:text-primary-fixed transition-colors font-label-md text-label-md no-underline" href={ROUTES.about}>
-                À propos
+{t('nav.about')}
               </a>
               <a className="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary dark:hover:text-primary-fixed transition-colors font-label-md text-label-md no-underline" href={ROUTES.faq}>
-                FAQ
+{t('nav.faq')}
               </a>
               <a className="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary dark:hover:text-primary-fixed transition-colors font-label-md text-label-md no-underline" href={ROUTES.blog}>
-                Blog
+{t('nav.blog')}
               </a>
               <a className="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary dark:hover:text-primary-fixed transition-colors font-label-md text-label-md no-underline" href={ROUTES.contact}>
-                Contact
+{t('nav.contact')}
               </a>
             </div>
           </div>
           <div className="flex items-center gap-sm">
+            <LanguageSwitcher className="items-center" />
             {session?.owner ? (
               <>
                 <a href={ROUTES.dashboard} className="text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors no-underline">
-                  Tableau de bord
+{t('nav.dashboard')}
                 </a>
                 <button
                   onClick={handleLogout}
                   className="bg-primary text-on-primary px-md py-xs rounded-xl font-label-md text-label-md hover:brightness-90 transition-transform duration-200 active:scale-95 border-0 cursor-pointer"
                 >
-                  Déconnexion
+{t('nav.logout')}
                 </button>
               </>
             ) : (
               <>
                 <a href={ROUTES.login} className="text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors no-underline">
-                  Connexion
+{t('nav.login')}
                 </a>
                 <a href={ROUTES.register} className="bg-primary text-on-primary px-md py-xs rounded-xl font-label-md text-label-md hover:brightness-90 transition-transform duration-200 active:scale-95 no-underline">
-                  S&apos;inscrire
+{t('nav.register')}
                 </a>
               </>
             )}

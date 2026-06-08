@@ -6,6 +6,7 @@ const axios = require('axios').default;
 const API_BASE = process.env.API_BASE || 'http://localhost:8000';
 const DEFAULT_SLUG = process.env.DEFAULT_BUSINESS_SLUG || 'sahel';
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const DEV = process.env.NODE_ENV !== 'production';
 
 if (!BOT_TOKEN) {
   console.error('❌ TELEGRAM_BOT_TOKEN not set in .env');
@@ -27,7 +28,7 @@ function loadUserData() {
     try {
       const data = JSON.parse(readFileSync(file, 'utf-8'));
       Object.assign(userBusinessSlugs, data);
-    } catch { }
+    } catch (e) { console.error('Erreur chargement utilisateurs:', e); }
   }
 }
 
@@ -35,7 +36,7 @@ function saveUserData() {
   const file = path.join(__dirname, 'users.json');
   try {
     writeFileSync(file, JSON.stringify(userBusinessSlugs, null, 2));
-  } catch { }
+  } catch (e) { console.error('Erreur sauvegarde utilisateurs:', e); }
 }
 
 loadUserData();
@@ -92,7 +93,8 @@ async function handleUpdate(update) {
       userBusinessSlugs[sender] = slug;
       saveUserData();
       return sendMessage(chatId, `✅ Connected to *${res.data.name || slug}*.\n\nSend a message to chat with the AI assistant.`, { parse_mode: 'Markdown' });
-    } catch {
+    } catch (e) {
+      console.error('Erreur vérification commerce:', e);
       return sendMessage(chatId, `❌ Business "${slug}" not found. Check the slug.`);
     }
   }
@@ -148,15 +150,15 @@ async function poll() {
   }
 }
 
-console.log(`✅ Telegram bot started!`);
-console.log(`🤖 @Sahel_ai_bot`);
-console.log(`🌐 API: ${API_BASE}`);
-console.log(`🏪 Default slug: ${DEFAULT_SLUG}\n`);
+console.log('[telegram] ✅ Telegram bot started!');
+console.log('[telegram] 🤖 @Sahel_ai_bot');
+console.log('[telegram] 🌐 API:', API_BASE);
+console.log('[telegram] 🏪 Default slug:', DEFAULT_SLUG, '\n');
 
 poll();
 
 process.on('SIGINT', () => {
   running = false;
-  console.log('\n👋 Stopping bot...');
+  console.log('[telegram] 👋 Stopping bot...');
   process.exit(0);
 });

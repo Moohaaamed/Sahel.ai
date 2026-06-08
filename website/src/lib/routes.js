@@ -36,6 +36,6 @@ export function dashboardUrl() {
         if (!expires || expires > Date.now()) return ROUTES.dashboard;
       }
     }
-  } catch {}
+  } catch { /* ignore */ }
   return loginUrl(ROUTES.onboarding);
 }

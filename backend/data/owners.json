@@ -3,42 +3,42 @@
     "id": "demo-owner",
     "full_name": "Demo Owner",
     "email": "demo@sahel.ai",
-    "password_hash": "7fdf97252e774e9289d93dd407adb37d$fceb8c5990eb89cd9dd011a3d652a4305b8779330f99c2c73818729ae4ba2955",
+    "password_hash": "",
     "created_at": "2026-06-03T15:37:27.623565+00:00"
   },
   {
     "id": "ad76dd581e22",
     "full_name": "Mohamed h",
     "email": "demo@exemple.com",
-    "password_hash": "4086752903674ed7aaa6f55a41102faf$6507e9bec2ca97905f7bbc9c593183c66c37a6e0dfd88fdd96eaebaa61d0dc61",
+    "password_hash": "",
     "created_at": "2026-06-03T21:23:56.479668+00:00"
   },
   {
     "id": "dcbdae79f052",
     "full_name": "moha",
     "email": "m@m.com",
-    "password_hash": "b9d3297306404866ac083ac3a3b2e205$cfa4aebff13a1371f70eed66df2b290e2ebf0add82b66b6c10e42f57cc812e20",
+    "password_hash": "",
     "created_at": "2026-06-03T23:31:12.977809+00:00"
   },
   {
     "id": "92fd352a0deb",
     "full_name": "moha",
     "email": "mo@m.com",
-    "password_hash": "02b33cee07c74556932058f498e8058f$46871ab0a10c98f0fdf502b6a74e1842768eb1c1060f50e6d05ed37b076f7bff",
+    "password_hash": "",
     "created_at": "2026-06-03T23:34:21.769155+00:00"
   },
   {
     "id": "6fb00317f3d7",
     "full_name": "hamid",
     "email": "ham@hdh",
-    "password_hash": "633567b660de462fa48a8772025c2981$4fe94aec8cb4eb79a52e0c1a6852ae595e29a34af567720be6bb5ffb023a6fab",
+    "password_hash": "",
     "created_at": "2026-06-04T00:08:50.225763+00:00"
   },
   {
     "id": "8ffae9d05aa7",
     "full_name": "mohy",
     "email": "moh@yy",
-    "password_hash": "37b2e7d02973448fb351432cda65df3c$1eb45d50d97b19b423498f63ebfd982a47b9bd21c2cf4951d3208495c4b10af7",
+    "password_hash": "",
     "created_at": "2026-06-04T00:35:00.558785+00:00"
   }
 ]

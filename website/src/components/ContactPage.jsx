@@ -1,22 +1,39 @@
 import { useState } from 'react';
 import { ROUTES } from '../lib/routes';
+import { API_URL } from '../config';
+import { useLanguage } from '../i18n';
 import MarketingHeader from './layout/MarketingHeader';
 import MarketingFooter from './layout/MarketingFooter';
 import InteractiveDots from './InteractiveDots';
 
 export default function ContactPage() {
+  const { t } = useLanguage();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim() || !email.trim() || !message.trim()) {
-      alert("Veuillez remplir tous les champs.");
+      console.warn('Contact form validation failed');
       return;
     }
-    setSubmitted(true);
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API_URL}/api/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), email: email.trim(), message: message.trim() }),
+      });
+      if (!res.ok) throw new Error('Failed to send message');
+      setSubmitted(true);
+    } catch (e) {
+      console.error('Contact form submit failed:', e);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -32,7 +49,7 @@ export default function ContactPage() {
           <div className="max-w-xl w-full mx-auto bg-white/95 backdrop-blur-sm rounded-2xl border border-hairline-border p-md md:p-lg shadow-2xl hover:border-primary/30 transition-colors relative">
             <a href={ROUTES.home} className="inline-flex items-center gap-xs text-on-surface-variant font-label-md no-underline hover:text-primary mb-md">
               <span className="material-symbols-outlined !text-[18px]">arrow_back</span>
-              Retour à l'accueil
+              {t('common.backToHome')}
             </a>
             
             {submitted ? (
@@ -40,9 +57,9 @@ export default function ContactPage() {
                 <div className="w-16 h-16 bg-surface-blue rounded-full flex items-center justify-center text-primary mb-xs">
                   <span className="material-symbols-outlined !text-[36px]">check_circle</span>
                 </div>
-                <h2 className="font-headline-md text-headline-md text-on-surface m-0">Merci pour votre intérêt !</h2>
+                <h2 className="font-headline-md text-headline-md text-on-surface m-0">{t('contact.success')}</h2>
                 <p className="font-body-md text-body-md text-on-surface-variant leading-relaxed max-w-sm m-0">
-                  Votre demande de démonstration pour Sahel.ai a bien été reçue. Notre équipe vous contactera par email à <strong>{email}</strong> dans les plus brefs délais.
+                  {t('contact.successDesc', { email })}
                 </p>
                 <button
                   onClick={() => {
@@ -53,22 +70,22 @@ export default function ContactPage() {
                   }}
                   className="mt-md bg-primary hover:bg-primary-container text-on-primary font-bold py-2.5 px-6 rounded-xl shadow-lg shadow-primary/10 transition-all active:scale-95 text-center font-label-md text-label-md border-0 cursor-pointer"
                 >
-                  Envoyer un autre message
+                  {t('contact.sendAnother')}
                 </button>
               </div>
             ) : (
               <>
-                <h1 className="font-display-lg text-display-lg mt-md mb-md">Parlons de votre commerce</h1>
+                <h1 className="font-display-lg text-display-lg mt-md mb-md">{t('contact.title')}</h1>
                 <p className="font-body-md text-body-md text-on-surface-variant mb-lg leading-relaxed text-left">
-                  Pour une mise en place, une question commerciale ou un accompagnement personnalisé, n'hésitez pas à contacter l'équipe Sahel.ai.
+                  {t('contact.subtitle')}
                 </p>
                 
                 <form onSubmit={handleSubmit} className="grid gap-md">
                   <label className="grid gap-xs text-on-surface font-semibold text-label-md text-left">
-                    Nom complet
+                    {t('contact.fullName')}
                     <input 
                       type="text" 
-                      placeholder="Votre nom" 
+                      placeholder={t('contact.namePlaceholder')} 
                       required
                       value={name}
                       onChange={(e) => setName(e.target.value)}
@@ -76,10 +93,10 @@ export default function ContactPage() {
                     />
                   </label>
                   <label className="grid gap-xs text-on-surface font-semibold text-label-md text-left">
-                    Adresse email
+                    {t('contact.email')}
                     <input 
                       type="email" 
-                      placeholder="vous@example.com" 
+                      placeholder={t('contact.emailPlaceholder')} 
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -87,10 +104,10 @@ export default function ContactPage() {
                     />
                   </label>
                   <label className="grid gap-xs text-on-surface font-semibold text-label-md text-left">
-                    Message
+                    {t('contact.message')}
                     <textarea 
                       rows="4" 
-                      placeholder="Expliquez votre besoin" 
+                      placeholder={t('contact.messagePlaceholder')} 
                       required
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
@@ -99,9 +116,15 @@ export default function ContactPage() {
                   </label>
                   <button 
                     type="submit" 
-                    className="bg-primary hover:bg-primary-container text-on-primary font-bold py-3 px-6 rounded-xl shadow-lg shadow-primary/10 transition-all active:scale-95 text-center font-label-md text-label-md border-0 cursor-pointer"
+                    disabled={submitting}
+                    className="bg-primary hover:bg-primary-container text-on-primary font-bold py-3 px-6 rounded-xl shadow-lg shadow-primary/10 transition-all active:scale-95 text-center font-label-md text-label-md border-0 cursor-pointer disabled:opacity-50"
                   >
-                    Envoyer la demande
+                    {submitting ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        {t('common.sending') || 'Sending...'}
+                      </span>
+                    ) : t('contact.submit')}
                   </button>
                 </form>
               </>

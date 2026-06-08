@@ -8,6 +8,7 @@ const qrcode = require('qrcode-terminal');
 const API_BASE = process.env.API_BASE || 'http://localhost:8000';
 const DEFAULT_SLUG = process.env.DEFAULT_BUSINESS_SLUG || 'sahel';
 const SESSION_DIR = path.join(__dirname, 'session');
+const DEV = process.env.NODE_ENV !== 'production';
 
 const userSessions = {};
 const userBusinessSlugs = {};
@@ -20,7 +21,7 @@ function loadUserData() {
     try {
       const data = JSON.parse(readFileSync(file, 'utf-8'));
       Object.assign(userBusinessSlugs, data);
-    } catch { }
+    } catch (e) { console.error('Erreur chargement utilisateurs:', e); }
   }
 }
 
@@ -28,7 +29,7 @@ function saveUserData() {
   const file = path.join(__dirname, 'users.json');
   try {
     writeFileSync(file, JSON.stringify(userBusinessSlugs, null, 2));
-  } catch { }
+  } catch (e) { console.error('Erreur sauvegarde utilisateurs:', e); }
 }
 
 loadUserData();
@@ -37,7 +38,7 @@ async function getBotNumber(sock) {
   try {
     const id = sock.user?.id;
     if (id) return id.replace(/:.*/, '');
-  } catch { }
+  } catch (e) { console.error('Erreur récupération numéro bot:', e); }
   return 'unknown';
 }
 
@@ -49,7 +50,8 @@ function extractText(msg) {
     if (contentType === 'conversation') return content.text || content;
     if (contentType === 'extendedTextMessage') return content.text || '';
     return null;
-  } catch {
+  } catch (e) {
+    console.error('Erreur extraction texte:', e);
     return null;
   }
 }
@@ -70,7 +72,7 @@ async function handleMessage(sock, msg) {
     const normalizedText = text.toLowerCase().trim();
     const sender = remoteJid.replace('@s.whatsapp.net', '');
 
-    console.log(`📩 Message de ${sender}: ${text.slice(0, 60)}`);
+    console.log('[whatsapp] 📩 Message de', sender, ':', text.slice(0, 60));
 
     if (normalizedText.startsWith('/start') || normalizedText.startsWith('/menu')) {
       return sendMenu(sock, remoteJid);
@@ -89,7 +91,8 @@ async function handleMessage(sock, msg) {
               text: `✅ Connecté à *${res.data.name || slug}*.\n\nEnvoyez un message pour discuter avec l'assistant IA.`
             });
           }
-        } catch {
+        } catch (e) {
+          console.error('Erreur vérification commerce:', e);
           await sock.sendMessage(remoteJid, {
             text: `❌ Commerce "${slug}" introuvable. Vérifiez le slug.`
           });
@@ -176,15 +179,17 @@ async function startBot(pairingPhone) {
     setTimeout(async () => {
       try {
         const code = await sock.requestPairingCode(pairingPhone);
-        console.log('\n══════════════════════════════════════════');
-        console.log('  CODE D\'APPARIEMENT');
-        console.log(`  ${code}`);
-        console.log('══════════════════════════════════════════\n');
-        console.log('  Ouvrez WhatsApp → Appareils liés → Lier un appareil');
-        console.log('  → Associer via un numéro de téléphone');
-        console.log('  Entrez le code ci-dessus.\n');
+        if (DEV) {
+          console.log('\n══════════════════════════════════════════');
+          console.log('  CODE D\'APPARIEMENT');
+          console.log(`  ${code}`);
+          console.log('══════════════════════════════════════════\n');
+          console.log('  Ouvrez WhatsApp → Appareils liés → Lier un appareil');
+          console.log('  → Associer via un numéro de téléphone');
+          console.log('  Entrez le code ci-dessus.\n');
+        }
       } catch (e) {
-        console.log('⚠️ Impossible de générer le code:', e.message);
+        console.error('⚠️ Impossible de générer le code:', e.message);
         console.log('   Utilisation du QR code...');
       }
     }, 2000);
@@ -205,24 +210,24 @@ async function startBot(pairingPhone) {
     if (connection === 'open') {
       reconnectAttempt = 0;
       const botNumber = await getBotNumber(sock);
-      console.log(`\n✅ WhatsApp bot connecté !`);
-      console.log(`📱 Numéro : ${botNumber}`);
-      console.log(`🌐 API : ${API_BASE}`);
-      console.log(`🏪 Slug par défaut : ${DEFAULT_SLUG}\n`);
+      console.log('[whatsapp] ✅ WhatsApp bot connecté !');
+      if (DEV) { console.log('[whatsapp] 📱 Numéro :', botNumber); }
+      console.log('[whatsapp] 🌐 API :', API_BASE);
+      console.log('[whatsapp] 🏪 Slug par défaut :', DEFAULT_SLUG, '\n');
     }
 
     if (connection === 'close') {
       const statusCode = lastDisconnect?.error?.output?.statusCode;
       const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
       const reason = DisconnectReason[statusCode] || statusCode || 'unknown';
-      console.log(`⚠️ Déconnecté (${reason}). Reconnexion : ${shouldReconnect}`);
+      console.log(`[whatsapp] ⚠️ Déconnecté (${reason}). Reconnexion : ${shouldReconnect}`);
       if (shouldReconnect) {
         reconnectAttempt++;
         const delay = getReconnectDelay();
-        console.log(`⏳ Reconnexion dans ${Math.round(delay / 1000)}s (tentative #${reconnectAttempt})`);
+        console.log(`[whatsapp] ⏳ Reconnexion dans ${Math.round(delay / 1000)}s (tentative #${reconnectAttempt})`);
         setTimeout(() => startBot(), delay);
       } else {
-        console.log('❌ Session expirée. Supprimez le dossier session/ et relancez.');
+        console.log('[whatsapp] ❌ Session expirée. Supprimez le dossier session/ et relancez.');
       }
     }
   });
@@ -240,8 +245,8 @@ async function startBot(pairingPhone) {
 const phoneArg = process.argv.find(a => a.startsWith('--phone='));
 const pairingPhone = phoneArg ? phoneArg.replace('--phone=', '') : null;
 
-if (pairingPhone) {
-  console.log(`📱 Mode appairage par numéro activé pour : ${pairingPhone}`);
+if (pairingPhone && DEV) {
+  console.log('[whatsapp] 📱 Mode appairage par numéro activé pour :', pairingPhone);
 }
 
 startBot(pairingPhone).catch(err => {
@@ -251,6 +256,6 @@ startBot(pairingPhone).catch(err => {
 
 process.on('SIGINT', () => {
   shutdown = true;
-  console.log('\n👋 Arrêt du bot...');
+  console.log('[whatsapp] 👋 Arrêt du bot...');
   process.exit(0);
 });

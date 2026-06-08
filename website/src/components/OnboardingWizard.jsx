@@ -5,24 +5,9 @@ import { ROUTES } from '../lib/routes';
 import LocationMapPicker from './LocationMapPicker';
 import SahelLogo from './SahelLogo';
 import AmenityIcon from './AmenityIcon';
+import { useLanguage, LanguageSwitcher } from '../i18n';
 
 const STEPS_COUNT = 3;
-
-const BUSINESS_TYPES = [
-  { value: 'Restaurant', label: 'Restaurant / Café' },
-  { value: 'Hotel', label: 'Hôtel / Riad' },
-  { value: 'Retail', label: 'Boutique / Commerce' },
-  { value: 'Services', label: 'Services / Conseil' },
-  { value: 'Tech', label: 'Technologie' },
-];
-
-const AMENITY_TAGS = [
-  { id: 'wifi', label: 'WiFi', icon: 'wifi' },
-  { id: 'parking', label: 'Parking', icon: 'local_parking' },
-  { id: 'card', label: 'Paiement carte', icon: 'payments' },
-  { id: 'delivery', label: 'Livraison', icon: 'delivery_dining' },
-  { id: 'access', label: 'Accessibilité', icon: 'accessible' },
-];
 
 const CUSTOM_ICON_CHOICES = [
   'star',
@@ -39,13 +24,6 @@ const CUSTOM_ICON_CHOICES = [
   'fitness_center',
 ];
 
-const PROCESSING_MESSAGES = [
-  'Nettoyage des métadonnées...',
-  'Génération des embeddings vectoriels...',
-  'Optimisation du moteur de recherche...',
-  'Finalisation de votre mini-site...',
-];
-
 function parseCoord(value) {
   const trimmed = (value || '').trim();
   if (!trimmed) return null;
@@ -59,9 +37,8 @@ function ProgressBar({ currentStep }) {
       {[0, 1, 2].map((index) => (
         <div
           key={index}
-          className={`flex-1 rounded-full ${
-            index < currentStep ? 'step-completed' : index === currentStep ? 'step-active' : 'step-inactive'
-          }`}
+          className={`flex-1 rounded-full ${index < currentStep ? 'step-completed' : index === currentStep ? 'step-active' : 'step-inactive'
+            }`}
         />
       ))}
     </div>
@@ -69,14 +46,27 @@ function ProgressBar({ currentStep }) {
 }
 
 function OnboardingProcessing({ uploadProgress }) {
-  const [statusText, setStatusText] = useState(PROCESSING_MESSAGES[0]);
+  const { t } = useLanguage();
+  const messagesRef = useRef([
+    t('onboarding.progressCleaning'),
+    t('onboarding.progressEmbeddings'),
+    t('onboarding.progressOptimizing'),
+    t('onboarding.progressFinalizing'),
+  ]);
+  messagesRef.current = [
+    t('onboarding.progressCleaning'),
+    t('onboarding.progressEmbeddings'),
+    t('onboarding.progressOptimizing'),
+    t('onboarding.progressFinalizing'),
+  ];
+  const [statusText, setStatusText] = useState(messagesRef.current[0]);
   const [activeProcessStep, setActiveProcessStep] = useState(1);
 
   useEffect(() => {
     let messageIndex = 0;
     const messageInterval = setInterval(() => {
-      messageIndex = (messageIndex + 1) % PROCESSING_MESSAGES.length;
-      setStatusText(PROCESSING_MESSAGES[messageIndex]);
+      messageIndex = (messageIndex + 1) % messagesRef.current.length;
+      setStatusText(messagesRef.current[messageIndex]);
     }, 3000);
 
     const stepInterval = setInterval(() => {
@@ -90,9 +80,9 @@ function OnboardingProcessing({ uploadProgress }) {
   }, []);
 
   const steps = [
-    { title: 'Création du profil', detail: 'Enregistrement de votre commerce' },
-    { title: 'Photo & localisation', detail: 'Personnalisation du mini-site' },
-    { title: 'Indexation IA', detail: uploadProgress || 'Préparation de votre assistant' },
+    { title: t('onboarding.creatingProfile'), detail: t('onboarding.savingBusiness') },
+    { title: t('onboarding.photoLocation'), detail: t('onboarding.customizingSite') },
+    { title: t('onboarding.indexingAi'), detail: uploadProgress || t('onboarding.preparingAssistant') },
   ];
 
   return (
@@ -110,7 +100,7 @@ function OnboardingProcessing({ uploadProgress }) {
       </div>
       <div className="space-y-xs max-w-md">
         <h2 className="font-headline-md text-headline-md text-on-background m-0">
-          Traitement en cours...
+          {t('onboarding.processing')}
         </h2>
         <p className="font-body-lg text-body-lg text-on-surface-variant m-0">{statusText}</p>
       </div>
@@ -125,9 +115,8 @@ function OnboardingProcessing({ uploadProgress }) {
               className={`flex items-center gap-sm py-xs ${!done && !current ? 'opacity-50' : ''}`}
             >
               <span
-                className={`material-symbols-outlined text-md ${
-                  done ? 'text-primary' : current ? 'text-primary animate-spin' : 'text-outline'
-                }`}
+                className={`material-symbols-outlined text-md ${done ? 'text-primary' : current ? 'text-primary animate-spin' : 'text-outline'
+                  }`}
                 style={done ? { fontVariationSettings: "'FILL' 1" } : undefined}
               >
                 {done ? 'check_circle' : current ? 'autorenew' : 'pending'}
@@ -145,6 +134,7 @@ function OnboardingProcessing({ uploadProgress }) {
 }
 
 export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit }) {
+  const { t } = useLanguage();
   const [currentStep, setCurrentStep] = useState(() => {
     const saved = localStorage.getItem('sahel_onboarding_step');
     if (saved) {
@@ -155,12 +145,32 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
+
+  const BUSINESS_TYPES = [
+    { value: 'Restaurant', label: t('onboarding.restaurant') },
+    { value: 'Hotel', label: t('onboarding.hotel') },
+    { value: 'Retail', label: t('onboarding.shop') },
+    { value: 'Services', label: t('onboarding.services') },
+    { value: 'Tech', label: t('onboarding.tech') },
+  ];
+
+  const AMENITY_TAGS = [
+    { id: 'wifi', label: t('onboarding.wifi'), icon: 'wifi' },
+    { id: 'parking', label: t('onboarding.parking'), icon: 'local_parking' },
+    { id: 'card', label: t('onboarding.cardPayment'), icon: 'payments' },
+    { id: 'delivery', label: t('onboarding.delivery'), icon: 'delivery_dining' },
+    { id: 'access', label: t('onboarding.accessibility'), icon: 'accessible' },
+  ];
+
   const [selectedAmenities, setSelectedAmenities] = useState(() => {
     const saved = localStorage.getItem('sahel_onboarding_amenities');
     if (saved) {
       try {
-        return JSON.parse(saved);
-      } catch (e) {}
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((a) => a && a.label && typeof a.label === 'string' && a.label.trim());
+        }
+      } catch { /* ignore */ }
     }
     return [];
   });
@@ -170,37 +180,42 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
   const [customEmoji, setCustomEmoji] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState([]);
 
+  const formDefaults = {
+    name: '',
+    business_type: 'Restaurant',
+    city: '',
+    address: '',
+    latitude: '',
+    longitude: '',
+    owner_phone: '',
+    description: '',
+    working_hours: '',
+    primary_services: '',
+    pasted_text: '',
+    ice: '',
+    rc: '',
+    if_tax: '',
+    patente: '',
+    cnss: '',
+    legal_form: '',
+    social_media: '',
+  };
+
   const [form, setForm] = useState(() => {
     const saved = localStorage.getItem('sahel_onboarding_form');
     if (saved) {
       try {
-        return JSON.parse(saved);
-      } catch (e) {}
+        return { ...formDefaults, ...JSON.parse(saved) };
+      } catch { /* ignore */ }
     }
-    return {
-      name: '',
-      business_type: 'Restaurant',
-      city: '',
-      address: '',
-      latitude: '',
-      longitude: '',
-      owner_phone: '',
-      description: '',
-      working_hours: '',
-      primary_services: '',
-      pasted_text: '',
-      ice: '',
-      rc: '',
-      if_tax: '',
-      patente: '',
-      cnss: '',
-      legal_form: '',
-    };
+    return formDefaults;
   });
+  const [onboardingError, setOnboardingError] = useState('');
 
   const [file, setFile] = useState(null);
   const [coverFile, setCoverFile] = useState(null);
   const [coverPreview, setCoverPreview] = useState(null);
+  const coverPreviewRef = useRef(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
   const coverInputRef = useRef(null);
@@ -208,6 +223,12 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
   useEffect(() => {
     localStorage.setItem('sahel_onboarding_step', String(currentStep));
   }, [currentStep]);
+
+  useEffect(() => {
+    return () => {
+      if (coverPreviewRef.current) URL.revokeObjectURL(coverPreviewRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('sahel_onboarding_amenities', JSON.stringify(selectedAmenities));
@@ -247,11 +268,11 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
   const addCustomAmenity = () => {
     const label = customLabel.trim();
     if (!label) {
-      alert('Donnez un nom à votre service.');
+      setOnboardingError(t('onboarding.validationServiceName'));
       return;
     }
     if (selectedAmenities.some((a) => a.label.toLowerCase() === label.toLowerCase())) {
-      alert('Ce service existe déjà.');
+      setOnboardingError(t('onboarding.validationServiceExists'));
       return;
     }
     const icon = customEmoji.trim() || customIcon;
@@ -274,11 +295,14 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
     const selected = e.target.files?.[0];
     if (!selected) return;
     if (!selected.type.startsWith('image/')) {
-      alert('Veuillez choisir une image (JPG, PNG ou WEBP).');
+      setOnboardingError(t('onboarding.validationImage'));
       return;
     }
     setCoverFile(selected);
-    setCoverPreview(URL.createObjectURL(selected));
+    if (coverPreviewRef.current) URL.revokeObjectURL(coverPreviewRef.current);
+    const url = URL.createObjectURL(selected);
+    coverPreviewRef.current = url;
+    setCoverPreview(url);
   };
 
   const handleDrag = (e) => {
@@ -313,21 +337,21 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
   const nextStep = () => {
     if (currentStep === 0) {
       if (!form.name.trim()) {
-        alert('Veuillez saisir le nom de votre entreprise.');
+        setOnboardingError(t('onboarding.validationName'));
         return;
       }
       if (!form.owner_phone.trim()) {
-        alert('Veuillez saisir votre numéro WhatsApp professionnel.');
+        setOnboardingError(t('onboarding.validationWhatsapp'));
         return;
       }
     }
     if (currentStep === 1) {
       if (!form.description.trim()) {
-        alert('Veuillez décrire votre activité.');
+        setOnboardingError(t('onboarding.validationDescription'));
         return;
       }
       if (parseCoord(form.latitude) == null || parseCoord(form.longitude) == null) {
-        alert('Placez votre commerce sur la carte (recherche ou clic sur la carte).');
+        setOnboardingError(t('onboarding.validationMap'));
         return;
       }
     }
@@ -345,19 +369,22 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
 
   const submitOnboarding = async () => {
     setIsSubmitting(true);
-    setUploadProgress('Création du profil de l\'entreprise...');
+    setUploadProgress(t('onboarding.progressCreating'));
 
     const highlights = serializeAmenities(selectedAmenities);
     const publicKnowledge = form.pasted_text.trim();
 
     try {
+      const normalizedPhone = form.owner_phone.trim().replace(/^\+212/, '').replace(/^0/, '');
+      if (normalizedPhone.length < 9) {
+        throw new Error(t('onboarding.validationPhone'));
+      }
       const businessPayload = {
         name: form.name.trim(),
         business_type: form.business_type,
         description: form.description.trim(),
         owner_email: owner.email,
-        owner_phone:
-          '+212' + form.owner_phone.trim().replace(/^\+212/, '').replace(/^0/, ''),
+        owner_phone: '+212' + normalizedPhone,
         city: form.city.trim(),
         address: form.address.trim(),
         latitude: parseCoord(form.latitude),
@@ -373,6 +400,7 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
         patente: form.patente.trim() || null,
         cnss: form.cnss.trim() || null,
         legal_form: form.legal_form.trim() || null,
+        social_media: form.social_media.trim() || null,
       };
 
       const response = await fetch(`${API_URL}/businesses`, {
@@ -386,18 +414,19 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Erreur lors de la création de l\'entreprise.');
+        const msg = typeof errorData.detail === 'string' ? errorData.detail : JSON.stringify(errorData.detail);
+        throw new Error(msg || t('onboarding.errorApi'));
       }
 
       let business = await response.json();
 
       if (coverFile) {
-        setUploadProgress('Téléversement de la photo de couverture...');
+        setUploadProgress(t('onboarding.progressUploading'));
         business = await uploadBusinessCover(business.id, coverFile, ownerToken);
       }
 
       if (file) {
-        setUploadProgress('Indexation de vos documents...');
+        setUploadProgress(t('onboarding.progressIndexing'));
         const formData = new FormData();
         formData.append('file', file);
         const uploadRes = await fetch(`${API_URL}/businesses/${business.id}/documents`, {
@@ -407,13 +436,11 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
         });
         if (!uploadRes.ok) {
           const errDetail = await uploadRes.json().catch(() => ({}));
-          alert(
-            'Le commerce a été créé, mais l\'indexation du document a échoué : ' +
-              (errDetail.detail || 'Erreur inconnue'),
-          );
+          const msg = typeof errDetail.detail === 'string' ? errDetail.detail : JSON.stringify(errDetail.detail);
+          setOnboardingError(t('onboarding.errorPartial', { error: msg || t('onboarding.errorApi') }));
         }
       } else if (form.pasted_text.trim()) {
-        setUploadProgress('Indexation de vos connaissances...');
+        setUploadProgress(t('onboarding.progressKnowledge'));
         const textBlob = new Blob([form.pasted_text], { type: 'text/plain' });
         const textFile = new File([textBlob], 'profil_entreprise.txt', { type: 'text/plain' });
         const formData = new FormData();
@@ -425,25 +452,23 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
         });
         if (!uploadRes.ok) {
           const errDetail = await uploadRes.json().catch(() => ({}));
-          alert(
-            'Le commerce a été créé, mais l\'indexation du texte a échoué : ' +
-              (errDetail.detail || 'Erreur inconnue'),
-          );
+          const msg = typeof errDetail.detail === 'string' ? errDetail.detail : JSON.stringify(errDetail.detail);
+          setOnboardingError(t('onboarding.errorPartial', { error: msg || t('onboarding.errorApi') }));
         }
       }
 
-      setUploadProgress('Configuration terminée !');
+      setUploadProgress(t('onboarding.progressDone'));
       localStorage.removeItem('sahel_onboarding_step');
       localStorage.removeItem('sahel_onboarding_amenities');
       localStorage.removeItem('sahel_onboarding_form');
       setTimeout(() => onComplete(business), 800);
     } catch (error) {
-      alert(error.message || 'Une erreur est survenue lors de l\'installation.');
+      setOnboardingError(error.message || t('onboarding.errorGeneric'));
       setIsSubmitting(false);
     }
   };
 
-  const stepLabels = ['Identité', 'Votre commerce', 'Documents & IA'];
+  const stepLabels = [t('onboarding.identity'), t('onboarding.yourBusiness'), t('onboarding.documentsAi')];
 
   return (
     <div className="bg-warm-bg text-on-surface font-body-md min-h-screen flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed page-enter">
@@ -452,12 +477,13 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
           <a href={ROUTES.home} className="no-underline">
             <SahelLogo size={28} textClass="font-headline-sm text-headline-sm italic text-on-background" />
           </a>
+          <LanguageSwitcher />
           {currentStep === 0 && !isSubmitting ? (
             <a
-              href={ROUTES.home}
+              href={ROUTES.contact}
               className="font-label-md text-label-md text-primary no-underline hover:opacity-80"
             >
-              Aide
+              {t('onboarding.help')}
             </a>
           ) : onExit ? (
             <button
@@ -465,7 +491,7 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
               onClick={handleExit}
               className="font-label-md text-label-md text-on-surface-variant bg-transparent border-0 cursor-pointer hover:text-primary"
             >
-              Quitter
+              {t('onboarding.exit')}
             </button>
           ) : (
             <span className="w-16" />
@@ -479,7 +505,7 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
             <div className="mb-lg">
               <div className="flex items-center justify-between mb-4">
                 <span className="font-label-sm text-label-sm uppercase tracking-wider text-primary">
-                  Étape {currentStep + 1} sur {STEPS_COUNT}
+                  {t('onboarding.step', { n: currentStep + 1, m: STEPS_COUNT })}
                 </span>
                 <span className="font-label-sm text-label-sm text-on-surface-variant">
                   {stepLabels[currentStep]}
@@ -498,26 +524,26 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                   <div className="space-y-gutter">
                     <header>
                       <h1 className="font-headline-md text-headline-md text-on-background mb-2 m-0">
-                        Bienvenue
+                        {t('onboarding.welcome')}
                       </h1>
                       <p className="font-body-lg text-body-lg text-on-surface-variant m-0">
-                        Commençons par les informations de base de votre entreprise.
+                        {t('onboarding.welcomeDesc')}
                       </p>
                     </header>
                     <div className="space-y-md">
                       <label className="flex flex-col gap-base">
-                        <span className="font-label-md text-label-md text-on-surface">Nom de l&apos;entreprise</span>
+                        <span className="font-label-md text-label-md text-on-surface">{t('onboarding.companyName')}</span>
                         <input
                           name="name"
                           value={form.name}
                           onChange={handleInputChange}
                           className="w-full bg-background border border-hairline-border rounded px-sm py-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none font-body-md"
-                          placeholder="Ex: Café de l'Atlas"
+                          placeholder={t('onboarding.companyPlaceholder')}
                           type="text"
                         />
                       </label>
                       <label className="flex flex-col gap-base">
-                        <span className="font-label-md text-label-md text-on-surface">Type d&apos;activité</span>
+                        <span className="font-label-md text-label-md text-on-surface">{t('onboarding.activityType')}</span>
                         <select
                           name="business_type"
                           value={form.business_type}
@@ -532,19 +558,19 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                         </select>
                       </label>
                       <label className="flex flex-col gap-base">
-                        <span className="font-label-md text-label-md text-on-surface">Ville</span>
+                        <span className="font-label-md text-label-md text-on-surface">{t('onboarding.city')}</span>
                         <input
                           name="city"
                           value={form.city}
                           onChange={handleInputChange}
                           className="w-full bg-background border border-hairline-border rounded px-sm py-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none font-body-md"
-                          placeholder="Ex: Casablanca"
+                          placeholder={t('onboarding.cityPlaceholder')}
                           type="text"
                         />
                       </label>
                       <label className="flex flex-col gap-base">
                         <span className="font-label-md text-label-md text-on-surface">
-                          WhatsApp professionnel
+                          {t('onboarding.whatsapp')}
                         </span>
                         <div className="flex">
                           <span className="flex items-center px-sm border border-r-0 border-hairline-border bg-surface-container-low text-on-surface-variant rounded-l font-body-md">
@@ -563,80 +589,80 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
 
                       <details className="mt-md border border-hairline-border rounded-lg p-md">
                         <summary className="font-label-md text-label-md text-primary cursor-pointer select-none">
-                          Informations légales (Maroc)
+                          {t('onboarding.legalInfo')}
                         </summary>
                         <div className="space-y-md mt-md">
                           <label className="flex flex-col gap-base">
-                            <span className="font-label-md text-label-md text-on-surface">Forme juridique</span>
+                            <span className="font-label-md text-label-md text-on-surface">{t('onboarding.legalForm')}</span>
                             <select
                               name="legal_form"
                               value={form.legal_form}
                               onChange={handleInputChange}
                               className="w-full bg-background border border-hairline-border rounded px-sm py-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none font-body-md h-[42px]"
                             >
-                              <option value="">Sélectionnez...</option>
-                              <option value="Auto-entrepreneur">Auto-entrepreneur</option>
-                              <option value="SARL">SARL</option>
-                              <option value="SASU">SASU</option>
-                              <option value="SA">SA</option>
-                              <option value="SNC">SNC</option>
-                              <option value="Société civile">Société civile</option>
-                              <option value="Coopérative">Coopérative</option>
+                              <option value="">{t('onboarding.selectForm')}</option>
+                              <option value="Auto-entrepreneur">{t('onboarding.autoEntrepreneur')}</option>
+                              <option value="SARL">{t('onboarding.sarl')}</option>
+                              <option value="SASU">{t('onboarding.sasu')}</option>
+                              <option value="SA">{t('onboarding.sa')}</option>
+                              <option value="SNC">{t('onboarding.snc')}</option>
+                              <option value="Société civile">{t('onboarding.civilSociety')}</option>
+                              <option value="Coopérative">{t('onboarding.cooperative')}</option>
                             </select>
                           </label>
                           <label className="flex flex-col gap-base">
-                            <span className="font-label-md text-label-md text-on-surface">ICE</span>
+                            <span className="font-label-md text-label-md text-on-surface">{t('onboarding.ice')}</span>
                             <input
                               name="ice"
                               value={form.ice}
                               onChange={handleInputChange}
                               className="w-full bg-background border border-hairline-border rounded px-sm py-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none font-body-md"
-                              placeholder="Identifiant Commun de l'Entreprise"
+                              placeholder={t('onboarding.icePlaceholder')}
                               type="text"
                             />
                           </label>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-gutter">
                             <label className="flex flex-col gap-base">
-                              <span className="font-label-md text-label-md text-on-surface">RC</span>
+                              <span className="font-label-md text-label-md text-on-surface">{t('onboarding.rc')}</span>
                               <input
                                 name="rc"
                                 value={form.rc}
                                 onChange={handleInputChange}
                                 className="w-full bg-background border border-hairline-border rounded px-sm py-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none font-body-md"
-                                placeholder="Registre de Commerce"
+                                placeholder={t('onboarding.rcPlaceholder')}
                                 type="text"
                               />
                             </label>
                             <label className="flex flex-col gap-base">
-                              <span className="font-label-md text-label-md text-on-surface">IF</span>
+                              <span className="font-label-md text-label-md text-on-surface">{t('onboarding.if')}</span>
                               <input
                                 name="if_tax"
                                 value={form.if_tax}
                                 onChange={handleInputChange}
                                 className="w-full bg-background border border-hairline-border rounded px-sm py-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none font-body-md"
-                                placeholder="Identifiant Fiscal"
+                                placeholder={t('onboarding.ifPlaceholder')}
                                 type="text"
                               />
                             </label>
                             <label className="flex flex-col gap-base">
-                              <span className="font-label-md text-label-md text-on-surface">Patente</span>
+                              <span className="font-label-md text-label-md text-on-surface">{t('onboarding.patente')}</span>
                               <input
                                 name="patente"
                                 value={form.patente}
                                 onChange={handleInputChange}
                                 className="w-full bg-background border border-hairline-border rounded px-sm py-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none font-body-md"
-                                placeholder="Numéro de patente"
+                                placeholder={t('onboarding.patentePlaceholder')}
                                 type="text"
                               />
                             </label>
                             <label className="flex flex-col gap-base">
-                              <span className="font-label-md text-label-md text-on-surface">CNSS</span>
+                              <span className="font-label-md text-label-md text-on-surface">{t('onboarding.cnss')}</span>
                               <input
                                 name="cnss"
                                 value={form.cnss}
                                 onChange={handleInputChange}
                                 className="w-full bg-background border border-hairline-border rounded px-sm py-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none font-body-md"
-                                placeholder="Numéro CNSS"
+                                placeholder={t('onboarding.cnssPlaceholder')}
                                 type="text"
                               />
                             </label>
@@ -647,28 +673,32 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                   </div>
                 )}
 
+                {onboardingError && (
+                  <div className="font-body-md text-sm text-error bg-error/10 border border-error/30 p-3 rounded-lg animate-fade-in mb-3">{onboardingError}</div>
+                )}
+
                 {currentStep === 1 && (
                   <div className="space-y-gutter">
                     <header>
                       <h1 className="font-headline-md text-headline-md text-on-background mb-2 m-0">
-                        Parlez-nous de votre commerce
+                        {t('onboarding.tellUs')}
                       </h1>
                       <p className="font-body-lg text-body-lg text-on-surface-variant m-0">
-                        Ces détails apparaîtront sur votre mini-site et aideront vos clients à vous trouver.
+                        {t('onboarding.tellUsDesc')}
                       </p>
                     </header>
 
                     <form className="space-y-gutter" onSubmit={(e) => e.preventDefault()}>
                       <label className="flex flex-col gap-base">
                         <span className="font-label-sm text-label-sm text-on-surface-variant uppercase">
-                          Description
+                          {t('onboarding.description')}
                         </span>
                         <textarea
                           name="description"
                           value={form.description}
                           onChange={handleInputChange}
                           className="w-full bg-background border border-hairline-border rounded px-sm py-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none font-body-md"
-                          placeholder="Décrivez brièvement votre activité..."
+                          placeholder={t('onboarding.descriptionPlaceholder')}
                           rows={4}
                         />
                       </label>
@@ -676,7 +706,7 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-gutter">
                         <label className="flex flex-col gap-base">
                           <span className="font-label-sm text-label-sm text-on-surface-variant uppercase">
-                            Horaires
+                            {t('onboarding.hours')}
                           </span>
                           <div className="relative">
                             <input
@@ -684,7 +714,7 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                               value={form.working_hours}
                               onChange={handleInputChange}
                               className="w-full bg-background border border-hairline-border rounded px-sm py-xs pl-10 focus:ring-1 focus:ring-primary focus:border-primary outline-none font-body-md"
-                              placeholder="ex: 09:00 - 18:00"
+                              placeholder={t('onboarding.hoursPlaceholder')}
                               type="text"
                             />
                             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">
@@ -694,7 +724,7 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                         </label>
                         <label className="flex flex-col gap-base">
                           <span className="font-label-sm text-label-sm text-on-surface-variant uppercase">
-                            Adresse complète
+                            {t('onboarding.address')}
                           </span>
                           <div className="relative">
                             <input
@@ -714,7 +744,7 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
 
                       <div className="flex flex-col gap-sm">
                         <span className="font-label-sm text-label-sm text-on-surface-variant uppercase">
-                          Photo de couverture (mini-site)
+                          {t('onboarding.coverPhoto')}
                         </span>
                         <div
                           role="button"
@@ -742,9 +772,9 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                                 add_photo_alternate
                               </span>
                               <p className="font-label-md text-label-md text-on-surface-variant m-0 text-center px-sm">
-                                Téléversez la photo de votre établissement
+                                {t('onboarding.uploadPhoto')}
                               </p>
-                              <p className="font-label-sm text-label-sm text-outline m-0">JPG, PNG ou WEBP</p>
+                              <p className="font-label-sm text-label-sm text-outline m-0">{t('onboarding.formatHint')}</p>
                             </div>
                           )}
                         </div>
@@ -755,7 +785,7 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
 
                       <div className="flex flex-col gap-sm">
                         <span className="font-label-sm text-label-sm text-on-surface-variant uppercase">
-                          Services &amp; équipements
+                          {t('onboarding.amenities')}
                         </span>
                         <div className="flex flex-wrap gap-2">
                           {AMENITY_TAGS.map((tag) => {
@@ -765,11 +795,10 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                                 key={tag.id}
                                 type="button"
                                 onClick={() => togglePresetAmenity(tag)}
-                                className={`flex items-center gap-2 px-3 py-1.5 border rounded-full font-label-md text-label-md transition-all ${
-                                  selected
+                                className={`flex items-center gap-2 px-3 py-1.5 border rounded-full font-label-md text-label-md transition-all ${selected
                                     ? 'tag-selected'
                                     : 'border-hairline-border text-on-surface-variant hover:border-primary'
-                                }`}
+                                  }`}
                               >
                                 <AmenityIcon icon={tag.icon} className="text-[18px]" filled={selected} onPrimary={selected} />
                                 <span>{tag.label}</span>
@@ -779,30 +808,29 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                           <button
                             type="button"
                             onClick={() => setShowCustomAmenity((v) => !v)}
-                            className={`flex items-center gap-2 px-3 py-1.5 border border-dashed rounded-full font-label-md text-label-md transition-all ${
-                              showCustomAmenity
+                            className={`flex items-center gap-2 px-3 py-1.5 border border-dashed rounded-full font-label-md text-label-md transition-all ${showCustomAmenity
                                 ? 'border-primary text-primary bg-surface-blue/30'
                                 : 'border-outline text-outline hover:border-primary hover:text-primary'
-                            }`}
+                              }`}
                           >
                             <span className="material-symbols-outlined text-[18px]">add</span>
-                            <span>Autre</span>
+                            <span>{t('onboarding.customAmenity')}</span>
                           </button>
                         </div>
                         {showCustomAmenity ? (
                           <div className="border border-hairline-border rounded-lg p-md bg-surface-container-low space-y-sm">
                             <label className="flex flex-col gap-xs">
-                              <span className="font-label-md text-label-md text-on-surface">Nom du service</span>
+                              <span className="font-label-md text-label-md text-on-surface">{t('onboarding.serviceName')}</span>
                               <input
                                 type="text"
                                 value={customLabel}
                                 onChange={(e) => setCustomLabel(e.target.value)}
                                 className="w-full bg-background border border-hairline-border rounded px-sm py-xs font-body-md outline-none focus:ring-1 focus:ring-primary"
-                                placeholder="Ex: Brunch du dimanche"
+                                placeholder={t('onboarding.serviceNamePlaceholder')}
                               />
                             </label>
                             <div>
-                              <span className="font-label-md text-label-md text-on-surface block mb-xs">Icône</span>
+                              <span className="font-label-md text-label-md text-on-surface block mb-xs">{t('onboarding.icon')}</span>
                               <div className="flex flex-wrap gap-2 mb-sm">
                                 {CUSTOM_ICON_CHOICES.map((iconName) => (
                                   <button
@@ -812,11 +840,10 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                                       setCustomIcon(iconName);
                                       setCustomEmoji('');
                                     }}
-                                    className={`w-10 h-10 rounded-lg border flex items-center justify-center ${
-                                      customIcon === iconName && !customEmoji
+                                    className={`w-10 h-10 rounded-lg border flex items-center justify-center ${customIcon === iconName && !customEmoji
                                         ? 'border-primary bg-surface-blue'
                                         : 'border-hairline-border bg-background'
-                                    }`}
+                                      }`}
                                   >
                                     <span className="material-symbols-outlined text-primary text-[20px]">{iconName}</span>
                                   </button>
@@ -824,7 +851,7 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                               </div>
                               <label className="flex flex-col gap-xs">
                                 <span className="font-label-sm text-label-sm text-on-surface-variant">
-                                  Ou emoji (ex: ☕ 🍕)
+                                  {t('onboarding.iconHint')}
                                 </span>
                                 <input
                                   type="text"
@@ -841,7 +868,7 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                               onClick={addCustomAmenity}
                               className="bg-primary text-on-primary px-md py-xs rounded font-label-md border-0 cursor-pointer"
                             >
-                              Ajouter ce service
+                              {t('onboarding.addService')}
                             </button>
                           </div>
                         ) : null}
@@ -862,7 +889,7 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                                     onClick={() =>
                                       setSelectedAmenities((prev) => prev.filter((x) => x.label !== a.label))
                                     }
-                                    aria-label={`Retirer ${a.label}`}
+                                    aria-label={t('onboarding.deleteFile')}
                                   >
                                     <span className="material-symbols-outlined text-[16px]">close</span>
                                   </button>
@@ -874,10 +901,10 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
 
                       <div className="flex flex-col gap-sm">
                         <span className="font-label-sm text-label-sm text-on-surface-variant uppercase">
-                          Emplacement sur la carte
+                          {t('onboarding.mapLocation')}
                         </span>
                         <p className="font-label-sm text-label-sm text-on-surface-variant m-0">
-                          Recherchez votre adresse ou cliquez sur la carte pour placer le repère de votre commerce.
+                          {t('onboarding.mapDesc')}
                         </p>
                         <LocationMapPicker
                           latitude={form.latitude}
@@ -885,6 +912,56 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                           searchQuery={mapSearchHint}
                           onLocationChange={handleLocationChange}
                         />
+                      </div>
+
+                      <div className="bg-surface-container-low border border-hairline-border rounded-lg p-md">
+                        <span className="font-label-sm text-label-sm text-on-surface-variant uppercase flex items-center gap-2 mb-md">
+                          <span className="material-symbols-outlined text-[20px]">share</span>
+                          {t('onboarding.socialMedia')}
+                        </span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                          {['instagram', 'facebook', 'linkedin', 'twitter', 'tiktok', 'youtube'].map((platform) => {
+                            const current = (() => {
+                              try { return JSON.parse(form.social_media || '{}')[platform] || ''; } catch { return ''; }
+                            })();
+                            return (
+                              <label key={platform} className="flex flex-col gap-base">
+                                <span className="font-label-md text-label-md text-on-surface capitalize">{platform}</span>
+                                <div className="flex items-center bg-white border border-hairline-border rounded overflow-hidden focus-within:ring-1 focus-within:ring-primary">
+                                  <div className="w-10 h-10 flex items-center justify-center border-r border-hairline-border bg-surface-container-low shrink-0">
+                                    <span className="material-symbols-outlined text-on-surface-variant text-[18px]">
+                                      {platform === 'instagram' ? 'photo_camera' : platform === 'facebook' ? 'facebook' : platform === 'linkedin' ? 'work' : platform === 'twitter' ? 'alternate_email' : platform === 'tiktok' ? 'music_note' : 'play_circle'}
+                                    </span>
+                                  </div>
+                                  <input
+                                    type="url"
+                                    className="w-full px-3 py-2 outline-none border-none font-body-md bg-transparent"
+                                    placeholder={`https://${platform}.com/...`}
+                                    value={current}
+                                    onChange={(e) => {
+                                      const newVal = e.target.value;
+                                      setForm((prev) => {
+                                        let currentData = {};
+                                        const raw = (prev.social_media || '').trim();
+                                        if (raw) {
+                                          try {
+                                            currentData = JSON.parse(raw);
+                                          } catch (err) {
+                                            // Corrupted data: preserve current state to avoid silent data loss
+                                            console.error("Social media parse error:", err);
+                                            return prev;
+                                          }
+                                        }
+                                        const updated = { ...currentData, [platform]: newVal };
+                                        return { ...prev, social_media: JSON.stringify(updated) };
+                                      });
+                                    }}
+                                  />
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
                       </div>
                     </form>
                   </div>
@@ -894,11 +971,10 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                   <div className="space-y-gutter">
                     <header className="text-center md:text-left">
                       <h1 className="font-headline-md text-headline-md text-on-background mb-sm m-0">
-                        Nourrissez votre IA
+                        {t('onboarding.feedAi')}
                       </h1>
                       <p className="font-body-lg text-body-lg text-on-surface-variant m-0 max-w-xl">
-                        Téléversez vos documents (PDF, Word) ou saisissez les informations clés pour que votre
-                        chatbot comprenne parfaitement votre activité.
+                        {t('onboarding.feedAiDesc')}
                       </p>
                     </header>
 
@@ -908,11 +984,10 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                       onDragLeave={handleDrag}
                       onDrop={handleDrop}
                       onClick={() => fileInputRef.current?.click()}
-                      className={`border-2 border-dashed rounded-lg p-xl flex flex-col items-center justify-center transition-all duration-300 cursor-pointer ${
-                        dragActive
+                      className={`border-2 border-dashed rounded-lg p-xl flex flex-col items-center justify-center transition-all duration-300 cursor-pointer ${dragActive
                           ? 'border-primary bg-surface-blue'
                           : 'border-outline-variant hover:bg-surface-container-low'
-                      }`}
+                        }`}
                     >
                       <input
                         ref={fileInputRef}
@@ -925,9 +1000,9 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                         <span className="material-symbols-outlined text-primary text-[32px]">upload_file</span>
                       </div>
                       <p className="font-label-md text-label-md text-on-surface mb-xs m-0">
-                        Glissez-déposez vos fichiers ici
+                        {t('onboarding.dropzone')}
                       </p>
-                      <p className="font-label-sm text-label-sm text-on-surface-variant m-0">PDF, DOCX jusqu&apos;à 20 Mo</p>
+                      <p className="font-label-sm text-label-sm text-on-surface-variant m-0">{t('onboarding.fileHint')}</p>
                       <button
                         type="button"
                         onClick={(e) => {
@@ -936,7 +1011,7 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                         }}
                         className="mt-md px-gutter py-3 bg-surface-container text-primary font-label-md text-label-md rounded-lg hover:bg-surface-container-high transition-colors border-0 cursor-pointer"
                       >
-                        Parcourir les fichiers
+                        {t('onboarding.browseFiles')}
                       </button>
                     </div>
 
@@ -960,7 +1035,7 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                               type="button"
                               onClick={removeDocument}
                               className="text-error hover:bg-error-container p-2 rounded-full border-0 bg-transparent cursor-pointer"
-                              aria-label="Supprimer le fichier"
+                              aria-label={t('onboarding.deleteFile')}
                             >
                               <span className="material-symbols-outlined text-[20px]">close</span>
                             </button>
@@ -971,16 +1046,16 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
 
                     <div className="flex items-center gap-md">
                       <div className="flex-grow h-px bg-hairline-border" />
-                      <span className="font-label-sm text-label-sm text-outline uppercase tracking-widest">ou</span>
+                      <span className="font-label-sm text-label-sm text-outline uppercase tracking-widest">{t('common.or')}</span>
                       <div className="flex-grow h-px bg-hairline-border" />
                     </div>
 
                     <label className="flex flex-col gap-xs">
                       <span className="font-label-md text-label-md text-on-surface">
-                        Saisie manuelle des connaissances
+                        {t('onboarding.manualKnowledge')}
                       </span>
                       <p className="font-label-sm text-label-sm text-on-surface-variant m-0 mb-xs">
-                        Ce texte apparaît sur votre mini-site (section « Informations utiles ») et nourrit votre IA.
+                        {t('onboarding.manualKnowledgeDesc')}
                       </p>
                       <textarea
                         name="pasted_text"
@@ -988,7 +1063,7 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                         onChange={handleInputChange}
                         disabled={!!file}
                         className="w-full px-md py-sm border border-hairline-border rounded-lg font-body-md placeholder:text-outline-variant focus:ring-0 focus:border-primary transition-all resize-none disabled:opacity-50"
-                        placeholder="Services, tarifs, horaires, FAQ..."
+                        placeholder={t('onboarding.knowledgePlaceholder')}
                         rows={6}
                       />
                     </label>
@@ -996,15 +1071,15 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-gutter opacity-70 pt-sm">
                       <div className="flex items-center gap-2 justify-center">
                         <span className="material-symbols-outlined text-[20px]">verified_user</span>
-                        <span className="font-label-sm text-label-sm">Données sécurisées</span>
+                        <span className="font-label-sm text-label-sm">{t('onboarding.secureData')}</span>
                       </div>
                       <div className="flex items-center gap-2 justify-center">
                         <span className="material-symbols-outlined text-[20px]">psychology</span>
-                        <span className="font-label-sm text-label-sm">IA souveraine</span>
+                        <span className="font-label-sm text-label-sm">{t('onboarding.sovereignAi')}</span>
                       </div>
                       <div className="flex items-center gap-2 justify-center col-span-2 md:col-span-1">
                         <span className="material-symbols-outlined text-[20px]">language</span>
-                        <span className="font-label-sm text-label-sm">Serveurs en Europe</span>
+                        <span className="font-label-sm text-label-sm">{t('onboarding.europeServers')}</span>
                       </div>
                     </div>
                   </div>
@@ -1015,12 +1090,11 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                     type="button"
                     onClick={prevStep}
                     disabled={currentStep === 0}
-                    className={`flex items-center gap-2 font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors py-2 px-4 bg-transparent border-0 cursor-pointer ${
-                      currentStep === 0 ? 'opacity-0 pointer-events-none' : ''
-                    }`}
+                    className={`flex items-center gap-2 font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors py-2 px-4 bg-transparent border-0 cursor-pointer ${currentStep === 0 ? 'opacity-0 pointer-events-none' : ''
+                      }`}
                   >
                     <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-                    Retour
+                    {t('common.back')}
                   </button>
                   <button
                     type="button"
@@ -1029,11 +1103,11 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
                   >
                     {currentStep === STEPS_COUNT - 1 ? (
                       <>
-                        Créer mon chatbot
+                        {t('onboarding.createChatbot')}
                         <span className="material-symbols-outlined text-[18px]">rocket_launch</span>
                       </>
                     ) : (
-                      'Continuer'
+                      t('common.next')
                     )}
                   </button>
                 </div>
@@ -1048,7 +1122,7 @@ export default function OnboardingWizard({ owner, ownerToken, onComplete, onExit
           <span className="font-headline-sm italic text-on-surface">
             <SahelLogo size={28} textClass="font-headline-sm italic text-on-surface" />
           </span>
-          <p className="font-label-sm text-label-sm text-on-surface-variant m-0">© 2026 Sahel.ai</p>
+          <p className="font-label-sm text-label-sm text-on-surface-variant m-0">&copy; {new Date().getFullYear()} Sahel.ai</p>
         </div>
       </footer>
     </div>

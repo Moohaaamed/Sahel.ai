@@ -91,6 +91,12 @@ export function DashboardPage({ onLogout }: DashboardPageProps) {
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
           <h1 className="text-lg font-bold text-foreground">Sahel.ai Dashboard</h1>
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => window.location.href = (import.meta.env.VITE_WEBSITE_URL ?? 'http://localhost:5173') + '/onboarding'}
+              className="text-sm font-medium text-primary hover:text-primary/80 transition"
+            >
+              Créer
+            </button>
             <span className="text-sm text-muted-foreground">{owner.full_name}</span>
             <button
               onClick={handleLogout}

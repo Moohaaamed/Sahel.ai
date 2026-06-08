@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
 import { API_URL } from '../config';
+import { useLanguage } from '../i18n';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -132,11 +133,24 @@ const SuggestionRow = styled.div`
 `;
 
 const ChatInterface = ({ documentName, business, onMessageSaved, onConversationChange, compact = false }) => {
+  const { t } = useLanguage();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState(null);
   const chatContainerRef = useRef(null);
+  const abortRef = useRef(null);
+  const messagesRef = useRef(messages);
+  const msgIdRef = useRef(0);
+  const nextMsgId = useCallback(() => `msg_${Date.now()}_${++msgIdRef.current}`, []);
+
+  // Persist messages to localStorage when they change
+  useEffect(() => {
+    if (business?.id && messages !== messagesRef.current) {
+      localStorage.setItem(`sahel_chat_history_${business.id}`, JSON.stringify(messages));
+      messagesRef.current = messages;
+    }
+  }, [messages, business?.id]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -153,6 +167,7 @@ const ChatInterface = ({ documentName, business, onMessageSaved, onConversationC
         try {
           setMessages(JSON.parse(stored));
         } catch (e) {
+          console.error('Failed to parse chat history:', e);
           setMessages([]);
         }
       } else {
@@ -166,47 +181,43 @@ const ChatInterface = ({ documentName, business, onMessageSaved, onConversationC
     setInput('');
   }, [business?.id]);
 
-  const sendMessage = useCallback(async () => {
-    const trimmedInput = input.trim();
+  useEffect(() => {
+    return () => abortRef.current?.abort();
+  }, []);
+
+  const sendMessage = useCallback(async (messageText) => {
+    const trimmedInput = (messageText || '').trim();
     if (!trimmedInput || isLoading || !business) return;
 
-    const newUserMessage = { id: Date.now(), text: trimmedInput, sender: 'user' };
-    setMessages((prev) => {
-      const updated = [...prev, newUserMessage];
-      localStorage.setItem(`sahel_chat_history_${business.id}`, JSON.stringify(updated));
-      return updated;
-    });
+    const newUserMessage = { id: nextMsgId(), text: trimmedInput, sender: 'user' };
+    setMessages((prev) => [...prev, newUserMessage]);
     setInput('');
     setIsLoading(true);
 
     try {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
       const response = await api.post(`/businesses/${business.id}/chat`, {
         question: trimmedInput,
         conversation_id: conversationId,
-      });
+      }, { signal: controller.signal });
       const newConvId = response.data.conversation_id;
       setConversationId(newConvId);
       localStorage.setItem(`sahel_chat_conv_id_${business.id}`, newConvId);
       onConversationChange?.(newConvId);
 
-      const newBotMessage = { id: Date.now(), text: response.data.answer, sender: 'bot' };
-      setMessages((prev) => {
-        const updated = [...prev, newBotMessage];
-        localStorage.setItem(`sahel_chat_history_${business.id}`, JSON.stringify(updated));
-        return updated;
-      });
+      const newBotMessage = { id: nextMsgId(), text: response.data.answer, sender: 'bot' };
+      setMessages((prev) => [...prev, newBotMessage]);
       onMessageSaved?.();
-    } catch {
-      const errorMsg = { id: Date.now(), text: 'Error: Could not get response', sender: 'bot' };
-      setMessages((prev) => {
-        const updated = [...prev, errorMsg];
-        localStorage.setItem(`sahel_chat_history_${business.id}`, JSON.stringify(updated));
-        return updated;
-      });
+    } catch (e) {
+      console.error('Chat API error:', e);
+      const errorMsg = { id: nextMsgId(), text: t('chat.error'), sender: 'bot' };
+      setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
     }
-  }, [business, conversationId, input, isLoading, onConversationChange, onMessageSaved]);
+  }, [business, conversationId, isLoading, onConversationChange, onMessageSaved, nextMsgId, t]);
 
   return (
     <ChatWrapper $compact={compact}>
@@ -217,14 +228,14 @@ const ChatInterface = ({ documentName, business, onMessageSaved, onConversationC
             <div>
               {documentName
                 ? `Posez une question sur "${documentName}" pour tester ${business?.name}.`
-                : 'Bonjour, je peux repondre aux questions, preparer une reservation ou expliquer les services disponibles.'}
+                : t('chat.welcome')}
             </div>
             <SuggestionRow>
-              <button type="button" onClick={() => setInput('Quels sont vos services ?')}>
-                Services
+              <button type="button" onClick={() => setInput(t('chat.suggestServices'))}>
+                {t('chat.services')}
               </button>
-              <button type="button" onClick={() => setInput('Quels sont vos tarifs ?')}>
-                Tarifs
+              <button type="button" onClick={() => setInput(t('chat.suggestPricing'))}>
+                {t('chat.pricing')}
               </button>
             </SuggestionRow>
           </EmptyState>
@@ -240,13 +251,13 @@ const ChatInterface = ({ documentName, business, onMessageSaved, onConversationC
         <InputContainer>
           <InputField
             type="text"
-            placeholder="Votre question en arabe, francais ou darija..."
+            placeholder={t('chat.placeholder')}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+            onKeyDown={(e) => e.key === 'Enter' && sendMessage(input)}
             disabled={isLoading}
           />
-          <SendButton onClick={sendMessage} disabled={!input.trim() || isLoading || !business}>
+          <SendButton onClick={() => sendMessage(input)} disabled={!input.trim() || isLoading || !business} aria-label={t('chat.send')}>
             {isLoading ? '...' : '▷'}
           </SendButton>
         </InputContainer>

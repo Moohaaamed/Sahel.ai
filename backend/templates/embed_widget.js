@@ -1,7 +1,7 @@
 (function() {
-  var SLUG = "{{ slug }}";
-  var WS_URL = "{{ ws_url }}";
-  var API_URL = "{{ api_url }}";
+  var SLUG = {{ slug|tojson }};
+  var WS_URL = {{ ws_url|tojson }};
+  var API_URL = {{ api_url|tojson }};
 
   var containerId = "sahel-widget-container";
   if (document.getElementById(containerId)) return;
@@ -69,14 +69,14 @@
     '<button id="sahel-widget-btn" aria-label="Chat">💬</button>' +
     '<div id="sahel-widget-popup">' +
       '<div id="sahel-widget-header">' +
-        '<h3>{{ business_name }}</h3>' +
+        '<h3>' + {{ business_name|tojson }} + '</h3>' +
         '<button id="sahel-widget-close">&times;</button>' +
       '</div>' +
       '<div id="sahel-widget-messages">' +
-        '<div class="sw-msg sw-bot">{{ greeting }}</div>' +
+        '<div class="sw-msg sw-bot">' + {{ greeting|tojson }} + '</div>' +
       '</div>' +
       '<div id="sahel-widget-input-wrap">' +
-        '<input id="sahel-widget-input" type="text" placeholder="{{ placeholder }}" />' +
+        '<input id="sahel-widget-input" type="text" placeholder=' + {{ placeholder|tojson }} + ' />' +
         '<button id="sahel-widget-send">&#10148;</button>' +
       '</div>' +
     '</div>';

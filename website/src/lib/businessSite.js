@@ -23,7 +23,8 @@ export function isEmojiIcon(icon) {
   if (icon.startsWith('e:')) return true;
   try {
     return /\p{Extended_Pictographic}/u.test(icon);
-  } catch {
+  } catch (e) {
+    console.warn('isEmojiIcon failed:', e);
     return false;
   }
 }
@@ -53,8 +54,8 @@ export function parseAmenities(highlights) {
             icon: item.icon ? String(item.icon).trim() : highlightIcon(item.label),
           }));
       }
-    } catch {
-      /* legacy */
+    } catch (e) {
+      console.warn('parseAmenities JSON parse failed:', e);
     }
   }
 

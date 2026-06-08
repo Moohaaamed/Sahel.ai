@@ -1,90 +1,53 @@
 import { useState, useMemo } from 'react';
 import { ROUTES } from '../lib/routes';
+import { useLanguage } from '../i18n';
 import MarketingHeader from './layout/MarketingHeader';
 import MarketingFooter from './layout/MarketingFooter';
 
-const CATEGORIES = [
-  {
-    name: "Général",
-    icon: "info",
-    items: [
-      {
-        question: "C'est quoi Sahel.ai exactement ?",
-        answer: "Sahel.ai est une plateforme qui permet à tout commerce marocain — hôtel, restaurant, pharmacie, boutique — de créer un chatbot IA et un mini-site web en moins de 5 minutes, sans aucune compétence technique. Sahel (سهل) signifie \"facile\" en arabe."
-      },
-      {
-        question: "Est-ce vraiment gratuit ?",
-        answer: "Oui. Le plan gratuit vous donne 1 commerce, un chatbot IA opérationnel, un mini-site hébergé, un QR code téléchargeable et 50 conversations par mois — sans aucune carte bancaire requise. Le plan Pro à 99 DH/mois ajoute des commerces illimités, les analytics et les notifications WhatsApp."
-      },
-      {
-        question: "Quel type de commerce peut utiliser Sahel.ai ?",
-        answer: "Tous les types : hôtel, riad, restaurant, café, pharmacie, clinique, épicerie, agence immobilière, salon de coiffure... Dès que vous avez des clients qui posent des questions répétitives, Sahel.ai vous fait gagner du temps."
-      },
-      {
-        question: "Faut-il des compétences en informatique ?",
-        answer: "Aucune. Vous remplissez un formulaire comme vous rempliriez un document Word, vous uploadez votre PDF de services, et Sahel.ai fait le reste automatiquement. Si vous pouvez envoyer un message WhatsApp, vous pouvez utiliser Sahel.ai."
-      }
-    ]
-  },
-  {
-    name: "Chatbot IA",
-    icon: "smart_toy",
-    items: [
-      {
-        question: "Comment le chatbot connaît-il les infos de mon commerce ?",
-        answer: "Vous uploadez vos documents (menu, tarifs, FAQ, horaires...) en PDF ou Word lors de la création. L'IA lit et mémorise tout ce contenu. Elle répond ensuite uniquement à partir de ces informations — jamais d'inventions. C'est ce qu'on appelle l'architecture RAG (Retrieval-Augmented Generation)."
-      },
-      {
-        question: "Le chatbot répond en quelle langue ?",
-        answer: "Le chatbot détecte automatiquement la langue de votre visiteur et répond dans la même langue. Il supporte l'arabe classique, le darija marocain, le français et l'anglais. Aucune configuration manuelle nécessaire."
-      },
-      {
-        question: "Que se passe-t-il si le chatbot ne connaît pas la réponse ?",
-        answer: "Si l'information n'est pas dans vos documents, le chatbot le dit clairement et invite le visiteur à contacter le commerce directement via WhatsApp ou téléphone. Il ne devine jamais et n'invente pas d'informations."
-      },
-      {
-        question: "Comment mettre à jour les infos de mon chatbot ?",
-        answer: "Depuis votre dashboard, cliquez sur \"Modifier\" à côté de votre commerce et uploadez un nouveau PDF. Le chatbot est automatiquement mis à jour en quelques secondes."
-      }
-    ]
-  },
-  {
-    name: "Mini-site",
-    icon: "language",
-    items: [
-      {
-        question: "Où est hébergé mon mini-site ?",
-        answer: "Sur les serveurs de Sahel.ai, gratuitement. Votre URL ressemble à : sahel.ai/business/nom-de-votre-commerce. Vous n'avez rien à configurer ni à payer pour l'hébergement."
-      },
-      {
-        question: "J'ai déjà un site web, puis-je quand même utiliser Sahel.ai ?",
-        answer: "Oui. Après la création de votre chatbot, Sahel.ai vous donne un snippet d'une ligne à coller dans votre site existant. Une bulle de chat apparaîtra automatiquement sur votre site actuel, alimentée par votre IA Sahel.ai."
-      },
-      {
-        question: "Comment partager mon mini-site avec mes clients ?",
-        answer: "Trois façons : (1) Partagez le lien directement sur WhatsApp, Instagram, ou Google Maps. (2) Imprimez le QR code et affichez-le dans votre commerce — les clients le scannent avec leur téléphone. (3) Si vous avez un site, intégrez le widget avec une seule ligne de code."
-      }
-    ]
-  },
-  {
-    name: "Compte & Facturation",
-    icon: "account_balance_wallet",
-    items: [
-      {
-        question: "Dois-je créer un compte pour utiliser Sahel.ai ?",
-        answer: "Non. Vous pouvez créer votre chatbot sans compte. Un compte est nécessaire uniquement pour accéder au dashboard analytique, modifier votre contenu après création, et gérer plusieurs commerces."
-      },
-      {
-        question: "Comment passer au plan Pro ?",
-        answer: "Depuis votre dashboard, cliquez sur \"Passer au Pro\". Le paiement se fait par virement bancaire ou via la page de contact — nous vous enverrons les instructions. Pas de paiement en ligne requis pour le moment."
-      }
-    ]
-  }
-];
-
 export default function FaqPage() {
+  const { t } = useLanguage();
   const [openItems, setOpenItems] = useState({});
   const [search, setSearch] = useState('');
+
+  const CATEGORIES = useMemo(() => [
+    {
+      name: t('faq.categories.general'),
+      icon: "info",
+      items: [
+        { question: t('faq.q1'), answer: t('faq.a1') },
+        { question: t('faq.q2'), answer: t('faq.a2') },
+        { question: t('faq.q3'), answer: t('faq.a3') },
+        { question: t('faq.q4'), answer: t('faq.a4') },
+      ]
+    },
+    {
+      name: t('faq.categories.chatbot'),
+      icon: "smart_toy",
+      items: [
+        { question: t('faq.q5'), answer: t('faq.a5') },
+        { question: t('faq.q6'), answer: t('faq.a6') },
+        { question: t('faq.q7'), answer: t('faq.a7') },
+        { question: t('faq.q8'), answer: t('faq.a8') },
+      ]
+    },
+    {
+      name: t('faq.categories.miniSite'),
+      icon: "language",
+      items: [
+        { question: t('faq.q9'), answer: t('faq.a9') },
+        { question: t('faq.q10'), answer: t('faq.a10') },
+        { question: t('faq.q11'), answer: t('faq.a11') },
+      ]
+    },
+    {
+      name: t('faq.categories.billing'),
+      icon: "account_balance_wallet",
+      items: [
+        { question: t('faq.q12'), answer: t('faq.a12') },
+        { question: t('faq.q13'), answer: t('faq.a13') },
+      ]
+    }
+  ], [t]);
 
   const toggleItem = (catIdx, itemIdx) => {
     const key = `${catIdx}-${itemIdx}`;
@@ -105,7 +68,7 @@ export default function FaqPage() {
           item.answer.toLowerCase().includes(q)
       )
     })).filter(cat => cat.items.length > 0);
-  }, [search]);
+  }, [search, CATEGORIES]);
 
   const totalFiltered = filteredCategories.reduce((sum, c) => sum + c.items.length, 0);
 
@@ -118,13 +81,13 @@ export default function FaqPage() {
           <div className="text-center mb-xl">
             <a href={ROUTES.home} className="inline-flex items-center gap-xs text-on-surface-variant font-label-md no-underline hover:text-primary mb-md">
               <span className="material-symbols-outlined !text-[18px]">arrow_back</span>
-              Retour à l&apos;accueil
+              {t('common.backToHome')}
             </a>
             <h1 className="font-display-lg text-display-lg text-on-surface m-0 mb-sm">
-              Foire aux questions
+              {t('faq.title')}
             </h1>
             <p className="font-body-lg text-body-lg text-on-surface-variant m-0 max-w-xl mx-auto">
-              Tout ce que vous devez savoir sur Sahel.ai pour propulser votre commerce grâce à l&apos;IA.
+              {t('faq.subtitle')}
             </p>
           </div>
 
@@ -134,7 +97,7 @@ export default function FaqPage() {
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Rechercher une question..."
+              placeholder={t('faq.searchPlaceholder')}
               className="w-full pl-12 pr-4 py-3 rounded-xl border border-hairline-border bg-white font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
             />
           </div>
@@ -184,7 +147,7 @@ export default function FaqPage() {
             <div className="text-center py-xl">
               <span className="material-symbols-outlined text-[48px] text-outline mb-sm">search_off</span>
               <p className="font-body-lg text-body-lg text-on-surface-variant m-0">
-                Aucune question ne correspond à votre recherche.
+                {t('faq.noResults')}
               </p>
             </div>
           )}

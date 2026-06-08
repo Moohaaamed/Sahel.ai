@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { API_URL, GOOGLE_CLIENT_ID } from '../config';
-import { ROUTES, loginUrl } from '../lib/routes';
+import { ROUTES } from '../lib/routes';
 import { authHeaders, saveSession } from '../lib/session';
-import MarketingHeader from './layout/MarketingHeader';
+import { useLanguage, LanguageSwitcher } from '../i18n';
 import SahelLogo from './SahelLogo';
+import InteractiveDots from './InteractiveDots';
 
 async function resolvePostLoginPath(session) {
   const params = new URLSearchParams(window.location.search);
@@ -12,51 +13,58 @@ async function resolvePostLoginPath(session) {
     return next;
   }
 
-  try {
-    const response = await fetch(
-      `${API_URL}/businesses?owner_id=${encodeURIComponent(session.owner.id)}`,
-      { headers: authHeaders(session.token) },
-    );
-    if (response.ok) {
-      const data = await response.json();
-      if ((data.businesses || []).length > 0) {
-        return ROUTES.dashboard;
-      }
-    }
-  } catch {
-    // fall through to onboarding
+  const response = await fetch(
+    `${API_URL}/businesses?owner_id=${encodeURIComponent(session.owner.id)}`,
+    { headers: authHeaders(session.token) },
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to verify business status. Please try logging in again.');
+  }
+
+  const data = await response.json();
+  if ((data.businesses || []).length > 0) {
+    return ROUTES.dashboard;
   }
 
   return ROUTES.onboarding;
 }
 
+const formDefaults = {
+  full_name: '',
+  email: '',
+  password: '',
+  confirm_password: '',
+  terms: false,
+};
+
 export default function LoginPage({ initialMode = 'login' }) {
+  const { t } = useLanguage();
   const [mode, setMode] = useState(initialMode);
-  const [form, setForm] = useState({
-    full_name: '',
-    email: '',
-    password: '',
-    confirm_password: '',
-    terms: false,
-  });
+  const [form, setForm] = useState(formDefaults);
   const [status, setStatus] = useState('');
+  const [statusType, setStatusType] = useState(''); // 'error' or 'success'
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
+  const [resetState, setResetState] = useState(null);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetCode, setResetCode] = useState('');
 
   useEffect(() => {
     setMode(initialMode);
     setStatus('');
     setRegisteredEmail('');
-    setForm({
-      full_name: '',
-      email: '',
-      password: '',
-      confirm_password: '',
-      terms: false,
-    });
+    setForm(formDefaults);
   }, [initialMode]);
+
+  const switchMode = (newMode) => {
+    setMode(newMode);
+    setStatus('');
+    setForm(formDefaults);
+    window.history.pushState(null, '', newMode === 'login' ? ROUTES.login : ROUTES.register);
+  };
 
   const submitAuth = async (event) => {
     event.preventDefault();
@@ -65,17 +73,17 @@ export default function LoginPage({ initialMode = 'login' }) {
 
     if (mode === 'register') {
       if (form.password !== form.confirm_password) {
-        setStatus('Les mots de passe ne correspondent pas.');
+        setStatus(t('login.errors.passwordMismatch'));
         setIsSubmitting(false);
         return;
       }
       if (form.password.length < 6) {
-        setStatus('Le mot de passe doit contenir au moins 6 caractères.');
+        setStatus(t('login.errors.passwordTooShort'));
         setIsSubmitting(false);
         return;
       }
       if (!form.terms) {
-        setStatus("Veuillez accepter les conditions d'utilisation.");
+        setStatus(t('login.errors.acceptTerms'));
         setIsSubmitting(false);
         return;
       }
@@ -96,7 +104,8 @@ export default function LoginPage({ initialMode = 'login' }) {
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        throw new Error(error.detail || (mode === 'login' ? 'Identifiants incorrects' : 'Inscription impossible'));
+        const msg = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+        throw new Error(msg || (mode === 'login' ? t('login.errors.invalidCredentials') : t('login.errors.registrationFailed')));
       }
 
       const data = await response.json();
@@ -117,7 +126,7 @@ export default function LoginPage({ initialMode = 'login' }) {
     }
   };
 
-  const googleLogin = async (credential) => {
+  const googleLogin = useCallback(async (credential) => {
     setIsSubmitting(true);
     setStatus('');
     try {
@@ -128,7 +137,8 @@ export default function LoginPage({ initialMode = 'login' }) {
       });
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        throw new Error(error.detail || 'Google sign-in failed');
+        const msg = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+        throw new Error(msg || t('login.errors.googleFailed'));
       }
       const data = await response.json();
       const session = { owner: data.owner, token: data.token, expires_at: data.expires_at };
@@ -137,9 +147,10 @@ export default function LoginPage({ initialMode = 'login' }) {
       window.location.href = destination;
     } catch (error) {
       setStatus(error.message);
+    } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID) return;
@@ -153,477 +164,627 @@ export default function LoginPage({ initialMode = 'login' }) {
     }
     const tryRender = () => {
       if (!window.google?.accounts) return setTimeout(tryRender, 200);
-      const container = document.getElementById('google-btn');
-      if (!container) return setTimeout(tryRender, 200);
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: (response) => googleLogin(response.credential),
-      });
-      window.google.accounts.id.renderButton(container, {
-        theme: 'outline',
-        size: 'large',
-        width: '100%',
-        text: 'continue_with',
+      const containerIds = ['google-btn', 'google-btn-register'];
+      containerIds.forEach((id) => {
+        const container = document.getElementById(id);
+        if (!container || container.hasChildNodes()) return;
+        if (!window._gsiInitialized) {
+          window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: (response) => googleLogin(response.credential),
+          });
+          window._gsiInitialized = true;
+        }
+        window.google.accounts.id.renderButton(container, {
+          theme: 'outline',
+          size: 'large',
+          width: '100%',
+          text: 'continue_with',
+        });
       });
     };
     setTimeout(tryRender, 200);
-  }, [mode]);
+  }, [mode, googleLogin]);
 
   const resendVerification = async () => {
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_URL}/owners/resend-verification?email=${encodeURIComponent(form.email)}`, {
+      const response = await fetch(`${API_URL}/owners/resend-verification`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email }),
       });
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        throw new Error(error.detail || 'Failed to resend');
+        const msg = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+        throw new Error(msg || t('login.errors.resendFailed'));
       }
-      setStatus('✅ Verification email resent. Check your inbox.');
+      setStatus(t('login.success.codeSent'));
+      setStatusType('success');
     } catch (error) {
       setStatus(error.message);
+      setStatusType('error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const submitForgotPassword = async () => {
+    if (!resetEmail.trim()) {
+      setStatus(t('login.errors.enterEmail'));
+      return;
+    }
+    setIsSubmitting(true);
+    setStatus('');
+    try {
+      const response = await fetch(`${API_URL}/owners/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetEmail }),
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        const msg = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+        throw new Error(msg || t('login.errors.invalidCredentials'));
+      }
+      setResetState('reset_code');
+      setStatus(t('login.success.codeSent'));
+      setStatusType('success');
+    } catch (error) {
+      setStatus(error.message);
+      setStatusType('error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const submitResetCode = async () => {
+    if (!resetCode.trim() || resetCode.length !== 6) {
+      setStatus(t('login.errors.enterCode'));
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`${API_URL}/owners/verify-reset-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetEmail, code: resetCode }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || t('login.errors.invalidCode'));
+      }
+      setResetState('reset_password');
+      setStatus('');
+    } catch (error) {
+      setStatus(error.message || t('login.errors.invalidCode'));
+      setStatusType('error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const submitResetPassword = async () => {
+    const pw = form.password;
+    if (pw.length < 6) {
+      setStatus(t('login.errors.passwordTooShort'));
+      return;
+    }
+    setIsSubmitting(true);
+    setStatus('');
+    try {
+      const response = await fetch(`${API_URL}/owners/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetEmail, code: resetCode, new_password: pw }),
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        const msg = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+        throw new Error(msg || t('login.resetPassword'));
+      }
+      setStatus(t('login.success.passwordReset'));
+      setStatusType('success');
+      setResetState(null);
+      setMode('login');
+      setForm(formDefaults);
+      setResetCode('');
+    } catch (error) {
+      setStatus(error.message);
+      setStatusType('error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const inputClasses = "w-full px-4 py-3 rounded-xl border border-hairline-border focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none";
+  const labelClasses = "font-label-md text-label-md text-on-surface-variant ml-1";
+
   return (
-    <div className="bg-surface-container-low min-h-screen flex flex-col">
-      <MarketingHeader />
-      <div className="flex-1 flex flex-col items-center justify-center p-sm py-lg">
+    <div className="min-h-screen bg-surface-container-low flex flex-col items-center justify-center p-4 md:p-8 font-body-md overflow-x-hidden selection:bg-primary-fixed selection:text-on-primary-fixed">
       <style>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        .material-symbols-outlined {
-          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        .bg-pattern {
+          background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0);
+          background-size: 32px 32px;
         }
       `}</style>
 
+      {/* Background Decorations */}
+      <div className="fixed bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-surface-blue to-transparent -z-10 opacity-30" />
+      <div className="fixed top-20 right-[-10%] w-[500px] h-[500px] rounded-full bg-primary/5 blur-[100px] -z-10" />
+      <div className="fixed bottom-10 left-[-5%] w-[400px] h-[400px] rounded-full bg-secondary/5 blur-[80px] -z-10" />
+      <InteractiveDots color="rgba(0, 94, 164, 0.4)" count={350} />
+
+      {/* Top Navigation */}
+      <nav className="fixed top-0 left-0 w-full p-gutter flex justify-between items-center z-50">
+        <a href={ROUTES.home} className="flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors no-underline cursor-pointer">
+          <span className="material-symbols-outlined text-sm">arrow_back</span>
+          <span className="font-label-md text-label-md">{t('common.backToHome')}</span>
+        </a>
+      </nav>
+
       {mode === 'register' && registeredEmail ? (
-        /* Verification Success */
+        /* ── Verification Screen ── */
         <main className="w-full max-w-[400px] flex flex-col items-center animate-fade-in">
-          <div className="w-full bg-surface-container-lowest border border-hairline-border rounded-xl p-lg flex flex-col items-center shadow-sm text-center">
+          <div className="w-full bg-white border border-hairline-border rounded-3xl p-lg flex flex-col items-center shadow-xl text-center">
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-lg">
               <span className="material-symbols-outlined text-primary text-[36px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                 mail
               </span>
             </div>
-            <h1 className="font-headline-sm text-headline-sm text-on-surface mb-sm">Vérifiez votre email</h1>
+            <h1 className="font-headline-sm text-headline-sm text-on-surface mb-sm">{t('login.verifyEmail')}</h1>
             <p className="font-body-md text-body-md text-on-surface-variant mb-md">
-              Un email de confirmation a été envoyé à <strong>{registeredEmail}</strong>.
+              {t('login.verifySent', { email: registeredEmail })}
             </p>
             <p className="font-body-md text-body-md text-on-surface-variant mb-lg">
-              Cliquez sur le lien dans l'email pour activer votre compte, puis connectez-vous.
+              {t('login.verifyClickLink')}
             </p>
             <div className="flex flex-col gap-sm w-full">
               <a
-                className="w-full text-center bg-primary text-on-primary py-sm rounded-lg font-label-md text-label-md hover:opacity-90 transition-all no-underline"
+                className="w-full text-center bg-primary text-on-primary py-sm rounded-xl font-label-md text-label-md hover:opacity-90 transition-all no-underline"
                 href={ROUTES.login}
               >
-                Aller à la connexion
+                {t('login.verifyGoLogin')}
               </a>
               <button
-                className="w-full border border-outline-variant py-sm rounded-lg font-label-md text-label-md text-on-surface hover:bg-surface-container-low transition-all cursor-pointer"
+                className="w-full border border-outline-variant py-sm rounded-xl font-label-md text-label-md text-on-surface hover:bg-surface-container-low transition-all cursor-pointer"
                 onClick={resendVerification}
                 disabled={isSubmitting}
                 type="button"
               >
-                {isSubmitting ? 'Envoi...' : 'Renvoyer l\'email'}
+                {isSubmitting ? t('login.sending') : t('login.verifyResend')}
               </button>
             </div>
             {status ? (
-              <div className="text-sm mt-md text-on-surface-variant">{status}</div>
+              <div className={`text-sm mt-md p-2 rounded-lg animate-fade-in ${statusType === 'error' ? 'text-error bg-error/10' : 'bg-success-container/30 border border-success/20 text-on-surface font-medium'}`}>{status}</div>
             ) : null}
           </div>
         </main>
-      ) : mode === 'register' ? (
-        /* Inscription Layout */
-        <main className="w-full max-w-[400px] flex flex-col items-center animate-fade-in">
-          {/* Registration Card */}
-          <div className="w-full bg-surface-container-lowest border border-hairline-border rounded-xl p-lg flex flex-col items-center shadow-sm">
-            {/* Logo Section */}
-            <div className="mb-lg flex flex-col items-center gap-xs">
-              <SahelLogo size={40} textClass="font-headline-sm text-headline-sm text-primary tracking-tight" />
-            </div>
-
-            {/* Heading */}
-            <h1 className="font-headline-sm text-headline-sm text-on-surface mb-lg">
-              Créer un compte
-            </h1>
-
-            {/* Registration Form */}
-            <form onSubmit={submitAuth} className="w-full space-y-md">
-              {/* Nom Complet */}
-              <div className="flex flex-col gap-base text-left w-full">
-                <label className="font-label-sm text-label-sm text-on-surface-variant" htmlFor="name">
-                  Nom complet
-                </label>
-                <input
-                  className="w-full px-sm py-sm border border-outline-variant rounded-lg text-body-md font-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-outline"
-                  id="name"
-                  name="name"
-                  placeholder="Jean Dupont"
-                  required
-                  type="text"
-                  value={form.full_name}
-                  onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              {/* Email */}
-              <div className="flex flex-col gap-base text-left w-full">
-                <label className="font-label-sm text-label-sm text-on-surface-variant" htmlFor="email">
-                  Email
-                </label>
-                <input
-                  className="w-full px-sm py-sm border border-outline-variant rounded-lg text-body-md font-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-outline"
-                  id="email"
-                  name="email"
-                  placeholder="jean@entreprise.ma"
-                  required
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              {/* Mot de passe */}
-              <div className="flex flex-col gap-base text-left w-full">
-                <label className="font-label-sm text-label-sm text-on-surface-variant" htmlFor="password">
-                  Mot de passe
-                </label>
-                <div className="relative">
-                  <input
-                    className="w-full px-sm py-sm border border-outline-variant rounded-lg text-body-md font-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-outline pr-[40px]"
-                    id="password"
-                    name="password"
-                    placeholder="••••••••"
-                    required
-                    type={showPassword ? 'text' : 'password'}
-                    value={form.password}
-                    onChange={(e) => setForm({ ...form, password: e.target.value })}
-                    disabled={isSubmitting}
-                  />
+      ) : resetState ? (
+        /* ── Reset Flow ── */
+        <div className="w-full max-w-md animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-xl border border-hairline-border p-lg">
+            {resetState === 'forgot' && (
+              <>
+                <div className="mb-lg">
+                  <h2 className="font-headline-md text-headline-md text-on-surface mb-xs">{t('login.resetTitle')}</h2>
+                  <p className="font-body-md text-on-surface-variant">{t('login.resetDesc')}</p>
+                </div>
+                <form onSubmit={(e) => { e.preventDefault(); submitForgotPassword(); }} className="space-y-sm">
+                  <div className="space-y-base">
+                    <label className={labelClasses} htmlFor="reset-email">{t('login.email')}</label>
+                    <input
+                      className={inputClasses}
+                      id="reset-email"
+                      placeholder={t('login.emailPlaceholder')}
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  {status ? (
+                    <div className={`font-body-md text-sm p-2 rounded-lg animate-fade-in ${statusType === 'error' ? 'bg-error/10 border border-error/30 text-error' : 'bg-success-container/30 border border-success/20 text-on-surface'}`}>{status}</div>
+                  ) : null}
                   <button
-                    className="absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center p-1 cursor-pointer"
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-primary text-white py-4 px-lg rounded-xl font-label-md text-label-md shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95 cursor-pointer disabled:opacity-60 disabled:pointer-events-none"
                   >
-                    <span className="material-symbols-outlined text-[20px]">
-                      {showPassword ? 'visibility_off' : 'visibility'}
-                    </span>
+                    {isSubmitting ? (
+                      <><span className="material-symbols-outlined animate-spin">progress_activity</span> {t('login.sending')}</>
+                    ) : (
+                      <>{t('login.sendCode')}</>
+                    )}
+                  </button>
+                </form>
+                <div className="mt-md text-center">
+                  <button onClick={() => { setResetState(null); setStatus(''); }} className="text-primary font-bold hover:underline cursor-pointer bg-transparent border-0 text-body-md">
+                    {t('login.signIn')}
                   </button>
                 </div>
-              </div>
+              </>
+            )}
 
-              {/* Confirmer le mot de passe */}
-              <div className="flex flex-col gap-base text-left w-full">
-                <label className="font-label-sm text-label-sm text-on-surface-variant" htmlFor="confirm-password">
-                  Confirmer le mot de passe
-                </label>
-                <div className="relative">
-                  <input
-                    className="w-full px-sm py-sm border border-outline-variant rounded-lg text-body-md font-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-outline pr-[40px]"
-                    id="confirm-password"
-                    name="confirm-password"
-                    placeholder="••••••••"
-                    required
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    value={form.confirm_password}
-                    onChange={(e) => setForm({ ...form, confirm_password: e.target.value })}
-                    disabled={isSubmitting}
-                  />
+            {resetState === 'reset_code' && (
+              <>
+                <div className="mb-lg">
+                  <h2 className="font-headline-md text-headline-md text-on-surface mb-xs">{t('login.codeTitle')}</h2>
+                  <p className="font-body-md text-on-surface-variant">{t('login.codeDesc')}</p>
+                </div>
+                <form onSubmit={(e) => { e.preventDefault(); submitResetCode(); }} className="space-y-sm">
+                  <div className="space-y-base">
+                    <label className={labelClasses} htmlFor="reset-code">{t('login.codeLabel')}</label>
+                    <input
+                      className={inputClasses}
+                      id="reset-code"
+                      placeholder={t('login.codePlaceholder')}
+                      type="text"
+                      maxLength={6}
+                      value={resetCode}
+                      onChange={(e) => setResetCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  {status ? (
+                    <div className={`font-body-md text-sm p-2 rounded-lg animate-fade-in ${statusType === 'error' ? 'bg-error/10 border border-error/30 text-error' : 'bg-success-container/30 border border-success/20 text-on-surface'}`}>{status}</div>
+                  ) : null}
                   <button
-                    className="absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center p-1 cursor-pointer"
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    type="submit"
+                    disabled={isSubmitting || resetCode.length !== 6}
+                    className="w-full bg-primary text-white py-4 px-lg rounded-xl font-label-md text-label-md shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95 cursor-pointer disabled:opacity-60 disabled:pointer-events-none"
                   >
-                    <span className="material-symbols-outlined text-[20px]">
-                      {showConfirmPassword ? 'visibility_off' : 'visibility'}
-                    </span>
+                    {t('login.verifyCode')}
+                  </button>
+                </form>
+                <div className="mt-md text-center">
+                  <button onClick={() => { setResetState('forgot'); setStatus(''); }} className="text-primary font-bold hover:underline cursor-pointer bg-transparent border-0 text-body-md">
+                    {t('common.back')}
                   </button>
                 </div>
-              </div>
+              </>
+            )}
 
-              {/* Terms and Privacy */}
-              <div className="flex items-start gap-xs pt-base text-left">
-                <input
-                  className="mt-[2px] h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"
-                  id="terms"
-                  name="terms"
-                  required
-                  type="checkbox"
-                  checked={form.terms}
-                  onChange={(e) => setForm({ ...form, terms: e.target.checked })}
-                  disabled={isSubmitting}
-                />
-                <label className="font-label-sm text-label-sm text-on-surface-variant select-none cursor-pointer" htmlFor="terms">
-                  J'accepte les{' '}
-                  <a className="text-primary hover:underline transition-all" href={ROUTES.terms}>
-                    Conditions d'utilisation
-                  </a>{' '}
-                  et la{' '}
-                  <a className="text-primary hover:underline transition-all" href={ROUTES.privacy}>
-                    Politique de confidentialité
-                  </a>
-                  .
-                </label>
-              </div>
-
-              {/* Error Message */}
-              {status ? (
-                <div className="text-error font-body-md text-sm text-left mt-sm bg-error-container/30 border border-error/20 p-2 rounded-lg animate-fade-in">
-                  {status}
+            {resetState === 'reset_password' && (
+              <>
+                <div className="mb-lg">
+                  <h2 className="font-headline-md text-headline-md text-on-surface mb-xs">{t('login.newPassword')}</h2>
+                  <p className="font-body-md text-on-surface-variant">{t('login.newPasswordDesc')}</p>
                 </div>
-              ) : null}
+                <form onSubmit={(e) => { e.preventDefault(); submitResetPassword(); }} className="space-y-sm">
+                  <div className="space-y-base">
+                    <label className={labelClasses} htmlFor="new-password">{t('login.newPassword')}</label>
+                    <div className="relative">
+                      <input
+                        className={inputClasses + " pr-10"}
+                        id="new-password"
+                        placeholder="••••••••"
+                        type={showPassword ? 'text' : 'password'}
+                        value={form.password}
+                        onChange={(e) => setForm({ ...form, password: e.target.value })}
+                        disabled={isSubmitting}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors cursor-pointer bg-transparent border-0"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">
+                          {showPassword ? 'visibility_off' : 'visibility'}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
 
-              {/* Submit Button */}
-              <button
-                className="w-full bg-primary text-on-primary py-sm rounded-lg font-label-md text-label-md hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-xs mt-md cursor-pointer disabled:opacity-60 disabled:pointer-events-none"
-                type="submit"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <span className="material-symbols-outlined animate-spin">
-                      progress_activity
-                    </span>{' '}
-                    Création...
-                  </>
-                ) : (
-                  "S'inscrire"
-                )}
-              </button>
-            </form>
+                  <div className="space-y-base">
+                    <label className={labelClasses} htmlFor="confirm-new-password">{t('login.confirmPassword')}</label>
+                    <div className="relative">
+                      <input
+                        className={inputClasses + " pr-10"}
+                        id="confirm-new-password"
+                        placeholder="••••••••"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        value={form.confirm_password}
+                        onChange={(e) => setForm({ ...form, confirm_password: e.target.value })}
+                        disabled={isSubmitting}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors cursor-pointer bg-transparent border-0"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">
+                          {showConfirmPassword ? 'visibility_off' : 'visibility'}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
 
-            {/* Social Registration Divider */}
-            <div className="w-full flex items-center gap-sm my-md">
-              <div className="h-[1px] flex-grow bg-hairline-border"></div>
-              <span className="font-label-sm text-label-sm text-outline">OU</span>
-              <div className="h-[1px] flex-grow bg-hairline-border"></div>
-            </div>
+                  {status ? (
+                    <div className={`font-body-md text-sm p-2 rounded-lg animate-fade-in ${statusType === 'error' ? 'bg-error/10 border border-error/30 text-error' : 'bg-success-container/30 border border-success/20 text-on-surface'}`}>{status}</div>
+                  ) : null}
 
-            {/* Google Sign Up */}
-            {GOOGLE_CLIENT_ID ? (
-              <div id="google-btn" className="w-full flex justify-center"></div>
-            ) : (
-              <button
-                className="w-full border border-outline-variant py-sm rounded-lg font-label-md text-label-md text-on-surface hover:bg-surface-container-low transition-colors flex items-center justify-center gap-xs cursor-pointer"
-                disabled
-                type="button"
-              >
-                <span className="material-symbols-outlined text-[18px]">google</span>
-                Google indisponible
-              </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-primary text-white py-4 px-lg rounded-xl font-label-md text-label-md shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95 cursor-pointer disabled:opacity-60 disabled:pointer-events-none"
+                  >
+                    {isSubmitting ? (
+                      <><span className="material-symbols-outlined animate-spin">progress_activity</span> {t('login.resetting')}</>
+                    ) : (
+                      <>{t('login.resetButton')}</>
+                    )}
+                  </button>
+                </form>
+                <div className="mt-md text-center">
+                  <button onClick={() => { setResetState(null); setMode('login'); setStatus(''); setResetCode(''); }} className="text-primary font-bold hover:underline cursor-pointer bg-transparent border-0 text-body-md">
+                    {t('login.signIn')}
+                  </button>
+                </div>
+              </>
             )}
           </div>
-
-          {/* Secondary Navigation */}
-          <div className="mt-lg text-center">
-            <p className="font-body-md text-body-md text-on-surface-variant">
-              Déjà un compte ?{' '}
-              <a
-                className="text-primary font-label-md text-label-md hover:underline transition-all ml-[2px]"
-                href={ROUTES.login}
-                onClick={(e) => {
-                  e.preventDefault();
-                  setMode('login');
-                  setStatus('');
-                  window.history.pushState(null, '', ROUTES.login);
-                }}
-              >
-                Se connecter
-              </a>
-            </p>
-          </div>
-
-          {/* Language Selector or Small Footer Info */}
-          <div className="mt-xl flex flex-col items-center gap-xs">
-            <div className="flex gap-md">
-              <span className="font-label-sm text-label-sm text-primary cursor-pointer hover:underline">
-                Français
-              </span>
-              <span className="font-label-sm text-label-sm text-on-surface-variant cursor-pointer hover:underline">
-                العربية
-              </span>
-              <span className="font-label-sm text-label-sm text-on-surface-variant cursor-pointer hover:underline">
-                English
-              </span>
-            </div>
-            <p className="font-label-sm text-label-sm text-outline">© 2024 Sahel.ai</p>
-          </div>
-        </main>
+        </div>
       ) : (
-        /* Connexion Layout */
-        <main className="w-full max-w-md bg-white border border-hairline-border rounded-xl p-lg flex flex-col gap-lg animate-fade-in shadow-sm">
-          {/* Header / Identity */}
-          <header className="flex flex-col items-center gap-sm">
-            <div className="w-12 h-12 bg-primary flex items-center justify-center rounded-lg text-white mb-xs shadow-sm">
-              <span className="material-symbols-outlined text-headline-sm" style={{ fontVariationSettings: "'FILL' 1" }}>
-                dataset
-              </span>
-            </div>
-            <h1 className="font-headline-md text-headline-md text-on-surface text-center">
-              Bon retour
-            </h1>
-            <p className="font-body-md text-body-md text-on-surface-variant text-center px-sm">
-              Accédez à votre espace professionnel Sahel.ai
-            </p>
-          </header>
+        /* ── Auth Card (Overlay slides across forms) ── */
+        <div className="relative w-full max-w-5xl animate-fade-in">
+          <div className="relative overflow-hidden rounded-3xl shadow-xl min-h-[650px] bg-white">
+            {/* Background layer: both forms rendered side by side */}
+            <div className="flex w-full min-h-[650px]">
+              {/* Login Form (left half) */}
+              <div className="w-1/2 flex items-center justify-center p-lg">
+                <div className="w-full max-w-sm">
+                  <div className="space-y-2 mb-8">
+                    <h2 className="font-headline-md text-headline-md text-on-surface">{t('login.loginTitle')}</h2>
+                    <p className="font-body-lg text-body-lg text-on-surface-variant">{t('login.loginSubtext')}</p>
+                  </div>
+                  <form onSubmit={submitAuth} className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <label className={labelClasses} htmlFor="email">{t('login.email')}</label>
+                        <input
+                          className={inputClasses}
+                          id="email"
+                          placeholder={t('login.emailPlaceholder')}
+                          type="email"
+                          value={form.email}
+                          onChange={(e) => setForm({ ...form, email: e.target.value })}
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between items-center px-1">
+                          <label className={labelClasses} htmlFor="login-password">{t('login.password')}</label>
+                          <span
+                            className="font-label-sm text-label-sm text-primary hover:underline transition-all cursor-pointer"
+                            onClick={() => { setResetState('forgot'); setResetEmail(form.email); }}
+                          >
+                            {t('login.forgotPassword')}
+                          </span>
+                        </div>
+                        <input
+                          className={inputClasses}
+                          id="login-password"
+                          placeholder="••••••••"
+                          type="password"
+                          value={form.password}
+                          onChange={(e) => setForm({ ...form, password: e.target.value })}
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 px-1">
+                      <input className="w-4 h-4 text-primary border-hairline-border rounded focus:ring-primary" id="remember" type="checkbox" />
+                      <label className="font-label-sm text-label-sm text-on-surface-variant cursor-pointer select-none" htmlFor="remember">{t('login.rememberMe')}</label>
+                    </div>
+                    {status ? (
+                      <div className={`font-body-md text-sm p-2 rounded-lg animate-fade-in ${statusType === 'error' ? 'bg-error/10 border border-error/30 text-error' : 'bg-success-container/30 border border-success/20 text-on-surface'}`}>{status}</div>
+                    ) : null}
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full py-4 bg-primary text-white font-label-md text-label-md rounded-xl shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95 cursor-pointer disabled:opacity-60 disabled:pointer-events-none"
+                    >
+                      {isSubmitting ? (
+                        <><span className="material-symbols-outlined animate-spin">progress_activity</span> {t('login.loggingIn')}</>
+                      ) : (
+                        <>{t('login.loginButton')}</>
+                      )}
+                    </button>
+                  </form>
+                  <div className="relative py-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-hairline-border" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white px-2 text-on-surface-variant font-label-sm">{t('login.continueWith')}</span>
+                    </div>
+                  </div>
+                  {GOOGLE_CLIENT_ID ? (
+                    <div id="google-btn" className="w-full flex justify-center" />
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full bg-white border border-outline-variant text-on-surface-variant py-3 px-lg rounded-xl font-label-md text-label-md opacity-60 flex justify-center items-center gap-xs cursor-not-allowed"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">google</span> {t('login.googleUnavailable')}
+                    </button>
+                  )}
+                </div>
+              </div>
 
-          {/* Form Section */}
-          <form onSubmit={submitAuth} className="flex flex-col gap-md text-left">
-            {/* Email Field */}
-            <div className="flex flex-col gap-xs group focus-within:text-primary">
-              <label
-                className="font-label-md text-label-md text-on-surface-variant ml-xs group-focus-within:text-primary transition-colors duration-200"
-                htmlFor="email"
-              >
-                Email
-              </label>
-              <div className="relative">
-                <input
-                  className="w-full h-12 px-md border border-hairline-border rounded-lg bg-surface-container-low focus:ring-1 focus:ring-primary focus:border-primary transition-all font-body-md text-body-md outline-none"
-                  id="email"
-                  placeholder="nom@entreprise.ma"
-                  required
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  disabled={isSubmitting}
-                />
+              {/* Register Form (right half, hidden behind overlay in login mode) */}
+              <div className="w-1/2 flex items-center justify-center p-lg">
+                <div className="w-full max-w-sm">
+                  <div className="space-y-2 mb-8">
+                    <h2 className="font-headline-md text-headline-md text-on-surface">{t('login.registerTitle')}</h2>
+                    <p className="font-body-lg text-body-lg text-on-surface-variant">{t('login.registerSubtext')}</p>
+                  </div>
+                  <form onSubmit={submitAuth} className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <label className={labelClasses} htmlFor="reg-name">{t('login.fullName')}</label>
+                        <input
+                          className={inputClasses}
+                          id="reg-name"
+                          placeholder={t('login.fullNamePlaceholder')}
+                          type="text"
+                          value={form.full_name}
+                          onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className={labelClasses} htmlFor="reg-email">{t('login.email')}</label>
+                        <input
+                          className={inputClasses}
+                          id="reg-email"
+                          placeholder={t('login.emailPlaceholder')}
+                          type="email"
+                          value={form.email}
+                          onChange={(e) => setForm({ ...form, email: e.target.value })}
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className={labelClasses} htmlFor="reg-password">{t('login.password')}</label>
+                        <div className="relative">
+                          <input
+                            className={inputClasses + " pr-10"}
+                            id="reg-password"
+                            placeholder="••••••••"
+                            type={showPassword ? 'text' : 'password'}
+                            value={form.password}
+                            onChange={(e) => setForm({ ...form, password: e.target.value })}
+                            disabled={isSubmitting}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors cursor-pointer bg-transparent border-0"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">
+                              {showPassword ? 'visibility_off' : 'visibility'}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className={labelClasses} htmlFor="reg-confirm-password">{t('login.confirmPassword')}</label>
+                        <div className="relative">
+                          <input
+                            className={inputClasses + " pr-10"}
+                            id="reg-confirm-password"
+                            placeholder="••••••••"
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            value={form.confirm_password}
+                            onChange={(e) => setForm({ ...form, confirm_password: e.target.value })}
+                            disabled={isSubmitting}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors cursor-pointer bg-transparent border-0"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">
+                              {showConfirmPassword ? 'visibility_off' : 'visibility'}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 px-1">
+                      <input
+                        className="mt-[2px] h-4 w-4 rounded border-hairline-border text-primary focus:ring-primary"
+                        id="reg-terms"
+                        type="checkbox"
+                        checked={form.terms}
+                        onChange={(e) => setForm({ ...form, terms: e.target.checked })}
+                        disabled={isSubmitting}
+                      />
+                      <label className="text-[11px] text-on-surface-variant select-none cursor-pointer" htmlFor="reg-terms">
+                        {t('login.acceptTerms')}
+                      </label>
+                    </div>
+                    {status ? (
+                      <div className={`font-body-md text-sm p-2 rounded-lg animate-fade-in ${statusType === 'error' ? 'bg-error/10 border border-error/30 text-error' : 'bg-success-container/30 border border-success/20 text-on-surface'}`}>{status}</div>
+                    ) : null}
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full py-4 bg-primary text-white font-label-md text-label-md rounded-xl shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95 cursor-pointer disabled:opacity-60 disabled:pointer-events-none"
+                    >
+                      {isSubmitting ? (
+                        <><span className="material-symbols-outlined animate-spin">progress_activity</span> {t('login.registering')}</>
+                      ) : (
+                        <>{t('login.registerButton')}</>
+                      )}
+                    </button>
+                  </form>
+                  <div className="relative py-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-hairline-border" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white px-2 text-on-surface-variant font-label-sm">{t('login.continueWith')}</span>
+                    </div>
+                  </div>
+                  {GOOGLE_CLIENT_ID ? (
+                    <div id="google-btn-register" className="w-full flex justify-center" />
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full bg-white border border-outline-variant text-on-surface-variant py-3 px-lg rounded-xl font-label-md text-label-md opacity-60 flex justify-center items-center gap-xs cursor-not-allowed"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">google</span> {t('login.googleUnavailable')}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Password Field */}
-            <div className="flex flex-col gap-xs group focus-within:text-primary">
-              <div className="flex justify-between items-center ml-xs">
-                <label
-                  className="font-label-md text-label-md text-on-surface-variant group-focus-within:text-primary transition-colors duration-200"
-                  htmlFor="password"
-                >
-                  Mot de passe
-                </label>
-                <a
-                  className="font-label-sm text-label-sm text-primary hover:underline transition-all"
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    alert('Veuillez contacter le support à support@sahel.ai pour réinitialiser votre mot de passe.');
-                  }}
-                >
-                  Mot de passe oublié ?
-                </a>
-              </div>
-              <div className="relative">
-                <input
-                  className="w-full h-12 px-md border border-hairline-border rounded-lg bg-surface-container-low focus:ring-1 focus:ring-primary focus:border-primary transition-all font-body-md text-body-md outline-none pr-[48px]"
-                  id="password"
-                  placeholder="••••••••"
-                  required
-                  type={showPassword ? 'text' : 'password'}
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  disabled={isSubmitting}
-                />
-                <button
-                  className="absolute right-md top-1/2 -translate-y-1/2 text-on-surface-variant opacity-60 hover:opacity-100 transition-all flex items-center justify-center p-1 cursor-pointer"
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  <span className="material-symbols-outlined text-body-lg">
-                    {showPassword ? 'visibility_off' : 'visibility'}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Error Message */}
-            {status ? (
-              <div className="text-error font-body-md text-sm bg-error-container/30 border border-error/20 p-2 rounded-lg animate-fade-in">
-                {status}
-              </div>
-            ) : null}
-
-            {/* CTA */}
-            <button
-              className="w-full h-12 bg-primary text-white font-label-md text-label-md rounded-lg active:scale-[0.98] transition-all hover:opacity-90 mt-xs cursor-pointer flex items-center justify-center gap-xs disabled:opacity-60 disabled:pointer-events-none"
-              type="submit"
-              disabled={isSubmitting}
+            {/* Overlay panel - slides across the card on top of the forms */}
+            <div
+              className="absolute top-0 left-0 w-1/2 h-full transition-transform duration-700 ease-in-out bg-[#002d58] overflow-hidden"
+              style={{ transform: mode === 'login' ? 'translateX(100%)' : 'translateX(0)' }}
             >
-              {isSubmitting ? (
-                <>
-                  <span className="material-symbols-outlined animate-spin">
-                    progress_activity
-                  </span>{' '}
-                  Connexion...
-                </>
-              ) : (
-                'Se connecter'
-              )}
-            </button>
-          </form>
-
-          {/* Social/Alternative Login */}
-          <div className="relative flex items-center py-xs">
-            <div className="flex-grow border-t border-hairline-border"></div>
-            <span className="flex-shrink mx-md font-label-sm text-label-sm text-on-surface-variant opacity-40">
-              OU
-            </span>
-            <div className="flex-grow border-t border-hairline-border"></div>
+              <div className="absolute inset-0 bg-pattern opacity-40" />
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent" />
+              <div className="relative z-10 h-full flex flex-col items-center justify-center gap-6 px-lg text-center">
+                <div className="transition-opacity duration-500 ease-in-out">
+                  <SahelLogo size={64} showText={false} />
+                </div>
+                <div className="transition-opacity duration-500 ease-in-out">
+                  <h2 className="font-display-lg text-display-lg text-white leading-tight italic">
+                    {mode === 'login' ? t('login.brandWelcome') : t('login.brandJoin')}
+                  </h2>
+                  <p className="font-body-lg text-body-lg text-white/70 mt-2">
+                    {mode === 'login' ? t('login.brandSubtext') : t('login.brandJoinSubtext')}
+                  </p>
+                </div>
+                <div className="flex flex-col items-center gap-2 transition-opacity duration-500 ease-in-out">
+                  <p className="font-label-md text-label-md text-white/60">
+                    {mode === 'login' ? t('login.newHere') : t('login.haveAccount')}
+                  </p>
+                  <button
+                    onClick={() => switchMode(mode === 'login' ? 'register' : 'login')}
+                    className="px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl font-headline-sm text-lg transition-all active:scale-95 cursor-pointer"
+                  >
+                    {mode === 'login' ? t('login.createAccount') : t('login.signIn')}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-
-          {GOOGLE_CLIENT_ID ? (
-            <div id="google-btn" className="w-full flex justify-center"></div>
-          ) : (
-            <button
-              className="w-full h-12 bg-white border border-hairline-border rounded-lg flex items-center justify-center gap-sm opacity-60"
-              disabled
-              type="button"
-            >
-              <span className="material-symbols-outlined text-[18px]">google</span>
-              <span className="font-label-md text-label-md text-on-surface">Google indisponible</span>
-            </button>
-          )}
-
-          {/* Footer Identity */}
-          <footer className="mt-lg flex flex-col items-center gap-xs">
-            <p className="font-body-md text-body-md text-on-surface-variant">
-              Pas encore de compte ?{' '}
-              <a
-                className="text-primary font-label-md text-label-md ml-base hover:underline"
-                href={ROUTES.register}
-                onClick={(e) => {
-                  e.preventDefault();
-                  setMode('register');
-                  setStatus('');
-                  window.history.pushState(null, '', ROUTES.register);
-                }}
-              >
-                S'inscrire
-              </a>
-            </p>
-            <div className="mt-md flex gap-md opacity-60">
-              <a className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href={ROUTES.privacy}>
-                Confidentialité
-              </a>
-              <a className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href={ROUTES.terms}>
-                Conditions
-              </a>
-            </div>
-            <p className="font-label-sm text-label-sm text-on-surface-variant opacity-40 mt-sm">
-              © 2024 Sahel.ai. Tous droits réservés.
-            </p>
-          </footer>
-        </main>
+        </div>
       )}
+
+      {/* Language Selector + Footer */}
+      <div className="mt-8 flex flex-col items-center gap-2">
+        <LanguageSwitcher />
+        <p className="font-label-sm text-label-sm text-outline">{t('footer.copyright', { year: new Date().getFullYear() })}</p>
       </div>
     </div>
   );

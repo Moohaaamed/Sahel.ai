@@ -2,8 +2,6 @@ import {
   buildAddressLine,
   buildDirectionsUrl,
   buildLocationLabel,
-  buildTelUrl,
-  buildWhatsAppUrl,
   formatBusinessType,
   parseAmenities,
   parseBusinessCoords,
@@ -50,7 +48,7 @@ export function buildMiniSiteSections(business) {
       value: formatBusinessType(b.business_type) || b.business_type,
     },
     b.city && { icon: 'location_city', label: 'Ville', value: b.city },
-    b.working_hours && { icon: 'schedule', label: 'Horaires', value: b.working_hours },
+    b.working_hours && { icon: 'schedule', label: 'Horaires', value: (() => { try { const h = JSON.parse(b.working_hours); const days = {monday:'Mon',tuesday:'Tue',wednesday:'Wed',thursday:'Thu',friday:'Fri',saturday:'Sat',sunday:'Sun'}; return Object.entries(days).map(([k,v]) => { const d = h[k]; if (!d || !d.enabled) return null; return `${v} ${d.open||'09:00'}-${d.close||'22:00'}`; }).filter(Boolean).join(', ') || b.working_hours; } catch { return b.working_hours; } })() },
     addressLine && { icon: 'location_on', label: 'Adresse', value: addressLine },
     contactPhone && { icon: 'call', label: 'WhatsApp / Téléphone', value: contactPhone },
     coords && {

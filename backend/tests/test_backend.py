@@ -66,7 +66,18 @@ def create_owner_and_business(client):
         },
     )
     assert owner_response.status_code == 200
-    token = owner_response.json()["token"]
+    owner_id = owner_response.json()["owner_id"]
+
+    owners = backend_chatdoc.read_owners()
+    owner = next(o for o in owners if o["id"] == owner_id)
+    verify_token = owner["verification_token"]
+
+    verify_response = client.post(
+        "/owners/verify",
+        json={"token": verify_token},
+    )
+    assert verify_response.status_code == 200
+    token = verify_response.json()["token"]
 
     business_response = client.post(
         "/businesses",

@@ -57,7 +57,6 @@ const handleUpload = async (file, businessId, ownerToken, onUploadComplete) => {
     }
 
     const result = await response.json();
-    console.log('Upload Success:', result);
     onUploadComplete?.(result);
   } catch (error) {
     console.error('Upload Error:', error);

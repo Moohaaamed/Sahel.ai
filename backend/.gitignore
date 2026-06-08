@@ -1,0 +1,10 @@
+__*
+.env
+*.db
+*.log
+node_*
+uploaded_documents/*
+vector_stores/*
+faiss_vector_store/*
+faiss_vector_store_MINNOVA/*
+

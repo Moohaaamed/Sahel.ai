@@ -1,0 +1,44 @@
+[
+  {
+    "id": "demo-owner",
+    "full_name": "Demo Owner",
+    "email": "demo@sahel.ai",
+    "password_hash": "",
+    "created_at": "2026-06-03T15:37:27.623565+00:00"
+  },
+  {
+    "id": "ad76dd581e22",
+    "full_name": "Mohamed h",
+    "email": "demo@exemple.com",
+    "password_hash": "",
+    "created_at": "2026-06-03T21:23:56.479668+00:00"
+  },
+  {
+    "id": "dcbdae79f052",
+    "full_name": "moha",
+    "email": "m@m.com",
+    "password_hash": "",
+    "created_at": "2026-06-03T23:31:12.977809+00:00"
+  },
+  {
+    "id": "92fd352a0deb",
+    "full_name": "moha",
+    "email": "mo@m.com",
+    "password_hash": "",
+    "created_at": "2026-06-03T23:34:21.769155+00:00"
+  },
+  {
+    "id": "6fb00317f3d7",
+    "full_name": "hamid",
+    "email": "ham@hdh",
+    "password_hash": "",
+    "created_at": "2026-06-04T00:08:50.225763+00:00"
+  },
+  {
+    "id": "8ffae9d05aa7",
+    "full_name": "mohy",
+    "email": "moh@yy",
+    "password_hash": "",
+    "created_at": "2026-06-04T00:35:00.558785+00:00"
+  }
+]

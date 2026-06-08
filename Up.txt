@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Site Settings | Sahel.ai</title>
+<title>{{ business.name }} | {{ t('publicBusiness.gastronomy') }}</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Plus+Jakarta+Sans:wght@200..800&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .hairline {
+            border-width: 0.5px;
+        }
+    </style>
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24; }
+    .hero-gradient { background: linear-gradient(to top, rgba(13, 17, 23, 0.95) 0%, rgba(13, 17, 23, 0.4) 50%, rgba(13, 17, 23, 0.1) 100%); }
+    .reveal { animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+    tailwind.config = {
+        theme: {
+            extend: {
+              "colors": {
+                      "surface-variant": "#e6e1e1",
+                      "surface-container-high": "#ece7e7",
+                      "warm-bg": "#F1EFE8",
+                      "tertiary": "#00457f",
+                      "tertiary-fixed-dim": "#a4c9ff",
+                      "on-tertiary-fixed-variant": "#004884",
+                      "tertiary-container": "#145da3",
+                      "on-tertiary-container": "#bcd6ff",
+                      "on-secondary-container": "#0b7052",
+                      "on-primary-fixed": "#001c38",
+                      "secondary": "#006c4e",
+                      "surface-container-low": "#f7f2f2",
+                      "error-container": "#ffdad6",
+                      "on-secondary-fixed-variant": "#00513a",
+                      "on-error": "#ffffff",
+                      "on-secondary-fixed": "#002115",
+                      "tertiary-fixed": "#d4e3ff",
+                      "hairline-border": "rgba(0, 0, 0, 0.08)",
+                      "secondary-fixed-dim": "#81d7b2",
+                      "outline": "#717782",
+                      "on-primary-fixed-variant": "#004880",
+                      "surface-blue": "#E6F1FB",
+                      "on-secondary": "#ffffff",
+                      "on-primary-container": "#bbd7ff",
+                      "primary": "#00467c",
+                      "surface-dim": "#ddd9d8",
+                      "background": "#fdf8f8",
+                      "surface-bright": "#fdf8f8",
+                      "surface-container-highest": "#e6e1e1",
+                      "on-surface": "#1c1b1b",
+                      "secondary-fixed": "#9df4ce",
+                      "primary-container": "#005ea4",
+                      "secondary-container": "#9af1cb",
+                      "inverse-surface": "#313030",
+                      "on-primary": "#ffffff",
+                      "primary-fixed-dim": "#a1c9ff",
+                      "on-tertiary": "#ffffff",
+                      "inverse-primary": "#a1c9ff",
+                      "on-tertiary-fixed": "#001c39",
+                      "inverse-on-surface": "#f4f0ef",
+                      "on-error-container": "#93000a",
+                      "on-surface-variant": "#414751",
+                      "primary-fixed": "#d3e4ff",
+                      "outline-variant": "#c1c7d2",
+                      "on-background": "#1c1b1b",
+                      "surface": "#fdf8f8",
+                      "surface-container": "#f1edec",
+                      "surface-tint": "#0760a6",
+                      "deep-navy": "#0D1117",
+                      "surface-container-lowest": "#ffffff",
+                      "error": "#ba1a1a"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "gutter": "24px",
+                      "xl": "80px",
+                      "margin": "32px",
+                      "md": "24px",
+                      "lg": "48px",
+                      "base": "4px",
+                      "sm": "16px",
+                      "xs": "8px"
+              },
+              "fontFamily": {
+                      "display-lg": ["Newsreader"],
+                      "headline-md": ["Newsreader"],
+                      "headline-sm": ["Newsreader"],
+                      "body-md": ["Plus Jakarta Sans"],
+                      "body-lg": ["Plus Jakarta Sans"],
+                      "label-md": ["Plus Jakarta Sans"],
+                      "label-sm": ["Plus Jakarta Sans"]
+              }
+                colors: { "deep-navy": "#0D1117", "primary": "#00467c", "warm-bg": "#F1EFE8" },
+                fontFamily: { "headline-md": ["Newsreader", "serif"], "body-md": ["Inter", "sans-serif"] }
+            }
+          }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background font-body-md text-on-background min-h-screen">
+<!-- Top Navigation Bar (Shared Component Strategy) -->
+<header class="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-hairline-border h-16">
+<div class="max-w-7xl mx-auto px-gutter flex justify-between items-center h-full">
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-surface-container-low rounded-full transition-all active:scale-95">
+<span class="material-symbols-outlined text-on-surface-variant">arrow_back</span>
+</script>
+</head>
+<body class="bg-background text-on-background font-body-md overflow-x-hidden">
+<header class="bg-white/70 backdrop-blur-xl border-b fixed top-0 w-full z-50">
+<div class="flex justify-between items-center px-8 py-4 max-w-7xl mx-auto w-full">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-2xl">hub</span>
+<span class="font-bold text-deep-navy">Sahel<span class="text-primary">.ai</span></span>
+</div>
+<button class="bg-deep-navy text-white px-6 py-2 rounded-full text-sm">{{ t('nav.register') }}</button>
+</div>
+</header>
+
+<main class="max-w-7xl mx-auto">
+<section class="relative h-screen min-h-[700px] flex flex-col justify-end p-8 overflow-hidden">
+<img class="absolute inset-0 w-full h-full object-cover z-0" src="{{ business.cover_image }}"/>
+<div class="absolute inset-0 hero-gradient z-10"></div>
+<div class="relative z-20 max-w-2xl mb-20 reveal">
+<div class="flex items-center gap-3 mb-6">
+<span class="bg-white/10 backdrop-blur-md text-white border px-4 py-1 rounded-full text-[10px] uppercase tracking-[0.2em]">{{ t('publicBusiness.category.gastronomy') }}</span>
+<span class="text-white/80 text-xs">{{ business.city }}, {{ t('language.maroc') }}</span>
+</div>
+<h1 class="text-6xl md:text-8xl text-white italic leading-[0.9] mb-8">{{ business.name }}</h1>
+<p class="text-white/80 text-lg md:text-xl leading-relaxed max-w-lg mb-10 font-light">{{ t('publicBusiness.hero.description') }}</p>
+<button class="bg-white text-deep-navy px-8 py-4 rounded-full hover:bg-primary hover:text-white transition-all">{{ t('publicBusiness.bookingCta') }}</button>
+</div>
+</section>
+
+<section class="px-8 py-20 space-y-8">
+<div class="grid grid-cols-12 gap-6">
+<div class="col-span-12 lg:col-span-8 group relative overflow-hidden rounded-3xl min-h-[450px] flex flex-col justify-end p-8 reveal">
+<img src="{{ business.feature_image }}" class="absolute inset-0 w-full h-full object-cover"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+<div class="relative z-10 text-white max-w-md">
+<h3 class="text-4xl mb-4 italic">{{ t('publicBusiness.feature.terrace') }}</h3>
+<p class="text-white/70">{{ t('publicBusiness.feature.terraceDesc') }}</p>
+</div>
+</div>
+<div class="col-span-12 lg:col-span-4 flex flex-col gap-6">
+<div class="bg-warm-bg rounded-3xl p-8 border reveal">
+<h3 class="text-2xl text-deep-navy mb-3">{{ t('publicBusiness.feature.heritage') }}</h3>
+<p class="text-gray-600">{{ t('publicBusiness.feature.heritageDesc') }}</p>
+</div>
+<div class="bg-blue-50 rounded-3xl p-8 border reveal">
+<h3 class="text-2xl text-deep-navy mb-3">{{ t('publicBusiness.feature.terroir') }}</h3>
+<p class="text-gray-600">{{ t('publicBusiness.feature.terroirDesc') }}</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Contact Section -->
+<section id="contact" class="px-8 py-20 bg-white">
+<div class="max-w-3xl mx-auto bg-warm-bg rounded-3xl p-10 shadow-xl reveal">
+<h2 class="text-3xl font-headline-md mb-6 italic text-deep-navy">{{ t('contact.title') }}</h2>
+<form action="mailto:{{ t('publicBusiness.contactEmail') }}" method="post" enctype="text/plain" class="space-y-4">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<input type="text" name="name" placeholder="{{ t('contact.fullName') }}" class="w-full p-4 rounded-xl border-none focus:ring-2 focus:ring-primary" required>
+<input type="email" name="email" placeholder="{{ t('contact.email') }}" class="w-full p-4 rounded-xl border-none focus:ring-2 focus:ring-primary" required>
+</div>
+<textarea name="message" placeholder="{{ t('contact.message') }}" class="w-full p-4 rounded-xl border-none focus:ring-2 focus:ring-primary h-32" required></textarea>
+<button type="submit" class="bg-primary text-white px-8 py-4 rounded-full w-full font-bold hover:opacity-90 transition-all">{{ t('contact.submit') }}</button>
+</form>
+</div>
+</section>
+
+<!-- Social Media Section -->
+<section class="px-8 py-20 text-center">
+<h2 class="text-4xl mb-12 italic text-deep-navy">{{ t('publicBusiness.followUs') }}</h2>
+<div class="flex justify-center gap-8">
+<a href="https://instagram.com/{{ business.slug }}" class="group flex flex-col items-center gap-2">
+<div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+<span class="material-symbols-outlined text-3xl">photo_camera</span>
+</div>
+<span class="text-xs uppercase tracking-widest">{{ t('publicBusiness.instagram') }}</span>
+</a>
+<a href="https://facebook.com/{{ business.slug }}" class="group flex flex-col items-center gap-2">
+<div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all">
+<span class="material-symbols-outlined text-3xl">facebook</span>
+</div>
+<span class="text-xs uppercase tracking-widest">{{ t('publicBusiness.facebook') }}</span>
+</a>
+<a href="https://tiktok.com/@{{ business.slug }}" class="group flex flex-col items-center gap-2">
+<div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-black group-hover:text-white transition-all">
+<span class="material-symbols-outlined text-3xl">movie</span>
+</div>
+<span class="text-xs uppercase tracking-widest">{{ t('publicBusiness.tiktok') }}</span>
+</a>
+<a href="https://wa.me/{{ business.phone }}" class="group flex flex-col items-center gap-2">
+<div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-green-500 group-hover:text-white transition-all">
+<span class="material-symbols-outlined text-3xl">chat</span>
+</div>
+<span class="text-xs uppercase tracking-widest">{{ t('publicBusiness.whatsapp') }}</span>
+</a>
+</div>
+</section>
+</main>
+
+<footer class="bg-deep-navy py-20 text-white/40">
+<div class="max-w-7xl mx-auto px-8 flex flex-col md:flex-row justify-between items-center gap-8 border-t border-white/10 pt-10">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-white">hub</span>
+<span class="font-bold text-white">Sahel<span class="text-primary">.ai</span></span>
+</div>
+<p class="text-sm">© 2026 {{ business.name }} — {{ t('footer.poweredBy') }}</p>
+<div class="flex gap-6 text-xs uppercase">
+<a href="#" class="hover:text-white">{{ t('footer.privacy') }}</a>
+<a href="#" class="hover:text-white">{{ t('footer.terms') }}</a>
+</div>
+</div>
+</footer>
+
+<script>
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) entry.target.classList.add('reveal');
+        });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body></html>
+</button>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface">Site Settings</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<span class="hidden md:block font-label-md text-label-md text-on-surface-variant">Last saved: 2 mins ago</span>
+<button class="bg-primary text-on-primary font-label-md text-label-md px-6 py-2 rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-primary/10">
+                    Save Changes
+                </button>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-xl px-gutter max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-lg">
+<!-- Sidebar Navigation (Drawer Simulation) -->
+<aside class="md:col-span-3 space-y-2 hidden md:block">
+<nav class="space-y-1">
+<a class="bg-surface-blue text-primary border-l-2 border-primary py-3 px-4 flex items-center gap-3 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">settings</span>
+                    General Info
+                </a>
+<a class="text-on-surface-variant py-3 px-4 flex items-center gap-3 font-label-md text-label-md hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined">share</span>
+                    Social Presence
+                </a>
+<a class="text-on-surface-variant py-3 px-4 flex items-center gap-3 font-label-md text-label-md hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined">schedule</span>
+                    Operating Hours
+                </a>
+<a class="text-on-surface-variant py-3 px-4 flex items-center gap-3 font-label-md text-label-md hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined">psychology</span>
+                    Knowledge Base
+                </a>
+</nav>
+</aside>
+<!-- Main Settings Content -->
+<div class="md:col-span-9 space-y-lg">
+<!-- Live Preview Card -->
+<section class="glass-card hairline rounded-xl p-md flex flex-col md:flex-row md:items-center justify-between gap-md border-primary/20 bg-gradient-to-r from-surface-blue/50 to-background">
+<div class="flex gap-4 items-center">
+<div class="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">language</span>
+</div>
+<div>
+<h3 class="font-label-md text-label-md text-on-surface">Live Mini-Site</h3>
+<p class="text-primary font-mono text-body-md">sahel.ai/biz/riad-shams-marrakech</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="bg-white hairline text-on-surface font-label-md text-label-md px-4 py-2 rounded-lg hover:bg-surface-container-low transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+                        Copy Link
+                    </button>
+<button class="bg-primary/5 text-primary font-label-md text-label-md px-4 py-2 rounded-lg hover:bg-primary/10 transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">open_in_new</span>
+                        View Site
+                    </button>
+</div>
+</section>
+<!-- General Information -->
+<section class="space-y-sm">
+<h2 class="font-headline-md text-headline-md text-on-surface border-b border-hairline-border pb-2">General Information</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<div class="space-y-base">
+<label class="font-label-md text-label-md text-on-surface-variant">Business Name</label>
+<input class="w-full bg-white hairline rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" type="text" value="Riad Shams Marrakech"/>
+</div>
+<div class="space-y-base">
+<label class="font-label-md text-label-md text-on-surface-variant">Category</label>
+<select class="w-full bg-white hairline rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none">
+<option>Hospitality &amp; Tourism</option>
+<option>Food &amp; Beverage</option>
+<option>Artisan &amp; Craft</option>
+</select>
+</div>
+<div class="md:col-span-2 space-y-base">
+<label class="font-label-md text-label-md text-on-surface-variant">About Your Business</label>
+<textarea class="w-full bg-white hairline rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" rows="4">Located in the heart of the Medina, Riad Shams offers an authentic Moroccan experience blended with modern luxury. Our kitchen serves traditional home-cooked tagines daily.</textarea>
+</div>
+</div>
+</section>
+<!-- Social Presence -->
+<section class="space-y-sm">
+<h2 class="font-headline-md text-headline-md text-on-surface border-b border-hairline-border pb-2">Social Presence</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<div class="flex items-center bg-white hairline rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+<div class="w-12 h-12 flex items-center justify-center border-r border-hairline-border bg-surface-container-low">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">chat</span>
+</div>
+<input class="flex-1 px-4 py-3 outline-none border-none" placeholder="WhatsApp Number" type="text" value="+212 661-234567"/>
+</div>
+<div class="flex items-center bg-white hairline rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+<div class="w-12 h-12 flex items-center justify-center border-r border-hairline-border bg-surface-container-low">
+<span class="material-symbols-outlined text-[#E1306C]" style="font-variation-settings: 'FILL' 1;">photo_camera</span>
+</div>
+<input class="flex-1 px-4 py-3 outline-none border-none" placeholder="Instagram Username" type="text" value="@riadshams_marrakech"/>
+</div>
+<div class="flex items-center bg-white hairline rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+<div class="w-12 h-12 flex items-center justify-center border-r border-hairline-border bg-surface-container-low">
+<span class="material-symbols-outlined text-[#1877F2]" style="font-variation-settings: 'FILL' 1;">face_nod</span>
+</div>
+<input class="flex-1 px-4 py-3 outline-none border-none" placeholder="Facebook Page URL" type="text"/>
+</div>
+<div class="flex items-center bg-white hairline rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+<div class="w-12 h-12 flex items-center justify-center border-r border-hairline-border bg-surface-container-low">
+<span class="material-symbols-outlined text-black" style="font-variation-settings: 'FILL' 1;">music_note</span>
+</div>
+<input class="flex-1 px-4 py-3 outline-none border-none" placeholder="TikTok Username" type="text"/>
+</div>
+</div>
+</section>
+<!-- Operating Hours -->
+<section class="space-y-sm">
+<h2 class="font-headline-md text-headline-md text-on-surface border-b border-hairline-border pb-2">Operating Hours</h2>
+<div class="bg-white hairline rounded-xl divide-y divide-hairline-border">
+<div class="p-md flex flex-wrap items-center justify-between gap-4">
+<div class="flex items-center gap-4 min-w-[120px]">
+<input checked="" class="w-5 h-5 rounded text-primary focus:ring-primary" type="checkbox"/>
+<span class="font-label-md text-label-md">Monday - Friday</span>
+</div>
+<div class="flex items-center gap-2">
+<input class="hairline rounded-lg px-2 py-1 text-body-md outline-none" type="time" value="09:00"/>
+<span class="text-on-surface-variant">—</span>
+<input class="hairline rounded-lg px-2 py-1 text-body-md outline-none" type="time" value="22:00"/>
+</div>
+</div>
+<div class="p-md flex flex-wrap items-center justify-between gap-4">
+<div class="flex items-center gap-4 min-w-[120px]">
+<input checked="" class="w-5 h-5 rounded text-primary focus:ring-primary" type="checkbox"/>
+<span class="font-label-md text-label-md">Saturday</span>
+</div>
+<div class="flex items-center gap-2">
+<input class="hairline rounded-lg px-2 py-1 text-body-md outline-none" type="time" value="10:00"/>
+<span class="text-on-surface-variant">—</span>
+<input class="hairline rounded-lg px-2 py-1 text-body-md outline-none" type="time" value="23:00"/>
+</div>
+</div>
+<div class="p-md flex flex-wrap items-center justify-between gap-4">
+<div class="flex items-center gap-4 min-w-[120px]">
+<input class="w-5 h-5 rounded text-primary focus:ring-primary" type="checkbox"/>
+<span class="font-label-md text-label-md text-outline">Sunday</span>
+</div>
+<span class="text-on-surface-variant italic text-body-md">Closed</span>
+</div>
+</div>
+</section>
+<!-- AI Knowledge Base -->
+<section class="space-y-sm">
+<h2 class="font-headline-md text-headline-md text-on-surface border-b border-hairline-border pb-2">AI Knowledge Base</h2>
+<div class="bg-surface-container-low hairline rounded-xl p-md flex flex-col md:flex-row items-center justify-between gap-md">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">description</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface">menu_v2.pdf</p>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<p class="text-caption text-secondary">Knowledge base is up to date</p>
+</div>
+</div>
+</div>
+<button class="bg-white hairline text-on-surface font-label-md text-label-md px-4 py-2 rounded-lg hover:bg-surface-container-high transition-all flex items-center gap-2 active:scale-95">
+<span class="material-symbols-outlined text-[18px]">upload</span>
+                        Update Document
+                    </button>
+</div>
+<p class="text-caption text-on-surface-variant">The Sahel AI uses this document to answer customer queries automatically. Upload menus, service lists, or FAQs.</p>
+</section>
+<!-- Danger Zone -->
+<section class="mt-xl pt-lg border-t border-hairline-border">
+<div class="p-md rounded-xl bg-error-container/10 border border-error/20">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-md">
+<div>
+<h3 class="font-label-md text-label-md text-error">Danger Zone</h3>
+<p class="text-body-md text-on-surface-variant">Permanently delete your business mini-site and all associated training data.</p>
+</div>
+<button class="border border-error text-error hover:bg-error hover:text-white font-label-md text-label-md px-6 py-2 rounded-lg transition-all duration-300">
+                            Delete Site
+                        </button>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Bottom Nav (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md border-t border-hairline-border flex justify-around items-center h-16 px-4 z-50">
+<button class="flex flex-col items-center text-primary pt-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="font-label-sm text-label-sm">General</span>
+</button>
+<button class="flex flex-col items-center text-on-surface-variant pt-2">
+<span class="material-symbols-outlined">share</span>
+<span class="font-label-sm text-label-sm">Social</span>
+</button>
+<button class="flex flex-col items-center text-on-surface-variant pt-2">
+<span class="material-symbols-outlined">schedule</span>
+<span class="font-label-sm text-label-sm">Hours</span>
+</button>
+<button class="flex flex-col items-center text-on-surface-variant pt-2">
+<span class="material-symbols-outlined">psychology</span>
+<span class="font-label-sm text-label-sm">AI</span>
+</button>
+</nav>
+<!-- Footer (Shared Component) -->
+<footer class="bg-surface border-t border-hairline-border mt-xl">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-gutter px-gutter py-lg max-w-7xl mx-auto">
+<div class="col-span-2 md:col-span-1">
+<span class="font-headline-sm italic text-on-surface">Sahel.ai</span>
+<p class="mt-4 font-body-md text-body-md text-on-surface-variant">Empowering Moroccan SMEs with premium digital solutions.</p>
+</div>
+<div class="flex flex-col gap-2">
+<span class="font-label-md text-label-md text-on-surface">Product</span>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary underline" href="#">Features</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary underline" href="#">Pricing</a>
+</div>
+<div class="flex flex-col gap-2">
+<span class="font-label-md text-label-md text-on-surface">Support</span>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary underline" href="#">Help Center</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary underline" href="#">Contact Us</a>
+</div>
+<div class="col-span-2 md:col-span-4 mt-lg text-center font-label-sm text-label-sm text-on-surface-variant">
+                © 2026 Sahel.ai. Powered by Minnova.
+            </div>
+</div>
+</footer>
+<script>
+        // Simple micro-interaction for input fields
+        document.querySelectorAll('input, textarea, select').forEach(el => {
+            el.addEventListener('focus', () => {
+                el.parentElement.classList.add('scale-[1.01]');
+            });
+            el.addEventListener('blur', () => {
+                el.parentElement.classList.remove('scale-[1.01]');
+            });
+        });
+
+        // Toggle state for operating hours
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                const parent = e.target.closest('.p-md');
+                if(!e.target.checked) {
+                    parent.classList.add('opacity-50');
+                } else {
+                    parent.classList.remove('opacity-50');
+                }
+            });
+        });
+    </script>
+</body></html> 
+
+whaat is above is the page of modifiyi,g info of the mini website ,it is there for inspo ; also what ever you add it should be functionnal not just uselles ui 
+(we have added the place for social media that you should too , and also in the other page where wwe creat a full ai businnes with the three steps page it should include a place for social media as well )
+
+
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Restaurant Amoudou | Gastronomie d'Exception à Marrakech</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Plus+Jakarta+Sans:wght@200..800&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .hero-gradient {
+            background: linear-gradient(to top, rgba(13, 17, 23, 0.95) 0%, rgba(13, 17, 23, 0.4) 50%, rgba(13, 17, 23, 0.1) 100%);
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .reveal { animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        .chat-bubble-shadow {
+            box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.1), 0 2px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-background": "#1c1b1b",
+                        "on-secondary": "#ffffff",
+                        "secondary": "#006c4e",
+                        "on-tertiary-container": "#bcd6ff",
+                        "surface-bright": "#fdf8f8",
+                        "warm-bg": "#F1EFE8",
+                        "on-error": "#ffffff",
+                        "on-secondary-fixed-variant": "#00513a",
+                        "primary-fixed": "#d3e4ff",
+                        "outline": "#717782",
+                        "surface-container": "#f1edec",
+                        "surface-blue": "#E6F1FB",
+                        "on-surface-variant": "#414751",
+                        "deep-navy": "#0D1117",
+                        "surface-dim": "#ddd9d8",
+                        "on-tertiary": "#ffffff",
+                        "surface-tint": "#0760a6",
+                        "surface-container-high": "#ece7e7",
+                        "inverse-surface": "#313030",
+                        "tertiary-fixed": "#d4e3ff",
+                        "on-error-container": "#93000a",
+                        "error-container": "#ffdad6",
+                        "background": "#fdf8f8",
+                        "on-secondary-container": "#0b7052",
+                        "error": "#ba1a1a",
+                        "surface-container-highest": "#e6e1e1",
+                        "on-primary-fixed": "#001c38",
+                        "primary-fixed-dim": "#a1c9ff",
+                        "primary": "#00467c",
+                        "inverse-primary": "#a1c9ff",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-fixed": "#001c39",
+                        "on-surface": "#1c1b1b",
+                        "hairline-border": "rgba(0, 0, 0, 0.08)",
+                        "tertiary-fixed-dim": "#a4c9ff",
+                        "surface-variant": "#e6e1e1",
+                        "outline-variant": "#c1c7d2",
+                        "on-secondary-fixed": "#002115",
+                        "primary-container": "#005ea4",
+                        "on-primary-fixed-variant": "#004880",
+                        "secondary-fixed": "#9df4ce",
+                        "secondary-fixed-dim": "#81d7b2",
+                        "on-primary-container": "#bbd7ff",
+                        "inverse-on-surface": "#f4f0ef",
+                        "on-tertiary-fixed-variant": "#004884",
+                        "surface-container-lowest": "#ffffff",
+                        "surface": "#fdf8f8",
+                        "surface-container-low": "#f7f2f2",
+                        "secondary-container": "#9af1cb",
+                        "tertiary-container": "#145da3",
+                        "tertiary": "#00457f"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "1rem",
+                        "2xl": "1.5rem",
+                        "3xl": "2.5rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xs": "8px",
+                        "margin": "32px",
+                        "xl": "80px",
+                        "sm": "16px",
+                        "md": "24px",
+                        "gutter": "24px",
+                        "base": "4px",
+                        "lg": "48px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Inter", "sans-serif"],
+                        "body-md": ["Inter", "sans-serif"],
+                        "headline-sm": ["Newsreader", "serif"],
+                        "headline-md": ["Newsreader", "serif"],
+                        "label-md": ["Inter", "sans-serif"],
+                        "display-lg-mobile": ["Newsreader", "serif"],
+                        "display-lg": ["Newsreader", "serif"],
+                        "caption": ["Inter", "sans-serif"],
+                        "body-lg": ["Inter", "sans-serif"]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md selection:bg-primary-fixed selection:text-on-primary-fixed overflow-x-hidden">
+<header class="bg-white/70 backdrop-blur-xl border-b border-hairline-border fixed top-0 w-full z-50 transition-all duration-300">
+<div class="flex justify-between items-center px-margin py-4 max-w-7xl mx-auto w-full">
+<div class="flex items-center gap-xs">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="hub">hub</span>
+<span class="font-headline-sm text-xl font-bold tracking-tight text-deep-navy">Sahel<span class="text-primary">.ai</span></span>
+</div>
+<button class="bg-deep-navy text-white px-6 py-2.5 rounded-full font-label-md text-sm hover:bg-primary transition-all active:scale-95 shadow-lg shadow-deep-navy/10">
+            Get Started
+        </button>
+</div>
+</header>
+<main class="max-w-7xl mx-auto">
+<!-- Section 1: Immersive Full-Bleed Hero -->
+<section class="relative h-screen min-h-[700px] flex flex-col justify-end p-margin overflow-hidden">
+<img class="absolute inset-0 w-full h-full object-cover z-0" data-alt="A luxurious Moroccan restaurant terrace in Marrakech" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRGo1K7dlROFNBV1GQmLdlx3groq2LcvwJ5gWtweZfvC36nzJVjhTq4pAOOxYttIrc2rQxGQge-ebsEauJb1vjkWtVAW03axS96P2MKfHCTvgMe76yD1_3-e5bvs7KWy7EOvAXsSP5ys2wQTOPCws4Md083CI7KHiqLiwpRpnx4b6uC9TLlRpTRHoqA3zGiV7mVIcxPGCi6767Fz5rEIMtbqBlbsX2KzhCVhHpdJz1MlXjsF0QGvo9AL509H0vqvpk7yh5mAErLlkD"/>
+<div class="absolute inset-0 hero-gradient z-10"></div>
+<div class="relative z-20 max-w-2xl mb-xl reveal">
+<div class="flex items-center gap-3 mb-6">
+<span class="bg-white/10 backdrop-blur-md text-white border border-white/20 px-4 py-1 rounded-full font-label-sm text-[10px] uppercase tracking-[0.2em]">{{ t('publicBusiness.category.gastronomy') }}</span>
+<div class="h-px w-8 bg-white/30"></div>
+<span class="text-white/80 font-label-sm text-xs tracking-wide">Marrakech, {{ t('language.maroc') }}</span>
+</div>
+<h1 class="font-display-lg text-6xl md:text-8xl text-white italic tracking-tighter leading-[0.9] mb-8">
+                Restaurant <br/>Amoudou
+            </h1>
+<p class="text-white/80 font-body-lg text-lg md:text-xl leading-relaxed max-w-lg mb-10 font-light">{{ t('landing.hero.description') }}</p>
+<div class="flex gap-4">
+<button class="bg-white text-deep-navy px-8 py-4 rounded-full font-label-md hover:bg-primary hover:text-white transition-all shadow-xl active:scale-95">
+                    {{ t('publicBusiness.bookingCta') }}
+    </button>
+</div>
+</div>
+<!-- Scroll Indicator -->
+<div class="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 opacity-50">
+<span class="font-label-sm text-[10px] text-white uppercase tracking-widest">Scroll</span>
+<div class="w-px h-12 bg-gradient-to-b from-white to-transparent"></div>
+</div>
+</section>
+<!-- Section 2: Intelligence Assistant 2.0 (Integrated Module) -->
+<section class="px-margin -mt-20 relative z-30 reveal" style="animation-delay: 0.2s">
+<div class="bg-deep-navy rounded-3xl overflow-hidden border border-white/10 shadow-2xl">
+<div class="flex flex-col md:flex-row h-full">
+<!-- Branding/Status Side -->
+<div class="md:w-1/3 bg-white/[0.03] p-lg border-b md:border-b-0 md:border-r border-white/10 flex flex-col justify-between">
+<div>
+<div class="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-white text-3xl" data-icon="smart_toy" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+</div>
+<h2 class="text-white font-headline-md text-3xl mb-2">{{ t('publicBusiness.concierge', { name: 'Sahel' }) }}</h2>
+<p class="text-white/50 font-body-md leading-relaxed">{{ t('publicBusiness.conciergeDesc') }}</p>
+</div>
+<div class="mt-8 flex items-center gap-3">
+<span class="relative flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-secondary"></span>
+</span>
+<span class="text-secondary font-label-sm text-xs uppercase tracking-widest">{{ t('publicBusiness.onlineReady') }}</span>
+</div>
+</div>
+<!-- Chat Side -->
+<div class="flex-1 p-lg flex flex-col h-[500px]">
+<div class="flex-1 overflow-y-auto space-y-6 no-scrollbar pb-6">
+<div class="flex gap-4 max-w-[85%]">
+<div class="flex-1 bg-white/5 backdrop-blur-sm p-5 rounded-2xl rounded-tl-none border border-white/10 chat-bubble-shadow">
+<p class="text-white/90 font-body-md text-base leading-relaxed">{{ t('chat.welcomeBusiness', { name: 'Amoudou' }) }}</p>
+</div>
+</div>
+<!-- Suggestions -->
+<div class="flex flex-wrap gap-3 pt-2">
+<button class="bg-primary/20 border border-primary/40 text-primary-fixed-dim px-5 py-2.5 rounded-full font-label-md text-sm hover:bg-primary/40 transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="restaurant_menu">restaurant_menu</span>
+                                {{ t('publicBusiness.menu') }}
+                            </button>
+<button class="bg-white/5 border border-white/10 text-white/80 px-5 py-2.5 rounded-full font-label-md text-sm hover:bg-white/10 transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="event_seat">event_seat</span>
+                                {{ t('publicBusiness.booking') }}
+                            </button>
+<button class="bg-white/5 border border-white/10 text-white/80 px-5 py-2.5 rounded-full font-label-md text-sm hover:bg-white/10 transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="directions">directions</span>
+                                {{ t('publicBusiness.chatSuggestion.location') }}
+                            </button>
+</div>
+</div>
+<!-- Input Area -->
+<div class="relative pt-6 border-t border-white/10">
+<input class="w-full bg-white/5 border-none rounded-2xl py-5 px-6 text-white placeholder:text-white/30 focus:ring-2 focus:ring-primary/50 transition-all" placeholder="{{ t('publicBusiness.chatPlaceholder') }}" type="text"/>
+<button class="absolute right-3 top-[calc(50%+12px)] -translate-y-1/2 w-12 h-12 bg-primary hover:bg-primary-container text-white rounded-xl flex items-center justify-center transition-all shadow-lg active:scale-95">
+<span class="material-symbols-outlined" data-icon="send">send</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 3: Sophisticated Services Layout -->
+<section class="px-margin py-xl space-y-gutter">
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Large Featured Card -->
+<div class="col-span-12 lg:col-span-8 group relative overflow-hidden rounded-3xl min-h-[450px] flex flex-col justify-end p-lg bg-surface-container-low transition-all hover:shadow-2xl reveal" style="animation-delay: 0.3s">
+<img alt="Terrasse" class="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRGo1K7dlROFNBV1GQmLdlx3groq2LcvwJ5gWtweZfvC36nzJVjhTq4pAOOxYttIrc2rQxGQge-ebsEauJb1vjkWtVAW03axS96P2MKfHCTvgMe76yD1_3-e5bvs7KWy7EOvAXsSP5ys2wQTOPCws4Md083CI7KHiqLiwpRpnx4b6uC9TLlRpTRHoqA3zGiV7mVIcxPGCi6767Fz5rEIMtbqBlbsX2KzhCVhHpdJz1MlXjsF0QGvo9AL509H0vqvpk7yh5mAErLlkD"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+<div class="relative z-10 text-white max-w-md">
+<span class="bg-primary px-3 py-1 rounded-full font-label-sm text-[10px] uppercase tracking-widest mb-4 inline-block">Signature</span>
+<h3 class="font-headline-md text-4xl mb-4 italic">Terrasse Panoramique</h3>
+<p class="text-white/70 font-body-md text-lg leading-relaxed">Un écrin suspendu offrant une vue magistrale sur les jardins de la Médina. L'endroit idéal pour vos dîners sous les étoiles.</p>
+</div>
+</div>
+<!-- Side Card Stack -->
+<div class="col-span-12 lg:col-span-4 flex flex-col gap-gutter">
+<div class="flex-1 bg-warm-bg rounded-3xl p-lg border border-hairline-border hover:border-primary/20 transition-all reveal" style="animation-delay: 0.4s">
+<div class="w-12 h-12 bg-secondary/10 rounded-xl flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-secondary text-3xl" data-icon="restaurant" style="font-variation-settings: 'FILL' 1;">restaurant</span>
+</div>
+<h3 class="font-headline-sm text-2xl text-deep-navy mb-3">Cuisine d'Héritage</h3>
+<p class="text-on-surface-variant font-body-md leading-relaxed">Les recettes séculaires revisitées avec l'audace de la gastronomie contemporaine.</p>
+</div>
+<div class="flex-1 bg-surface-blue rounded-3xl p-lg border border-hairline-border hover:border-primary/20 transition-all reveal" style="animation-delay: 0.5s">
+<div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="eco" style="font-variation-settings: 'FILL' 1;">eco</span>
+</div>
+<h3 class="font-headline-sm text-2xl text-deep-navy mb-3">Produits du Terroir</h3>
+<p class="text-on-surface-variant font-body-md leading-relaxed">Une sélection matinale rigoureuse auprès des producteurs locaux passionnés.</p>
+</div>
+</div>
+</div>
+<!-- Amenities Strip -->
+<div class="bg-white rounded-3xl p-8 border border-hairline-border flex flex-wrap justify-center gap-xl md:gap-24 reveal" style="animation-delay: 0.6s">
+<div class="flex flex-col items-center gap-3">
+<div class="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center transition-transform hover:scale-110">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="wifi_calling_3">wifi_calling_3</span>
+</div>
+<span class="font-label-sm text-[11px] uppercase tracking-widest text-outline">Fibre Optique</span>
+</div>
+<div class="flex flex-col items-center gap-3">
+<div class="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center transition-transform hover:scale-110">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="local_parking">local_parking</span>
+</div>
+<span class="font-label-sm text-[11px] uppercase tracking-widest text-outline">Valet Parking</span>
+</div>
+<div class="flex flex-col items-center gap-3">
+<div class="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center transition-transform hover:scale-110">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="ac_unit">ac_unit</span>
+</div>
+<span class="font-label-sm text-[11px] uppercase tracking-widest text-outline">Climatisation</span>
+</div>
+<div class="flex flex-col items-center gap-3">
+<div class="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center transition-transform hover:scale-110">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="payments">payments</span>
+</div>
+<span class="font-label-sm text-[11px] uppercase tracking-widest text-outline">Multi-Paiement</span>
+</div>
+</div>
+</section>
+<!-- Section 4: Practical Info & Location -->
+<section class="px-margin py-xl bg-surface-container-lowest">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-xl">
+<div class="space-y-xl reveal" style="animation-delay: 0.7s">
+<div>
+<h2 class="font-headline-md text-4xl mb-2 italic">{{ t('publicBusiness.practicalInfo') }}</h2>
+<div class="h-1 w-20 bg-primary/20 mb-8"></div>
+<div class="space-y-0">
+<div class="flex items-center justify-between py-6 border-b border-hairline-border group">
+<span class="font-label-md text-on-surface-variant flex items-center gap-3">
+<span class="material-symbols-outlined text-primary/40 group-hover:text-primary transition-colors" data-icon="schedule">schedule</span>
+                                {{ t('publicBusiness.openingHours') }}
+                            </span>
+<span class="font-body-md font-semibold text-deep-navy">12h00 — 23h30</span>
+</div>
+<div class="flex items-center justify-between py-6 border-b border-hairline-border group">
+<span class="font-label-md text-on-surface-variant flex items-center gap-3">
+<span class="material-symbols-outlined text-primary/40 group-hover:text-primary transition-colors" data-icon="calendar_today">calendar_today</span>
+                                {{ t('publicBusiness.serviceDays') }}
+                            </span>
+<span class="font-body-md font-semibold text-deep-navy">{{ t('publicBusiness.everyday') }}</span>
+</div>
+<div class="flex items-start justify-between py-6 border-b border-hairline-border group">
+<span class="font-label-md text-on-surface-variant flex items-center gap-3">
+<span class="material-symbols-outlined text-primary/40 group-hover:text-primary transition-colors" data-icon="location_on">location_on</span>
+                                {{ t('publicBusiness.address') }}
+                            </span>
+<span class="font-body-md font-semibold text-deep-navy text-right max-w-[240px]">Rue de la Kasbah, Médina, Marrakech 40000</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col sm:flex-row gap-4">
+<a class="flex-1 bg-[#25D366] text-white py-5 rounded-2xl flex items-center justify-center gap-3 font-label-md text-sm shadow-xl shadow-[#25D366]/20 transition-all hover:brightness-110 active:scale-95" href="https://wa.me/2120000000">
+<span class="material-symbols-outlined" data-icon="chat">chat</span>
+                        {{ t('publicBusiness.whatsapp') }}
+                    </a>
+<a class="flex-1 bg-deep-navy text-white py-5 rounded-2xl flex items-center justify-center gap-3 font-label-md text-sm transition-all hover:bg-primary shadow-xl shadow-deep-navy/10 active:scale-95" href="tel:+2120000000">
+<span class="material-symbols-outlined" data-icon="call">call</span>
+                        {{ t('publicBusiness.call') }}
+                    </a>
+</div>
+</div>
+<!-- Map Integration -->
+<div class="h-[500px] rounded-3xl overflow-hidden border border-hairline-border relative shadow-2xl reveal" style="animation-delay: 0.8s">
+<img class="absolute inset-0 w-full h-full object-cover" data-alt="Minimalist digital map of Marrakech Medina" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDELaf05Iw_LWW42blSPOdnyR6rdHaCeZckPnggfcrCFaVXfW0ItwB1yCKmDdyT11DNI71UN0uadWDS1yxqrRm-tdmDN4NnmO_bbU97xu12jaygih9QeNtBKyA2c2rUOoOgjjotOl3CIcpwHXBIQvZYEXP8f_cApNimu8twVkZJ0vtywIpAdWUJx2CJfm4f-n8xawRnyycC2y1EmYSvO1TcBWaRCf-FpH-V46TEnDRs6lv7rFCExKBu0mSqFf5zOVKuOyyAyxcKB7as"/>
+<div class="absolute inset-0 bg-deep-navy/5"></div>
+<div class="absolute bottom-6 left-6 right-6 bg-white/90 backdrop-blur-md p-6 rounded-2xl border border-white shadow-xl">
+<div class="flex items-center justify-between">
+<div>
+<p class="font-label-sm text-[10px] text-primary uppercase tracking-[0.2em] mb-1">{{ t('miniSite.directions') }}</p>
+<p class="font-headline-sm text-xl text-deep-navy">{{ t('miniSite.directions') }}</p>
+</div>
+<div class="w-14 h-14 bg-deep-navy rounded-full flex items-center justify-center text-white hover:bg-primary transition-colors cursor-pointer shadow-lg">
+<span class="material-symbols-outlined" data-icon="near_me">near_me</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<section class="px-margin py-xl bg-white">
+<div class="max-w-7xl mx-auto text-center">
+<h2 class="font-headline-md text-4xl mb-2 italic text-deep-navy">{{ t('publicBusiness.followUs') }}</h2>
+<div class="h-1 w-20 bg-primary/20 mb-12 mx-auto"></div>
+<div class="flex flex-wrap justify-center gap-8 md:gap-12">
+<a class="group flex flex-col items-center gap-3" href="#">
+<div class="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center transition-all duration-300 group-hover:bg-primary group-hover:text-white text-deep-navy shadow-sm">
+<span class="material-symbols-outlined text-3xl">photo_camera</span>
+</div>
+<span class="font-label-sm text-[11px] uppercase tracking-widest text-outline group-hover:text-primary transition-colors">Instagram</span>
+</a>
+<a class="group flex flex-col items-center gap-3" href="#">
+<div class="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center transition-all duration-300 group-hover:bg-primary group-hover:text-white text-deep-navy shadow-sm">
+<span class="material-symbols-outlined text-3xl">facebook</span>
+</div>
+<span class="font-label-sm text-[11px] uppercase tracking-widest text-outline group-hover:text-primary transition-colors">Facebook</span>
+</a>
+<a class="group flex flex-col items-center gap-3" href="#">
+<div class="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center transition-all duration-300 group-hover:bg-primary group-hover:text-white text-deep-navy shadow-sm">
+<span class="material-symbols-outlined text-3xl">movie</span>
+</div>
+<span class="font-label-sm text-[11px] uppercase tracking-widest text-outline group-hover:text-primary transition-colors">TikTok</span>
+</a>
+<a class="group flex flex-col items-center gap-3" href="https://wa.me/2120000000">
+<div class="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center transition-all duration-300 group-hover:bg-[#25D366] group-hover:text-white text-deep-navy shadow-sm">
+<span class="material-symbols-outlined text-3xl">chat</span>
+</div>
+<span class="font-label-sm text-[11px] uppercase tracking-widest text-outline group-hover:text-[#25D366] transition-colors">WhatsApp</span>
+</a>
+</div>
+</div>
+</section><footer class="bg-deep-navy py-xl">
+<div class="max-w-7xl mx-auto px-margin">
+<div class="flex flex-col md:flex-row justify-between items-start gap-xl pb-xl border-b border-white/10">
+<div class="space-y-6">
+<div class="flex items-center gap-xs">
+<span class="material-symbols-outlined text-white text-3xl" data-icon="hub">hub</span>
+<span class="font-headline-sm text-2xl font-bold tracking-tight text-white">Sahel<span class="text-primary">.ai</span></span>
+</div>
+<p class="text-white/40 font-body-md max-w-sm leading-relaxed">
+                    Accompagner les fleurons de l'hôtellerie et de la restauration marocaine vers l'excellence numérique grâce à l'intelligence artificielle.
+                </p>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-3 gap-xl">
+<div class="space-y-4">
+<h4 class="text-white font-label-md text-xs uppercase tracking-widest">Menu</h4>
+<nav class="flex flex-col gap-3">
+<a class="text-white/40 hover:text-white transition-colors text-sm" href="#">Carte</a>
+<a class="text-white/40 hover:text-white transition-colors text-sm" href="#">Réservation</a>
+<a class="text-white/40 hover:text-white transition-colors text-sm" href="#">Notre Histoire</a>
+</nav>
+</div>
+<div class="space-y-4">
+<h4 class="text-white font-label-md text-xs uppercase tracking-widest">Intelligence</h4>
+<nav class="flex flex-col gap-3">
+<a class="text-white/40 hover:text-white transition-colors text-sm" href="#">Conciergerie IA</a>
+<a class="text-white/40 hover:text-white transition-colors text-sm" href="#">Sahel Ecosystem</a>
+</nav>
+</div>
+<div class="space-y-4">
+<h4 class="text-white font-label-md text-xs uppercase tracking-widest">Légal</h4>
+<nav class="flex flex-col gap-3">
+<a class="text-white/40 hover:text-white transition-colors text-sm" href="#">Privacy</a>
+<a class="text-white/40 hover:text-white transition-colors text-sm" href="#">Terms</a>
+</nav>
+</div>
+</div>
+</div>
+<div class="pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-white/30 text-xs font-label-sm uppercase tracking-widest">
+<p>© 2026 Restaurant Amoudou — Powered by Sahel.ai</p>
+<div class="flex gap-8">
+<a class="hover:text-white transition-colors" href="#">Instagram</a>
+<a class="hover:text-white transition-colors" href="#">LinkedIn</a>
+</div>
+</div>
+</div>
+</footer>
+<script>
+    // Header transition on scroll
+    window.addEventListener('scroll', () => {
+        const header = document.querySelector('header');
+        if (window.scrollY > 100) {
+            header.classList.add('py-2', 'bg-white/95', 'shadow-sm');
+            header.classList.remove('py-4', 'bg-white/70');
+        } else {
+            header.classList.remove('py-2', 'bg-white/95', 'shadow-sm');
+            header.classList.add('py-4', 'bg-white/70');
+        }
+    });
+
+    // Simple Intersection Observer for reveal animations
+    const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -100px 0px' };
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('reveal');
+                entry.target.style.opacity = "1";
+            }
+        });
+    }, observerOptions);
+
+    document.querySelectorAll('.reveal').forEach(el => {
+        el.style.opacity = "0";
+        observer.observe(el);
+    });
+
+    // Chat micro-interactions
+    const chatInput = document.querySelector('input[type="text"]');
+    const sendBtn = chatInput?.nextElementSibling;
+
+    chatInput?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && chatInput.value.trim() !== '') {
+            sendMessage();
+        }
+    });
+
+    sendBtn?.addEventListener('click', () => {
+        if (chatInput.value.trim() !== '') {
+            sendMessage();
+        }
+    });
+
+    function sendMessage() {
+        const text = chatInput.value;
+        chatInput.value = '';
+        
+        const container = document.querySelector('.space-y-6');
+        const userMsgWrapper = document.createElement('div');
+        userMsgWrapper.className = 'flex justify-end opacity-0 translate-y-4 transition-all duration-500';
+        const bubble = document.createElement('div');
+        bubble.className = 'bg-primary p-5 rounded-2xl rounded-tr-none text-white font-body-md max-w-[85%] shadow-xl shadow-primary/20 border border-white/10';
+        bubble.textContent = text;
+        userMsgWrapper.appendChild(bubble);
+        container.appendChild(userMsgWrapper);
+        
+        setTimeout(() => {
+            userMsgWrapper.classList.remove('opacity-0', 'translate-y-4');
+            container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+        }, 50);
+    }
+</script>
+</body></html> 
+
+
+and here is the page of the mini website ;it is the same as the one we have the only thing you gonna add is the social media stuff (again what ever you add should be functional)
+
+also the page of contact for contacting us what ever is sent from there should be going to my mail inbox (muha772005@gamil.com)
+::

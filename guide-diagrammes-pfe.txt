@@ -1,0 +1,651 @@
+================================================================================
+          GUIDE — DIAGRAMMES UML POUR LE RAPPORT PFE
+          MCD / USE CASE / DIAGRAMME DE CLASSES / MLD / SÉQUENCE
+          Projet Sahel.ai — PFE 2026
+================================================================================
+
+Ce fichier contient les diagrammes UML prêts à être reproduits dans draw.io
+ou Lucidchart, avec explications et justifications pour le jury.
+
+
+================================================================================
+1. DIAGRAMME DE CAS D'UTILISATION (USE CASE)
+================================================================================
+
+1.1 Représentation UML
+
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │                        SYSTÈME SAHEL.AI                                 │
+  │                                                                          │
+  │  ┌─────┐     ┌──────────────────────────────────────────────────────┐   │
+  │  │     │     │                                                      │   │
+  │  │  V  │─────│  • Consulter les vitrines digitales                  │   │
+  │  │  I  │     │  • Filtrer par catégorie                             │   │
+  │  │  S  │     │  • Visiter un mini-site                              │   │
+  │  │  I  │     │  • Discuter avec l'assistant IA                      │   │
+  │  │  T  │     │  • Consulter Blog / FAQ / À propos                   │   │
+  │  │  E  │     │  • Contacter l'équipe                                │   │
+  │  │  U  │     │  • Consulter les pages légales                        │   │
+  │  │  R  │     │                                                      │   │
+  │  └──┬──┘     └──────────────────────────────────────────────────────┘   │
+  │     │                                                                     │
+  │  ┌──┴──┐     ┌──────────────────────────────────────────────────────┐   │
+  │  │     │     │                                                      │   │
+  │  │  P  │─────│  • S'authentifier (email / Google OAuth)             │   │
+  │  │  R  │     │  • Créer / Modifier / Supprimer un commerce          │   │
+  │  │  O  │     │  • Uploader des documents PDF                         │   │
+  │  │  P  │     │  • Consulter le dashboard et les KPIs                │   │
+  │  │  R  │     │  • Visualiser les analytics                          │   │
+  │  │  I  │     │  • Télécharger le QR code                            │   │
+  │  │  É  │     │  • Tester le chatbot intégré                         │   │
+  │  │  T  │     │  • Modifier son profil                               │   │
+  │  │  A  │     │  • Se déconnecter                                    │   │
+  │  │  I  │     │                                                      │   │
+  │  │  R  │     └──────────────────────────────────────────────────────┘   │
+  │  │  E  │                                                                │
+  │  └──┬──┘     ┌──────────────────────────────────────────────────────┐   │
+  │     │        │                                                      │   │
+  │  ┌──┴──┐     │  • Envoyer un message WhatsApp                       │   │
+  │  │     │     │  • Envoyer un message Telegram                       │   │
+  │  │  C  │─────│  • Démarrer la conversation (/start)                 │   │
+  │  │  L  │     │  • Changer de commerce (/business)                   │   │
+  │  │  I  │     │  • Recevoir une réponse IA                           │   │
+  │  │  E  │     │                                                      │   │
+  │  │  N  │     └──────────────────────────────────────────────────────┘   │
+  │  │  T  │                                                                │
+  │  └─────┘                                                                │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+  Légende :
+    ┌─────┐
+    │  V  │  = Acteur (Visiteur / Propriétaire / Client)
+    └─────┘
+    ───── = Association (l'acteur interagit avec le cas)
+    ═════ = Include / Extend (si applicable)
+
+1.2 Explication pour le rapport
+
+  "Le diagramme de cas d'utilisation de Sahel.ai présente trois acteurs
+  principaux. Le Visiteur accède aux pages publiques et peut interagir avec
+  les vitrines digitales et le chatbot. Le Propriétaire, authentifié via
+  JWT, gère ses commerces, ses documents et consulte les analytics. Le
+  Client interagit avec l'assistant IA via WhatsApp ou Telegram, sans
+  passer par l'interface web."
+
+1.3 Questions potentielles du jury
+
+  Q : "Pourquoi avoir séparé Visiteur et Client ?"
+  R : "Le Visiteur est un utilisateur web anonyme. Le Client est une
+  personne qui interagit via messagerie (WhatsApp/Telegram). Ils ont des
+  cas d'utilisation différents : le visiteur navigue sur le site, le
+  client envoie des messages à l'assistant IA."
+
+  Q : "Un Propriétaire peut-il aussi être Visiteur ?"
+  R : "Oui, un propriétaire connecté peut aussi consulter les pages
+  publiques. Mais dans le diagramme, on modélise les rôles, pas les
+  personnes physiques. Un même utilisateur peut avoir plusieurs rôles."
+
+
+================================================================================
+2. DIAGRAMME DE SÉQUENCE — AUTHENTIFICATION
+================================================================================
+
+2.1 Représentation UML
+
+  ┌──────┐         ┌──────┐         ┌──────┐         ┌──────┐
+  │      │         │      │         │      │         │      │
+  │Client│         │React │         │FastAPI│         │Google│
+  │Navig.│         │Front │         │Backend│         │OAuth │
+  │      │         │      │         │      │         │      │
+  └──┬───┘         └──┬───┘         └──┬───┘         └──┬───┘
+     │                │                │                │
+     │ Clique         │                │                │
+     │ "Se connecter" │                │                │
+     │ avec Google"   │                │                │
+     ├────────────────▶                │                │
+     │                │                │                │
+     │                │ Redirect vers  │                │
+     │                │ Google OAuth   │                │
+     │                ├─────────────────────────────────▶
+     │                │                │                │
+     │                │   Code OAuth   │                │
+     │                │◄─────────────────────────────────│
+     │                │                │                │
+     │                │ POST /auth/    │                │
+     │                │ google         │                │
+     │                ├───────────────▶│                │
+     │                │                │                │
+     │                │                │ Verify token   │
+     │                │                │ avec Google    │
+     │                │                ├───────────────▶│
+     │                │                │                │
+     │                │                │ User info      │
+     │                │                │◄───────────────│
+     │                │                │                │
+     │                │                │ Créer ou       │
+     │                │                │ récupérer      │
+     │                │                │ l'utilisateur  │
+     │                │                │ en base        │
+     │                │                │                │
+     │                │ { JWT token,   │                │
+     │                │   user data }  │                │
+     │                │◄───────────────│                │
+     │                │                │                │
+     │ Redirection    │                │                │
+     │ vers dashboard │                │                │
+     │◄───────────────│                │                │
+     │                │                │                │
+
+2.2 Explication
+
+  "Ce diagramme de séquence illustre le flux d'authentification via Google
+  OAuth. Le client clique sur le bouton de connexion, le frontend redirige
+  vers Google. Après validation, Google renvoie un code d'autorisation que
+  le backend utilise pour récupérer les informations de l'utilisateur. Un
+  token JWT est alors généré et stocké côté client dans le localStorage."
+
+
+================================================================================
+3. DIAGRAMME DE SÉQUENCE — INTERACTION IA (RAG)
+================================================================================
+
+3.1 Représentation UML
+
+  ┌──────┐         ┌──────┐         ┌──────┐         ┌──────┐         ┌──────┐
+  │      │         │      │         │      │         │      │         │      │
+  │Client│         │React │         │FastAPI│         │ FAISS│         │ Groq │
+  │      │         │Front │         │Backend│         │Index │         │ API  │
+  │      │         │      │         │      │         │      │         │      │
+  └──┬───┘         └──┬───┘         └──┬───┘         └──┬───┘         └──┬───┘
+     │                │                │                │                │
+     │ Question       │                │                │                │
+     │ (Darija/FR/EN) │                │                │                │
+     ├────────────────▶                │                │                │
+     │                │ POST /chat     │                │                │
+     │                │ { question }   │                │                │
+     │                ├───────────────▶│                │                │
+     │                │                │                │                │
+     │                │                │ Détecter       │                │
+     │                │                │ la langue      │                │
+     │                │                │◄───────────────│                │
+     │                │                │                │                │
+     │                │                │ Embed question │                │
+     │                │                │ + search       │                │
+     │                │                │ (top_k=3)      │                │
+     │                │                ├───────────────▶│                │
+     │                │                │                │                │
+     │                │                │ 3 chunks les   │                │
+     │                │                │ plus pertinents│                │
+     │                │                │◄───────────────│                │
+     │                │                │                │                │
+     │                │                │ Prompt system  │                │
+     │                │                │ + contexte +   │                │
+     │                │                │ question       │                │
+     │                │                ├───────────────────────────────▶│
+     │                │                │                │                │
+     │                │                │ Réponse IA     │                │
+     │                │                │ (streaming)    │                │
+     │                │                │◄───────────────────────────────│
+     │                │                │                │                │
+     │                │                │ Sauvegarder    │                │
+     │                │                │ dans l'histo.  │                │
+     │                │                │◄───────────────│                │
+     │                │                │                │                │
+     │                │ Réponse        │                │                │
+     │                │ formatée       │                │                │
+     │                │◄───────────────│                │                │
+     │                │                │                │                │
+     │ Affichage      │                │                │                │
+     │ réponse IA     │                │                │                │
+     │◄───────────────│                │                │                │
+     │                │                │                │                │
+
+3.2 Explication
+
+  "Ce diagramme de séquence montre le traitement complet d'une requête IA.
+  La question de l'utilisateur est d'abord analysée pour détecter sa langue.
+  Ensuite, le pipeline RAG est déclenché : la question est convertie en
+  vecteur (embedding), une recherche sémantique est effectuée dans FAISS
+  pour trouver les 3 passages les plus pertinents, et un prompt enrichi
+  de ce contexte est envoyé à Groq API (Llama 3). La réponse est streamée
+  au client et sauvegardée dans l'historique."
+
+
+================================================================================
+4. DIAGRAMME DE CLASSES (UML)
+================================================================================
+
+4.1 Représentation UML complète
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │                         DIAGRAMME DE CLASSES                            │
+  │                           Sahel.ai — PFE 2026                           │
+  │                                                                         │
+  │  ┌─────────────────────────────────────┐                               │
+  │  │            Owner                    │                               │
+  │  ├─────────────────────────────────────┤                               │
+  │  │ - id: String (UUID)                │                               │
+  │  │ - full_name: String                │                               │
+  │  │ - email: String (unique)           │                               │
+  │  │ - password_hash: String            │                               │
+  │  │ - google_id: String (nullable)     │                               │
+  │  │ - verified: Boolean                │                               │
+  │  │ - created_at: DateTime             │                               │
+  │  ├─────────────────────────────────────┤                               │
+  │  │ + register(email, pw): Token       │                               │
+  │  │ + login(email, pw): Token          │                               │
+  │  │ + updateProfile(name, email): void │                               │
+  │  └──────────────────┬──────────────────┘                               │
+  │                     │ 1                                                │
+  │                     │ possède                                          │
+  │                     │ 0..*                                             │
+  │  ┌──────────────────┴──────────────────┐                               │
+  │  │           Business                  │                               │
+  │  ├─────────────────────────────────────┤                               │
+  │  │ - id: String (UUID)                │                               │
+  │  │ - owner_id: String (FK)            │                               │
+  │  │ - slug: String (unique)            │                               │
+  │  │ - name: String                     │                               │
+  │  │ - business_type: String            │                               │
+  │  │ - description: Text                │                               │
+  │  │ - city: String                     │                               │
+  │  │ - address: String                  │                               │
+  │  │ - latitude: Float (nullable)       │                               │
+  │  │ - longitude: Float (nullable)      │                               │
+  │  │ - working_hours: String            │                               │
+  │  │ - primary_services: String         │                               │
+  │  │ - highlights: Text                 │                               │
+  │  │ - cover_image_url: String (null)   │                               │
+  │  │ - owner_email: String              │                               │
+  │  │ - owner_phone: String              │                               │
+  │  │ - public_knowledge: Text           │                               │
+  │  │ - site_url: String                 │                               │
+  │  │ - chat_url: String                 │                               │
+  │  │ - created_at: DateTime             │                               │
+  │  │ - updated_at: DateTime             │                               │
+  │  ├─────────────────────────────────────┤                               │
+  │  │ + create(ownerId, data): Business  │                               │
+  │  │ + update(id, data): Business       │                               │
+  │  │ + getBySlug(slug): Business        │                               │
+  │  │ + getByOwner(ownerId): List<B>     │                               │
+  │  │ + getAnalytics(id): AnalyticsData  │                               │
+  │  └──────┬──────────────────┬──────────┘                               │
+  │         │ 1                │ 1                                         │
+  │         │ contient         │ reçoit                                    │
+  │         │ 0..*             │ 0..*                                      │
+  │  ┌──────┴─────────┐  ┌─────┴──────────────┐                          │
+  │  │   Document     │  │   Conversation      │                          │
+  │  ├────────────────┤  ├─────────────────────┤                          │
+  │  │ - id: UUID     │  │ - id: UUID          │                          │
+  │  │ - business_id  │  │ - business_id (FK)  │                          │
+  │  │ - file_name    │  │ - platform          │                          │
+  │  │ - file_type    │  │ - remote_jid        │                          │
+  │  │ - chunks: Int  │  │ - status            │                          │
+  │  │ - created_at   │  │ - created_at        │                          │
+  │  ├────────────────┤  │ - updated_at        │                          │
+  │  │ + upload()     │  ├─────────────────────┤                          │
+  │  │ + delete()     │  │ + start()           │                          │
+  │  └────────────────┘  │ + close()           │                          │
+  │                      │ + getMessages()     │                          │
+  │                      └──────────┬──────────┘                          │
+  │                                 │ 1                                    │
+  │                                 │ contient                             │
+  │                                 │ 1..*                                 │
+  │                      ┌──────────┴──────────┐                          │
+  │                      │       Message        │                          │
+  │                      ├──────────────────────┤                          │
+  │                      │ - id: UUID           │                          │
+  │                      │ - conversation_id    │                          │
+  │                      │ - question: Text     │                          │
+  │                      │ - answer: Text       │                          │
+  │                      │ - language: String   │                          │
+  │                      │ - created_at         │                          │
+  │                      └──────────────────────┘                          │
+  │                                                                         │
+  │                      ┌──────────────────────┐                          │
+  │                      │       Inquiry         │                          │
+  │                      ├──────────────────────┤                          │
+  │                      │ - id: UUID           │                          │
+  │                      │ - name: String       │                          │
+  │                      │ - email: String      │                          │
+  │                      │ - message: Text      │                          │
+  │                      │ - status: String     │                          │
+  │                      │ - created_at         │                          │
+  │                      └──────────────────────┘                          │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  Note : La classe Inquiry est indépendante (pas de relation),
+  car une demande de contact peut venir d'un visiteur sans compte.
+
+4.2 Explication pour le rapport
+
+  "Le diagramme de classes de Sahel.ai modélise six entités principales.
+  La classe Owner représente le propriétaire du commerce avec ses méthodes
+  d'authentification. Business est la classe centrale qui contient tous
+  les attributs métier (nom, type, ville, horaires). Document stocke les
+  fichiers uploadés et le nombre de chunks FAISS générés. Conversation et
+  Message tracent toutes les interactions avec les clients. Inquiry gère
+  les demandes de contact indépendantes."
+
+4.3 Questions potentielles du jury
+
+  Q : "Pourquoi avoir séparé Conversation et Message ?"
+  R : "Une conversation regroupe plusieurs messages d'un même client.
+  Cela permet de suivre l'historique des échanges et de calculer des
+  métriques comme le nombre de conversations totales."
+
+  Q : "Pourquoi Inquiry n'est lié à aucune table ?"
+  R : "Une inquiry est une demande de contact d'un visiteur qui n'a pas
+  forcément de compte propriétaire. C'est une entité indépendante
+  volontairement."
+
+
+================================================================================
+5. MODÈLE CONCEPTUEL DE DONNÉES (MCD)
+================================================================================
+
+5.1 Représentation
+
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │                        MODÈLE CONCEPTUEL DE DONNÉES                     │
+  │                            Sahel.ai — PFE 2026                          │
+  │                                                                          │
+  │  ┌──────────────────────────────┐                                        │
+  │  │           OWNER              │                                        │
+  │  ├──────────────────────────────┤                                        │
+  │  │  ╔ id (PK)             ╗     │────┐                                   │
+  │  │    full_name                 │    │                                   │
+  │  │  ╔ email (UQ)          ╗     │    │ 1                                 │
+  │  │    password_hash             │    │                                   │
+  │  │    google_id (nullable)      │    │ possède                           │
+  │  │    verified                  │    │                                   │
+  │  │    created_at                │    │                                   │
+  │  └──────────────────────────────┘    │                                   │
+  │                                      │                                   │
+  │  ┌──────────────────────────────────┘                                   │
+  │  │                                                                        │
+  │  │  ┌──────────────────────────────┐  ┌──────────────────────────────┐   │
+  │  │  │          BUSINESS            │  │        INQUIRY               │   │
+  │  │  ├──────────────────────────────┤  ├──────────────────────────────┤   │
+  │  │  │  ╔ id (PK)             ╗     │  │  ╔ id (PK)             ╗     │   │
+  │  │  │  ╔ owner_id (FK)       ╗     │  │    name                      │   │
+  │  │  │  ╔ slug (UQ)           ╗     │  │  ╔ email              ╗      │   │
+  │  │  │    name                     │  │    message                    │   │
+  │  │  │    business_type            │  │    status                      │   │
+  │  │  │    description              │  │    created_at                  │   │
+  │  │  │    city                     │  └──────────────────────────────┘   │
+  │  │  │    address                  │                                      │
+  │  │  │    working_hours            │                                      │
+  │  │  │    primary_services         │                                      │
+  │  │  │    highlights               │                                      │
+  │  │  │    cover_image_url          │                                      │
+  │  │  │    owner_email              │                                      │
+  │  │  │    owner_phone              │                                      │
+  │  │  │    public_knowledge         │                                      │
+  │  │  │    site_url                 │                                      │
+  │  │  │    chat_url                 │                                      │
+  │  │  │    created_at               │                                      │
+  │  │  │    updated_at               │                                      │
+  │  │  └──────┬──────────────┬───────┘                                      │
+  │  │         │ 1            │ 1                                            │
+  │  │         │ contient     │ reçoit                                       │
+  │  │         │ 0..N         │ 0..N                                         │
+  │  │  ┌──────┴──────┐  ┌───┴────────────┐                                │
+  │  │  │  DOCUMENT   │  │  CONVERSATION   │                                │
+  │  │  ├─────────────┤  ├────────────────┤                                │
+  │  │  │ ╔ id (PK)   │  │ ╔ id (PK)      │                                │
+  │  │  │ ╔ business  │  │ ╔ business_id  │                                │
+  │  │  │    file_name│  │    platform     │                                │
+  │  │  │    file_type│  │    remote_jid   │                                │
+  │  │  │    chunks   │  │    status       │                                │
+  │  │  │    created  │  │    created_at   │                                │
+  │  │  └─────────────┘  │    updated_at   │                                │
+  │  │                   └────────┬───────┘                                │
+  │  │                            │ 1                                       │
+  │  │                            │ contient                                │
+  │  │                            │ 1..N                                    │
+  │  │                   ┌────────┴───────┐                                │
+  │  │                   │    MESSAGE     │                                │
+  │  │                   ├────────────────┤                                │
+  │  │                   │ ╔ id (PK)      │                                │
+  │  │                   │ ╔ conversation │                                │
+  │  │                   │    question    │                                │
+  │  │                   │    answer      │                                │
+  │  │                   │    language    │                                │
+  │  │                   │    created_at  │                                │
+  │  │                   └────────────────┘                                │
+  │  └──────────────────────────────────────────────────────────────────────┘
+  │                                                                          │
+  │  Légende :                                                                │
+  │    ╔ ... ╗  = Clé primaire (PK) ou clé étrangère (FK)                    │
+  │    ──────── = Relation                                                  │
+  │    1 / 0..N = Cardinalité                                                │
+  │                                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+5.2 Explication
+
+  "Le MCD de Sahel.ai comporte six entités. La table Owner est en relation
+  un-à-plusieurs avec Business (un propriétaire peut gérer plusieurs
+  commerces). Business a deux sous-ensembles : Document (un commerce peut
+  avoir plusieurs documents PDF) et Conversation (un commerce reçoit
+  plusieurs conversations). Chaque Conversation contient un ou plusieurs
+  Message. La table Inquiry est indépendante car elle correspond à des
+  demandes de contact externes, sans lien avec un compte propriétaire."
+
+5.3 Règles de gestion
+
+  RG1 : Un propriétaire peut créer 0 ou plusieurs commerces.
+  RG2 : Un commerce appartient à un et un seul propriétaire.
+  RG3 : Un commerce peut avoir 0 ou plusieurs documents uploadés.
+  RG4 : Un commerce peut avoir 0 ou plusieurs conversations.
+  RG5 : Une conversation peut avoir 1 ou plusieurs messages.
+  RG6 : Une inquiry (demande de contact) est indépendante d'un compte.
+
+
+================================================================================
+6. MODÈLE LOGIQUE DE DONNÉES (MLD)
+================================================================================
+
+6.1 Schéma relationnel
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │                     MLD — Schéma Relationnel                            │
+  │                                                                         │
+  │  Owner (                                                               │
+  │    id              VARCHAR(80)   PRIMARY KEY,                          │
+  │    full_name       VARCHAR(80)   NOT NULL,                             │
+  │    email           VARCHAR(120)  NOT NULL  UNIQUE,                     │
+  │    password_hash   VARCHAR(200)  NOT NULL,                             │
+  │    google_id       VARCHAR(200)  NULL,                                 │
+  │    verified        BOOLEAN       DEFAULT TRUE,                         │
+  │    created_at      TIMESTAMP     NOT NULL                              │
+  │  );                                                                     │
+  │                                                                         │
+  │  Business (                                                             │
+  │    id                VARCHAR(80)   PRIMARY KEY,                        │
+  │    owner_id          VARCHAR(80)   NOT NULL,                           │
+  │    slug              VARCHAR(120)  NOT NULL  UNIQUE,                   │
+  │    name              VARCHAR(80)   NOT NULL,                           │
+  │    business_type     VARCHAR(50),                                      │
+  │    description       TEXT,                                             │
+  │    city              VARCHAR(100),                                     │
+  │    address           VARCHAR(300),                                     │
+  │    latitude          FLOAT,                                            │
+  │    longitude         FLOAT,                                            │
+  │    working_hours     VARCHAR(100),                                     │
+  │    primary_services  VARCHAR(500),                                     │
+  │    highlights        TEXT,                                             │
+  │    cover_image_url   VARCHAR(320),                                     │
+  │    owner_email       VARCHAR(120),                                     │
+  │    owner_phone       VARCHAR(40),                                      │
+  │    public_knowledge  TEXT,                                             │
+  │    site_url          VARCHAR(200),                                     │
+  │    chat_url          VARCHAR(200),                                     │
+  │    created_at        TIMESTAMP,                                        │
+  │    updated_at        TIMESTAMP,                                        │
+  │    FOREIGN KEY (owner_id) REFERENCES Owner(id)                         │
+  │  );                                                                     │
+  │                                                                         │
+  │  Document (                                                             │
+  │    id              VARCHAR(80)   PRIMARY KEY,                          │
+  │    business_id     VARCHAR(80)   NOT NULL,                             │
+  │    file_name       VARCHAR(200)  NOT NULL,                             │
+  │    file_type       VARCHAR(20),                                        │
+  │    chunks          INTEGER       DEFAULT 0,                            │
+  │    created_at      TIMESTAMP,                                          │
+  │    FOREIGN KEY (business_id) REFERENCES Business(id)                    │
+  │  );                                                                     │
+  │                                                                         │
+  │  Conversation (                                                         │
+  │    id              VARCHAR(80)   PRIMARY KEY,                          │
+  │    business_id     VARCHAR(80)   NOT NULL,                             │
+  │    platform        VARCHAR(20),                                        │
+  │    remote_jid      VARCHAR(200),                                       │
+  │    status          VARCHAR(20)   DEFAULT 'active',                     │
+  │    created_at      TIMESTAMP,                                          │
+  │    updated_at      TIMESTAMP,                                          │
+  │    FOREIGN KEY (business_id) REFERENCES Business(id)                    │
+  │  );                                                                     │
+  │                                                                         │
+  │  Message (                                                              │
+  │    id                VARCHAR(80)   PRIMARY KEY,                        │
+  │    conversation_id   VARCHAR(80)   NOT NULL,                           │
+  │    question          TEXT,                                             │
+  │    answer            TEXT,                                             │
+  │    language          VARCHAR(20),                                      │
+  │    created_at        TIMESTAMP,                                        │
+  │    FOREIGN KEY (conversation_id) REFERENCES Conversation(id)            │
+  │  );                                                                     │
+  │                                                                         │
+  │  Inquiry (                                                              │
+  │    id              VARCHAR(80)   PRIMARY KEY,                          │
+  │    name            VARCHAR(100)  NOT NULL,                             │
+  │    email           VARCHAR(120)  NOT NULL,                             │
+  │    message         TEXT          NOT NULL,                             │
+  │    status          VARCHAR(20)   DEFAULT 'new',                        │
+  │    created_at      TIMESTAMP                                           │
+  │  );                                                                     │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+7. DIAGRAMME DE DÉPLOIEMENT
+================================================================================
+
+7.1 Représentation UML — Déploiement
+
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │                       DIAGRAMME DE DÉPLOIEMENT                           │
+  │                           Sahel.ai — PFE 2026                           │
+  │                                                                          │
+  │  ┌──────────────────────────────────────────────────────────────────┐   │
+  │  │                    NAVIGATEUR CLIENT                              │   │
+  │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │   │
+  │  │  │  Site Web   │  │  WhatsApp   │  │  Telegram               │  │   │
+  │  │  │  (React)    │  │  (App)      │  │  (App)                  │  │   │
+  │  │  └─────────────┘  └─────────────┘  └─────────────────────────┘  │   │
+  │  └────────────────────────────────────────┬─────────────────────────┘   │
+  │                                           │                               │
+  │                    ┌──────────────────────┴──────────────────────┐        │
+  │                    │              INTERNET (HTTPS)                │        │
+  │                    └──────────────────────┬──────────────────────┘        │
+  │                                           │                               │
+  │  ┌────────────────────────────────────────┴─────────────────────────┐   │
+  │  │                     VERZEL (CDN)                                 │   │
+  │  │  ┌────────────────────────────────────────────────────────────┐  │   │
+  │  │  │  Frontend React (SPA)                                      │  │   │
+  │  │  │  • static build (dist/)                                    │  │   │
+  │  │  │  • déploiement automatique depuis GitHub                    │  │   │
+  │  │  │  • URL: https://sahel-ai.vercel.app                        │  │   │
+  │  │  └────────────────────────────────────────────────────────────┘  │   │
+  │  └──────────────────────────────────┬────────────────────────────────┘   │
+  │                                     │  API REST                          │
+  │  ┌──────────────────────────────────┴────────────────────────────────┐   │
+  │  │              HUGGINGFACE SPACES (Docker)                          │   │
+  │  │  ┌────────────────────────────────────────────────────────────┐  │   │
+  │  │  │  Backend FastAPI (Python 3.12)                             │  │   │
+  │  │  │  • Pipeline RAG                                             │  │   │
+  │  │  │  • Authentification JWT + OAuth                             │  │   │
+  │  │  │  • Génération mini-sites + QR codes                         │  │   │
+  │  │  │  • URL: https://sahel-api.hf.space                          │  │   │
+  │  │  └────────────────────────────────────────────────────────────┘  │   │
+  │  └──────┬───────────────────────────────────────────────────────────┘   │
+  │         │                                     │                          │
+  │         │ SQL                                 │ API                      │
+  │         ▼                                     ▼                          │
+  │  ┌────────────────────┐          ┌────────────────────────┐              │
+  │  │    SUPABASE         │          │      GROQ CLOUD         │              │
+  │  │  (PostgreSQL 15)    │          │  (Llama 3 70B)         │              │
+  │  │  • 500 MB gratuit   │          │  • Inférence LPU        │              │
+  │  │  • Backup auto      │          │  • 30 req/min gratuit   │              │
+  │  │  • Console web      │          │  • API REST             │              │
+  │  └────────────────────┘          └────────────────────────┘              │
+  │                                                                          │
+  │  ┌────────────────────┐          ┌────────────────────────┐              │
+  │  │   WHATSAPP BOT     │          │    TELEGRAM BOT         │              │
+  │  │  (Node.js)         │          │  (Node.js)              │              │
+  │  │  • Baileys MD       │          │  • Long-polling         │              │
+  │  │  • QR connexion     │          │  • Commandes /start     │              │
+  │  │  • Sessions persist.│          │  • Boutons inline       │              │
+  │  └────────────────────┘          └────────────────────────┘              │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+7.2 Explication
+
+  "Le diagramme de déploiement montre les différents nœuds physiques de
+  l'architecture. Le frontend React est hébergé sur Vercel (CDN mondial).
+  Le backend FastAPI tourne dans un conteneur Docker sur HuggingFace Spaces.
+  La base de données PostgreSQL est gérée par Supabase. Les services
+  externes incluent Groq Cloud pour l'inférence LLM. Les bots WhatsApp et
+  Telegram s'exécutent comme des processus Node.js indépendants."
+
+
+================================================================================
+8. CONSEILS POUR LE RAPPORT
+================================================================================
+
+  8.1 Ordre recommandé
+
+     1. Diagramme de Cas d'Utilisation (le plus simple, vue fonctionnelle)
+     2. Diagrammes de Séquence (vue dynamique)
+     3. MCD (vue données)
+     4. MLD (vue SQL)
+     5. Diagramme de Classes (vue programmation)
+     6. Diagramme de Déploiement (vue infrastructure)
+
+  8.2 Légendes
+
+     • Chaque diagramme doit avoir un titre explicite
+       (ex: "Figure 1 : Diagramme de Cas d'Utilisation de Sahel.ai")
+     • Les cardinalités doivent être lisibles (1, 0..*, 1..*, etc.)
+     • Utilisez des couleurs différentes pour chaque acteur/entité
+     • Ajoutez une légende si la notation n'est pas standard
+
+  8.3 Outils recommandés
+
+     • draw.io → Export en PNG/SVG (meilleure qualité)
+     • Lucidchart → Version éducation gratuite
+     • Visual Paradigm → Gratuit pour étudiants
+     • PlantUML → Génération automatique depuis du texte
+
+  8.4 Phrases types pour le jury
+
+    "Pour modéliser notre système, nous avons suivi une approche en trois
+    étapes : le diagramme de cas d'utilisation pour décrire les interactions,
+    le MCD pour structurer les données, et le diagramme de classes pour
+    préparer l'implémentation orientée objet."
+
+    "Les cardinalités du MCD ont été déterminées à partir des règles de
+    gestion : un propriétaire peut avoir plusieurs commerces, un commerce
+    peut avoir plusieurs documents, etc."
+
+    "Le diagramme de déploiement illustre notre choix d'une architecture
+    zéro coût : Vercel pour le frontend, HuggingFace Spaces pour le backend,
+    Supabase pour la base de données."
+
+
+================================================================================
+                         FIN DU GUIDE — DIAGRAMMES PFE 2026
+                 Sahel.ai — EST Meknès — Génie Informatique (GI2)
+================================================================================

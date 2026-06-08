@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.env
+*.log
+venv/
+.venv/
+node_modules/
+dist/
+.pytest_cache/
+.DS_Store
+sahel.db
+*.db

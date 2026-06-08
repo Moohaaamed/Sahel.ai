@@ -900,7 +900,7 @@ function NotFoundPage() {
 
 function App() {
   const path = window.location.pathname;
-  const miniSiteMatch = path.match(/^\/business\/([^/]+)/);
+  const miniSiteMatch = path.match(/^\/(?:business|b)\/([^/]+)/);
   const chatMatch = path.match(/^\/chat\/([^/]+)/);
 
   function renderPage() {

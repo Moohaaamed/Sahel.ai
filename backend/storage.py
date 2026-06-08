@@ -262,4 +262,28 @@ def import_json_table(table_name: str, json_path: Path) -> None:
         write_table(table_name, rows)
 
 
+def seed_missing_social_media(businesses_json_path: Path) -> None:
+    if not businesses_json_path.exists():
+        return
+    try:
+        seed_rows = json.loads(businesses_json_path.read_text(encoding="utf-8"))
+    except UnicodeDecodeError:
+        seed_rows = json.loads(businesses_json_path.read_text(encoding="cp1252"))
+    with SessionLocal() as session:
+        for seed_row in seed_rows:
+            sm = seed_row.get("social_media")
+            if not sm:
+                continue
+            slug = seed_row.get("slug")
+            if not slug:
+                continue
+            existing = session.query(BusinessModel).filter(
+                BusinessModel.slug == slug,
+                BusinessModel.social_media.is_(None)
+            ).first()
+            if existing:
+                existing.social_media = sm
+        session.commit()
+
+
 init_database()

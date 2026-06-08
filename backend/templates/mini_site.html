@@ -210,6 +210,54 @@
       color: var(--text);
       line-height: 1.7;
     }
+    .social-section {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .social-title {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-light);
+      margin-bottom: 16px;
+    }
+    .social-links {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 16px;
+    }
+    .social-link {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      color: var(--text);
+      transition: all 0.2s;
+    }
+    .social-link:hover {
+      transform: translateY(-2px);
+    }
+    .social-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .social-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-light);
+    }
   </style>
 </head>
 <body>
@@ -319,6 +367,30 @@
     <div class="section">
       <div class="section-title">{{ t.about }}</div>
       <div class="public-knowledge">{{ business.public_knowledge }}</div>
+    </div>
+    {% endif %}
+
+    {% if social_links %}
+    <div class="section social-section">
+      <div class="social-title">{{ t.social }}</div>
+      <div class="social-links">
+        {% set icons = {
+          "instagram": ["📸", "#E4405F"],
+          "facebook": ["👍", "#1877F2"],
+          "twitter": ["🐦", "#1DA1F2"],
+          "linkedin": ["💼", "#0A66C2"],
+          "youtube": ["▶️", "#FF0000"],
+          "tiktok": ["🎵", "#000000"],
+          "whatsapp": ["💬", "#25D366"]
+        } %}
+        {% for platform, url in social_links.items() %}
+          {% set icon = icons.get(platform, ["🔗", "#378ADD"]) %}
+          <a href="{{ url }}" target="_blank" rel="noopener noreferrer" class="social-link">
+            <div class="social-icon" style="background: {{ icon[1] }}">{{ icon[0] }}</div>
+            <span class="social-label">{{ platform }}</span>
+          </a>
+        {% endfor %}
+      </div>
     </div>
     {% endif %}
 

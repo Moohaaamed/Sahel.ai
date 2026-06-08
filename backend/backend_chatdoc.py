@@ -39,7 +39,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-from storage import import_json_table, read_table, write_table
+from storage import import_json_table, read_table, write_table, seed_missing_social_media
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
@@ -193,6 +193,8 @@ for table_name, json_path in {
     "inquiries": INQUIRIES_FILE,
 }.items():
     import_json_table(table_name, json_path)
+
+seed_missing_social_media(BUSINESSES_FILE)
 
 embeddings = None
 
@@ -2351,6 +2353,7 @@ SITE_TRANSLATIONS = {
         "hours": "ساعات العمل",
         "services": "الخدمات",
         "about": "من نحن",
+        "social": "وسائل التواصل الاجتماعي",
         "powered_by": "مدعوم من",
     },
     "fr": {
@@ -2365,6 +2368,7 @@ SITE_TRANSLATIONS = {
         "hours": "Horaires",
         "services": "Services",
         "about": "À propos",
+        "social": "Réseaux sociaux",
         "powered_by": "Propulsé par",
     },
     "en": {
@@ -2379,6 +2383,7 @@ SITE_TRANSLATIONS = {
         "hours": "Working hours",
         "services": "Services",
         "about": "About",
+        "social": "Social media",
         "powered_by": "Powered by",
     },
 }
@@ -2390,12 +2395,20 @@ def _site_context(business: dict, request: Request) -> dict:
     slug = business["slug"]
     lang_code = SITE_LANG_MAP.get(business.get("language"), "en")
     base_url = str(request.base_url).rstrip("/")
+    social_links = {}
+    raw = business.get("social_media")
+    if raw and isinstance(raw, str):
+        try:
+            social_links = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            pass
     return {
         "business": business,
         "lang": lang_code,
         "t": SITE_TRANSLATIONS.get(lang_code, SITE_TRANSLATIONS["en"]),
         "chat_url": f"{base_url}/chat/{slug}",
         "qr_url": f"{base_url}/b/{slug}/qr",
+        "social_links": social_links,
     }
 
 

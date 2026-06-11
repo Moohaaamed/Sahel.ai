@@ -77,7 +77,7 @@ def _check_ws_rate_limit(ip: str) -> bool:
     return True
 
 origins = (
-    os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
+    os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:5175,http://127.0.0.1:5175")
     .split(",")
 )
 
@@ -88,6 +88,13 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "Accept", "Origin"],
 )
+
+
+@app.middleware("http")
+async def _private_network_access(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Private-Network"] = "true"
+    return response
 
 
 @app.middleware("http")

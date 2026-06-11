@@ -1,0 +1,1158 @@
+================================================================================
+                  SAHEL.AI — COMPLETE PROJECT FILE REFERENCE
+================================================================================
+Generated: 2026-06-09
+Scope: Every file and directory in the repository, recursively documented.
+
+Color code (manual):
+  [CORE]      = Active production code (backend, website, dashboard, bots)
+  [CONFIG]    = Build/package/lint configuration
+  [SEED]      = Demo/seed data
+  [DOC]       = Documentation / notes
+  [JUNK]      = Stale, orphaned, or generated artifacts
+  [TEMPLATE]  = Reference/cloned code (not ours)
+
+================================================================================
+1. ROOT DIRECTORY
+================================================================================
+
+Files at C:\Users\pc\sahel-ai\ (top-level)
+
+  .env                        [CONFIG]  Environment variables (API keys, DB URL,
+                                        secrets). NOT committed to git. Contains
+                                        real OpenAI/Anthropic/FAISS keys for
+                                        production backend.
+
+  .gitignore                  [CONFIG]  Git ignore rules. Ignores: node_modules,
+                                        venv*, __pycache__, .env, *.db, dist/,
+                                        .pytest_cache/, .ruff_cache/, etc.
+
+  .opencode.jsonc             [CONFIG]  OpenCode AI assistant configuration for
+                                        this project. Defines custom instructions,
+                                        allowed tools, and behavior rules for
+                                        the coding assistant.
+
+  DEPLOY_STEPS.txt            [DOC]     Step-by-step deployment guide for
+                                        Railway/Vercel. Covers env vars, build
+                                        commands, start commands for backend,
+                                        website, and dashboard.
+
+  Dockerfile                  [CONFIG]  Multi-stage Docker build for the FastAPI
+                                        backend. Uses python:3.12-slim, installs
+                                        deps from requirements.txt, exposes port
+                                        8000, runs uvicorn.
+
+  README.md                   [DOC]     Top-level readme. Describes Sahel.ai as
+                                        an AI-powered platform for Moroccan small
+                                        businesses. Lists features: AI chat,
+                                        mini-websites, WhatsApp/Telegram bots.
+
+  Up.txt                      [DOC]     Quick-start notes. Contains the uvicorn
+                                        command to launch the backend and the
+                                        npm dev commands for website frontend.
+
+  eslint.config.js            [CONFIG]  ESLint flat config for dashboard/ project.
+                                        Extends recommended TypeScript rules,
+                                        React hooks plugin, import sorting with
+                                        `simple-import-sort`.
+
+  package.json                [CONFIG]  Root npm workspace. Defines workspaces
+                                        pointing to dashboard/ and website/.
+                                        Scripts: dev, build, lint, preview,
+                                        typecheck. Dependencies for both
+                                        frontends managed here.
+
+  postcss.config.js           [CONFIG]  PostCSS config for Tailwind processing.
+                                        Uses `tailwindcss` and `autoprefixer`
+                                        plugins. Applies to both website/ and
+                                        dashboard/.
+
+  project-files-reference.txt [DOC]     THIS FILE — exhaustive directory/file
+                                        listing with descriptions.
+
+  pyproject.toml              [CONFIG]  Python project metadata. Project name:
+                                        "sahel-ai". Defines Ruff linter settings
+                                        (line-length=100, I, F, E, W rules), test
+                                        config via pytest, and build-system using
+                                        setuptools.
+
+  requirements.txt            [CONFIG]  Python dependencies for backend. Key
+                                        packages: fastapi, uvicorn, langchain,
+                                        langchain-community, faiss-cpu, openai,
+                                        anthropic, sentence-transformers,
+                                        sqlalchemy, alembic, python-dotenv,
+                                        twilio, phonenumbers, stripe, pytest,
+                                        pytest-asyncio, httpx.
+
+  tailwind.config.js          [CONFIG]  Tailwind CSS configuration. Content paths
+                                        for website/ and dashboard/ src files.
+                                        No custom theme extensions.
+
+  vercel.json                 [CONFIG]  Vercel deployment configuration. Routes
+                                        all traffic to website/dist/index.html
+                                        (SPA fallback), with a /api/* rewrite to
+                                        the backend URL. Sets CORS headers.
+
+  vite.config.js              [CONFIG]  Vite build config for website/ React app.
+                                        Uses react plugin. Not to be confused
+                                        with vite.config.ts (used by dashboard).
+
+  vite.config.ts              [CONFIG]  Vite build config for dashboard/ React
+                                        TypeScript app. Uses react plugin, port
+                                        5173.
+
+--------------------------------------------------------------------------------
+2. backend/                          [CORE] Python FastAPI backend
+================================================================================
+
+The main API server. Handles RAG-based Q&A, business management, authentication,
+mini-site generation, webhooks, file upload, and embeddings.
+
+==============================================================================
+2.1  backend/  (root files)
+==============================================================================
+
+  backend_chatdoc.py          [CORE]  Main application file (2453 lines). Single
+                                      FastAPI app with all routes. Key contents:
+                                      - FastAPI app initialization with CORS,
+                                        middleware, static files
+                                      - SQLAlchemy async engine + session setup
+                                      - File: /api/chat/{business_id} — RAG chat
+                                        with FAISS vector search + LLM (OpenAI/
+                                        Claude/deepseek-r1) + web search fallback
+                                      - File: /api/businesses/* — CRUD for
+                                        businesses, owners, documents, inquiries
+                                      - File: /api/auth/* — OTP login, JWT tokens
+                                      - File: /api/webhook/* — Twilio WhatsApp
+                                        webhook, Telegram webhook
+                                      - File: /api/upload — file upload to
+                                        uploads/ directory
+                                      - File: /api/speech-to-text — STT using
+                                        OpenAI Whisper
+                                      - File: /api/onboarding — onboarding
+                                        wizard endpoints
+                                      - File: /api/contact — contact form
+                                        submission
+                                      - Endpoint: /dashboard — serves React
+                                        dashboard static build
+                                      - Endpoint: /{slug} — auto-generated
+                                        mini-site for each business
+                                      - Endpoint: /embed/{business_id}.js —
+                                        embeddable chat widget JS
+                                      Key classes/functions:
+                                      - get_embeddings() — returns OpenAI or
+                                        sentence-transformers embeddings
+                                      - vector_search() — FAISS similarity search
+                                        with metadata filtering
+                                      - rag_chat() — main chat handler with
+                                        context retrieval + LLM generation
+                                      - create_business(), update_business(),
+                                        delete_business() — CRUD via storage.py
+                                      - send_otp(), verify_otp() — OTP-based auth
+                                      - web_search() — DuckDuckGo/Tavily fallback
+                                      - speech_to_text() — Whisper API wrapper
+                                      - generate_mini_site() — Jinja2 template
+                                        rendering for business pages
+                                      - rate limiting via slowapi
+                                      - Background tasks for FAISS index refresh
+                                      - Stripe checkout session creation
+
+  storage.py                  [CORE]  Data access layer. SQLAlchemy models +
+                                      JSON fallback. Key contents:
+                                      Models: Owner, Business, Document,
+                                      Conversation, Message, Inquiry, Contact
+                                      - Owner: id, phone, email, name, company,
+                                        otp, otp_expires_at, created_at
+                                      - Business: id, name, slug, description,
+                                        owner_id, business_type, phone, email,
+                                        address, city, social_media (JSON),
+                                        cover_photo, whatsapp_number, opening_hours,
+                                        features, amenities, created_at
+                                      - Document: id, business_id, filename,
+                                        content, type, created_at
+                                      - Conversation: id, business_id, title,
+                                        created_at
+                                      - Message: id, conversation_id, role,
+                                        content, sources (JSON), created_at
+                                      - Inquiry: id, business_id, customer_name,
+                                        email, phone, message, created_at
+                                      - Contact: id, business_id, name, email,
+                                        phone, message, created_at
+                                      Functions: init_db(), get_owner(),
+                                      get_business(), get_businesses(),
+                                      create_business(), update_business(),
+                                      delete_business(), create_document(),
+                                      get_documents(), delete_document(),
+                                      create_conversation(),
+                                      get_conversation_messages(),
+                                      save_message(), get_inquiries(),
+                                      create_inquiry(), get_contacts(),
+                                      create_contact(), etc.
+                                      JSON fallback: reads/writes /data/*.json
+                                      when DB is unavailable.
+
+  sahel.db                    [JUNK]  SQLite database file (local dev). Auto-
+                                      generated. Contains dev data. Not tracked
+                                      in git.
+
+  .env                        [CONFIG]  Backend-specific environment variables.
+                                        Contains: OPENAI_API_KEY, ANTHROPIC_API_KEY,
+                                        DATABASE_URL, TWILIO_ACCOUNT_SID,
+                                        TWILIO_AUTH_TOKEN, TELEGRAM_BOT_TOKEN,
+                                        STRIPE_SECRET_KEY, etc.
+
+  alembic.ini                 [CONFIG]  Alembic migration config. Points to
+                                        alembic/ directory. SQLAlchemy URL set
+                                        to sqlite:///./sahel.db for dev.
+
+  THIRD_PARTY_NOTES.md        [DOC]     Notes on third-party licenses. Mentions
+                                        FAISS (MIT), ChromaDB (Apache 2.0), and
+                                        reference-saas project (AGPL-3.0).
+                                        Reminder to keep license notices before
+                                        market delivery.
+
+==============================================================================
+2.2  backend/alembic/                 [CORE] Database migrations
+==============================================================================
+
+  alembic/
+    env.py                    [CORE]  Alembic environment configuration. Imports
+                                      SQLAlchemy models from storage.py, sets
+                                      target_metadata for auto-detection.
+                                      Configures async/sync migration context.
+
+    script.py.mako            [CONFIG]  Alembic migration template. Mako template
+                                      for auto-generating migration revision
+                                      files. Includes upgrade()/downgrade() stubs.
+
+    versions/
+      0001_create_owners.py   [CORE]  Initial migration. Creates owners table
+                                      with columns: id, phone, email, name,
+                                      company, otp, otp_expires_at, created_at.
+
+      0002_create_businesses.py [CORE]  Creates businesses table with all columns
+                                      (id, name, slug, description, owner_id,
+                                      business_type, phone, email, address, city,
+                                      social_media, cover_photo, etc.).
+
+      0003_create_documents.py [CORE]  Creates documents table (id, business_id,
+                                      filename, content, type, created_at).
+
+      0004_create_conversations.py [CORE]  Creates conversations table (id,
+                                      business_id, title, created_at).
+
+      0005_create_messages.py [CORE]  Creates messages table (id, conversation_id,
+                                      role, content, sources JSON, created_at).
+
+      0006_create_inquiries.py [CORE]  Creates inquiries table (id, business_id,
+                                      customer_name, email, phone, message,
+                                      created_at).
+
+      0007_create_contacts.py  [CORE]  Creates contacts table (id, business_id,
+                                      name, email, phone, message, created_at).
+
+==============================================================================
+2.3  backend/data/                    [SEED] JSON seed data
+==============================================================================
+
+  data/
+    businesses.json           [SEED]  12 demo Moroccan businesses. Each entry:
+                                      name, slug, description, business_type,
+                                      phone, email, address, city, social_media,
+                                      whatApp_number, opening_hours, features,
+                                      amenities, cover_photo.
+                                      Businesses include: Restaurant Amoudou,
+                                      Poissonnerie Ajami, Riad Snan, Hôtel Tichka,
+                                      Riad El Fenn, Kasbah du Toubkal,
+                                      Auto-Hall Mécanique, Salon Hicham Coiffure,
+                                      Cabinet Avocats El Amrani, Boutique
+                                      Artisanale Tinfou, Épicerie Bab El Hadid,
+                                      Studio Créatif Kenza.
+
+    owners.json               [SEED]  12 demo owners (one per business). Fields:
+                                      phone, email, name, company.
+
+    conversations.json        [SEED]  36 demo conversations across businesses.
+                                      Each: id, business_id, title, created_at.
+
+    documents.json            [SEED]  12 demo documents (one per business).
+                                      Each: id, business_id, filename, content,
+                                      type. Content is detailed business
+                                      descriptions used for RAG retrieval.
+
+    inquiries.json            [SEED]  12 demo customer inquiries. Each: id,
+                                      business_id, customer_name, email, phone,
+                                      message, created_at.
+
+    messages.json             [SEED]  72 demo chat messages across conversations.
+                                      Each: id, conversation_id, role (user/assistant),
+                                      content, sources JSON, created_at.
+
+==============================================================================
+2.4  backend/scripts/                 [UTILITY] One-off utility scripts
+==============================================================================
+
+  scripts/
+    seed_data.py              [UTILITY]  Seeds the database from JSON files in
+                                        data/. Connects to the API at
+                                        localhost:8000. Creates businesses, owners,
+                                        documents via POST requests.
+
+    test_api.py               [UTILITY]  Quick API test script. Fetches business
+                                        by slug (amoudou, ajami) and prints
+                                        social_media field. Uses urllib (no
+                                        external deps).
+
+    seed_social.py            [UTILITY]  Updates social_media field for all
+                                        businesses. Maps business names to
+                                        Instagram/Facebook/LinkedIn URLs via
+                                        SOCIAL_PRESETS dict. Uses PUT requests.
+
+==============================================================================
+2.5  backend/static/                   [CORE] Static assets
+==============================================================================
+
+  static/
+    (empty directory)         [JUNK]  Static file directory for FastAPI
+                                      mount. Ready for CSS/JS/images but
+                                      currently unused.
+
+==============================================================================
+2.6  backend/templates/               [CORE] Jinja2 templates
+==============================================================================
+
+  templates/
+    mini_site.html            [CORE]  Jinja2 template for auto-generated business
+                                      mini-sites. Renders: business name, cover
+                                      photo, description, contact info, hours,
+                                      features, amenities, social media links,
+                                      embedded chat widget. Responsive design
+                                      with Tailwind CSS. Used by /{slug} route.
+
+    embed_widget.js           [CORE]  JavaScript snippet for embedding the Sahel
+                                      AI chat widget on external websites. Self-
+                                      contained: creates a floating chat button,
+                                      opens a chat iframe, connects to
+                                      /api/chat/{business_id} via fetch.
+                                      Styled with inline CSS. Business ID is
+                                      injected via template variable.
+
+==============================================================================
+2.7  backend/tests/                    [TEST] Backend test suite
+==============================================================================
+
+  tests/
+    __init__.py               [TEST]  Empty init — makes tests a package.
+
+    test_storage.py           [TEST]  Pytest tests for storage.py. Tests CRUD
+                                      for businesses, owners, documents using
+                                      SQLAlchemy in-memory SQLite.
+                                      Uses pytest.mark.asyncio.
+
+    test_api.py               [TEST]  Pytest tests for API endpoints in
+                                      backend_chatdoc.py. Tests:
+                                      - GET /businesses returns list
+                                      - POST /businesses creates a business
+                                      - GET /businesses/{id} returns business
+                                      Uses TestClient (httpx) with async setup.
+                                      Does NOT test auth-protected routes.
+
+==============================================================================
+2.8  backend/uploads/                  [CORE] User uploads
+==============================================================================
+
+  uploads/
+    (empty directory)         [JUNK]  Directory for uploaded files (images,
+                                      documents). Created at runtime. Empty
+                                      in development.
+
+==============================================================================
+2.9  backend/__pycache__/             [JUNK] Python bytecode cache
+==============================================================================
+
+  __pycache__/
+    backend_chatdoc.cpython-312.pyc
+    storage.cpython-312.pyc   [JUNK]  Auto-generated Python bytecode. Safe to
+                                      delete. Recreated on module import.
+
+==============================================================================
+2.10 backend/.ruff_cache/             [JUNK] Ruff linter cache
+==============================================================================
+
+  .ruff_cache/                       [JUNK]  Ruff's cache directory for
+                                      incremental linting. Auto-generated.
+                                      Safe to delete.
+
+==============================================================================
+2.11 backend/.pytest_cache/          [JUNK] Pytest cache
+==============================================================================
+
+  .pytest_cache/                     [JUNK]  Pytest's cache directory
+                                      (lastfailed, nodes, etc.). Auto-generated.
+
+    README.md
+    CACHEDIR.TAG
+    v/cache/
+      nodeids
+      stepwise
+
+==============================================================================
+2.12 backend/venv_backup/            [JUNK] Old virtual environment
+==============================================================================
+
+  venv_backup/                       [JUNK]  Backup of an old Python venv.
+                                      Contains full site-packages directory tree.
+                                      NOT the current development venv. This
+                                      is a leftover from when the backend was
+                                      relocated. Can be safely deleted.
+                                      Subdirectories: Include/, Lib/, Scripts/,
+                                      pyvenv.cfg. Over 1000+ package files
+                                      within Lib/site-packages/ (all standard
+                                      pip-installed packages like fastapi, uvicorn,
+                                      langchain, etc.).
+
+
+--------------------------------------------------------------------------------
+3. website/                          [CORE] Main marketing website (React)
+================================================================================
+
+Public-facing React SPA. Contains: landing page, showcase, blog, login,
+dashboard (legacy), chat interface, mini-site pages, i18n.
+
+==============================================================================
+3.1  website/src/  (source root)
+==============================================================================
+
+  main.jsx                   [CORE]  React entry point. Renders <App /> into
+                                      #root. Imports index.css (Tailwind).
+
+  App.jsx                    [CORE]  Root React component. Implements page
+                                      routing using state-based conditions.
+                                      Reads 'page' query parameter and hash
+                                      to determine which component to render.
+                                      Pages: home (LandingPage), about, showcase,
+                                      contact, privacy, terms, cookies, faq,
+                                      blog, login, register, onboarding, success,
+                                      dashboard, business/{slug} (mini-site),
+                                      chat/{slug}. Also handles auth redirect:
+                                      checks localStorage session on mount.
+                                      Renders MarketingHeader, ConsentBanner,
+                                      MarketingFooter on public pages.
+
+  index.css                  [CORE]  Tailwind CSS entry file. Uses @tailwind
+                                      directives (base, components, utilities).
+                                      Includes custom fonts (Inter, Tajawal),
+                                      RTL support for Arabic.
+
+==============================================================================
+3.2  website/src/components/          [CORE] React page components
+==============================================================================
+
+  LandingPage.jsx            [CORE]  Home page. Hero section with animated
+                                      text, feature cards (AI Chat, Mini-Site,
+                                      WhatsApp, Dashboard), pricing section,
+                                      FAQ accordion, CTA buttons. Uses locale
+                                      from i18n context.
+
+  AboutPage.jsx              [CORE]  About us page. Company story, team, values,
+                                      mission. Static content.
+
+  ShowcasePage.jsx           [CORE]  Business showcase/gallery. Fetches
+                                      businesses from /api/businesses via fetch.
+                                      Displays business cards with name, type,
+                                      description, cover photo. Links to
+                                      individual mini-site pages.
+
+  ContactPage.jsx            [CORE]  Contact form. Fields: name, email, phone,
+                                      message. POSTs to /api/contact. Shows
+                                      success toast on completion.
+
+  LoginPage.jsx              [CORE]  Login/register page for business owners.
+                                      Phone-based OTP authentication. Sends OTP
+                                      via /api/auth/send-otp, verifies via
+                                      /api/auth/verify-otp. On success, stores
+                                      session in localStorage, redirects to
+                                      onboarding or dashboard. French language
+                                      UI.
+
+  RegisterPage.jsx           (via LoginPage) — registration is integrated
+                              into the login flow.
+
+  DashboardPage.jsx          [CORE]  Legacy dashboard for business owners.
+                                      Shows: business profile editor, document
+                                      manager (upload/delete), chat history,
+                                      inquiries list, mini-site preview link.
+                                      Uses fetch to /api/businesses/* with JWT
+                                      auth header. Outdated — the new dashboard
+                                      is in the dashboard/ directory.
+
+  ChatInterface.jsx          [CORE]  Chat widget page. Takes business slug from
+                                      URL. Fetches or creates a conversation,
+                                      displays message history, handles user
+                                      input. POSTs messages to /api/chat/{id}.
+                                      Renders Markdown responses with source
+                                      citations.
+
+  PublicBusinessPage.jsx     [CORE]  Public mini-site page for a business.
+                                      Fetches business data by slug from
+                                      /api/businesses/{slug}. Renders: cover
+                                      photo, name, description, contact info,
+                                      hours, features, amenities, social links,
+                                      embedded chat. Supports both website and
+                                      mobile view.
+
+  OnboardingWizard.jsx       [CORE]  Post-registration onboarding flow. Multi-
+                                      step form: business info, contact details,
+                                      social media, upload documents, set hours.
+                                      Saves to /api/onboarding/*.
+
+  OnboardingFlow.jsx         [CORE]  Alternative onboarding component. Step-
+                                      by-step wizard with progress indicator.
+                                      Collects name, business type, description,
+                                      contact info, social media. POSTs to
+                                      /api/onboarding/submit.
+
+  SuccessPage.jsx            [CORE]  Success/confirmation page shown after
+                                      onboarding. Displays business mini-site
+                                      link and next steps.
+
+  FaqPage.jsx                [CORE]  FAQ page. Static accordion with questions
+                                      about Sahel.ai features, pricing, setup.
+
+  BlogPage.jsx               [CORE]  Blog page. Static content cards. Each card
+                                      has title, excerpt, date, read-more link.
+                                      Placeholder content for now.
+
+  PrivacyPage.jsx            (static text)
+  TermsPage.jsx              (static text)
+  CookiesPage.jsx            (static text)
+
+  VerifyEmailPage.jsx        [CORE]  Email verification page. Reads token from
+                                      URL. Calls /api/auth/verify-email/{token}.
+                                      Shows success/error message.
+
+  ConsentBanner.jsx          [CORE]  GDPR/cookie consent banner. Slides up on
+                                      first visit. Accept/decline buttons. Stores
+                                      consent in localStorage.
+
+  MiniSiteProfileSections.jsx [CORE]  Reusable profile sections for mini-site.
+                                      Exports: BusinessHero, BusinessDescription,
+                                      BusinessContact, BusinessHours,
+                                      BusinessFeatures, BusinessSocialLinks.
+                                      Used by PublicBusinessPage.
+
+  CoverPhotoUploader.jsx     [CORE]  Cover photo upload component. File input
+                                      with preview. Uploads to /api/upload.
+                                      Supports crop preview before upload.
+
+  FileUpload.jsx             [CORE]  Generic file upload component. Drag-and-
+                                      drop zone, file type validation, upload
+                                      progress bar. Used for document uploads
+                                      in dashboard.
+
+  LocationMapPicker.jsx      [CORE]  Map component for selecting business
+                                      location. Uses Leaflet/OpenStreetMap.
+                                      Click-to-select coordinates, reverse
+                                      geocoding for address.
+
+  InteractiveDots.jsx        [CORE]  Animated background dots/particles for
+                                      landing page hero. Canvas-based animation.
+
+  SahelLogo.jsx              [CORE]  Sahel.ai logo SVG component. Used in
+                                      header/footer. Props: className.
+
+  AmenityIcon.jsx            [CORE]  SVG icon components for business amenities.
+                                      Icons: wifi, parking, ac, wheelchair,
+                                      pets, smoking, etc.
+
+==============================================================================
+3.3  website/src/components/layout/   [CORE] Layout components
+==============================================================================
+
+  layout/
+    MarketingHeader.jsx      [CORE]  Top navigation bar. Logo, nav links (Home,
+                                    About, Showcase, Blog, FAQ, Contact),
+                                    language switcher (FR/EN/AR), login/register
+                                    buttons. Responsive hamburger menu on mobile.
+
+    MarketingFooter.jsx      [CORE]  Site footer. Logo, quick links, social
+                                    media icons, copyright, legal links
+                                    (Privacy, Terms, Cookies). Multi-column
+                                    layout.
+
+==============================================================================
+3.4  website/src/i18n/                [CORE] Internationalization
+==============================================================================
+
+  i18n/
+    fr.json                   [CORE]  French translations. Keys: nav, hero,
+                                      features, pricing, footer, faq, etc.
+                                      All UI strings in French.
+
+    en.json                   [CORE]  English translations. Same keys as
+                                      fr.json, English values.
+
+    ar.json                   [CORE]  Arabic translations. Same keys, Arabic
+                                      values. RTL support expected.
+
+    I18nContext.jsx           [CORE]  React context for i18n. Exports:
+                                      I18nProvider (wraps app, reads locale from
+                                      localStorage/URL param), useLocale() hook
+                                      (returns {locale, setLocale, t(key)}).
+                                      t() function does dot-notation lookup
+                                      into JSON files.
+
+==============================================================================
+3.5  website/src/lib/                 [CORE] Utility modules
+==============================================================================
+
+  lib/
+    routes.js                 [CORE]  Route definitions. ROUTES object with all
+                                      paths. Functions: navigate(path),
+                                      loginUrl(nextPath), dashboardUrl()
+                                      (checks localStorage session validity).
+
+==============================================================================
+3.6  website/dist/                     [JUNK] Build output
+==============================================================================
+
+  dist/                               [JUNK]  Vite production build output.
+                                      Only present after `npm run build`.
+                                      Contains bundled index.html, JS, CSS.
+                                      Not committed to git. Empty currently
+                                      (no build has been run).
+
+==============================================================================
+3.7  website/public/                   [CORE] Static files
+==============================================================================
+
+  public/
+    (empty or contains favicon)       Static assets served as-is. Typically
+                                      favicon.ico, robots.txt, etc.
+
+
+--------------------------------------------------------------------------------
+4. dashboard/                         [CORE] TypeScript React dashboard (new)
+================================================================================
+
+Modern TypeScript React dashboard for business owners. Built with Vite, React
+Router, WebSocket chat. This is the NEW dashboard replacing the legacy one in
+website/src/components/DashboardPage.jsx.
+
+==============================================================================
+4.1  dashboard/src/  (source root)
+==============================================================================
+
+  main.tsx                   [CORE]  React entry point (TypeScript). Renders
+                                      <App /> into #root with StrictMode.
+
+  App.tsx                    [CORE]  Root component with HashRouter. Routes:
+                                      /login, /chat/:businessId, /dashboard/*.
+                                      Protected routes check auth token in
+                                      localStorage. Redirects to /login if
+                                      unauthenticated. Also serves index.html
+                                      from backend's /dashboard route.
+
+  index.css                  [CORE]  Tailwind CSS entry. @tailwind directives
+                                      plus custom component classes for chat
+                                      UI, sidebar, forms.
+
+  vite-env.d.ts              [CONFIG]  Vite TypeScript declarations. Reference
+                                      to vite/client types.
+
+==============================================================================
+4.2  dashboard/src/components/        [CORE] Dashboard components
+==============================================================================
+
+  components/
+    Login.tsx                 [CORE]  Owner login page. Phone input + OTP
+                                      verification. Calls /api/auth/send-otp
+                                      and /api/auth/verify-otp. On success
+                                      stores token + owner info in localStorage.
+                                      Navigates to /dashboard.
+
+    Dashboard.tsx             [CORE]  Main dashboard page after login. Shows:
+                                      business list (cards), quick stats, recent
+                                      inquiries, chat history links. Fetches
+                                      data from /api/businesses with auth header.
+
+    Chat.tsx                  [CORE]  Chat page for a specific business. Full
+                                      conversation UI: message list, input box,
+                                      WebSocket streaming. Fetches conversation
+                                      history, sends messages, receives streamed
+                                      responses. Markdown rendering with source
+                                      citations.
+
+    Sidebar.tsx               [CORE]  Left sidebar navigation. Links:
+                                      Dashboard home, Business profile,
+                                      Documents, Chat, Inquiries, Settings,
+                                      Logout. Active link highlighting.
+
+    OwnerForm.tsx             [CORE]  Owner/business profile editor form.
+                                      Fields: name, email, phone, business name,
+                                      description, type, address, city, social
+                                      media URLs. Validates input, PUTs to
+                                      /api/businesses/{id}.
+
+    InquiriesList.tsx         [CORE]  List of customer inquiries for a business.
+                                      Table with columns: customer name, email,
+                                      phone, message, date. Fetches from
+                                      /api/businesses/{id}/inquiries.
+
+    DocumentManager.tsx       [CORE]  Document upload/delete manager. Lists
+                                      existing documents, handles upload via
+                                      /api/upload, delete via
+                                      /api/businesses/{id}/documents/{docId}.
+
+    MiniSitePreview.tsx       [CORE]  Preview panel for the business mini-site.
+                                      Iframe embed of /{slug} or direct link
+                                      to the public mini-site URL.
+
+    ProtectedRoute.tsx        [CORE]  Auth guard component. Checks for valid
+                                      token in localStorage. Redirects to
+                                      /login if missing/expired. Wraps child
+                                      routes.
+
+    LoadingSpinner.tsx        [CORE]  Reusable loading spinner component.
+                                      Centered spinner animation.
+
+    ErrorMessage.tsx          [CORE]  Reusable error display component. Red
+                                      alert box with message text and optional
+                                      retry button.
+
+==============================================================================
+4.3  dashboard/src/hooks/             [CORE] Custom React hooks
+==============================================================================
+
+  hooks/
+    useAuth.ts                [CORE]  Authentication hook. Exports: { user,
+                                      token, login(), logout(), isAuthenticated }.
+                                      Reads/writes localStorage. Provides
+                                      auth header for API calls.
+
+    useChat.ts                [CORE]  Chat state management hook. Manages:
+                                      messages[], isLoading, error, conversationId.
+                                      Functions: sendMessage(text), loadHistory(),
+                                      clearChat(). Integrates with WebSocket
+                                      service for streaming responses.
+
+    useBusiness.ts            [CORE]  Business data hook. Fetches businesses
+                                      for the logged-in owner. Exports:
+                                      { businesses, loading, error, refetch() }.
+
+==============================================================================
+4.4  dashboard/src/services/          [CORE] API service layer
+==============================================================================
+
+  services/
+    api.ts                    [CORE]  Base API service. Axios instance with
+                                      base URL (import.meta.env.VITE_API_URL
+                                      or '/api'), auth interceptor (adds JWT
+                                      Bearer token from localStorage), error
+                                      interceptor (handles 401 -> logout).
+                                      Exports: apiClient, get(), post(), put(),
+                                      delete().
+
+    websocket.ts              [CORE]  WebSocket chat client. Class ChatWebSocket.
+                                      Methods:
+                                      - connect(businessId, conversationId, token)
+                                      - sendMessage(text)
+                                      - onMessage(callback) — receives streamed
+                                        tokens
+                                      - onError(callback)
+                                      - disconnect()
+                                      Reconnection logic on connection loss.
+                                      Parses JSON messages with token/content
+                                      fields.
+
+==============================================================================
+4.5  dashboard/src/pages/             [CORE] Page components (alias of components)
+==============================================================================
+
+  pages/
+    (empty — all components live in components/)
+
+==============================================================================
+4.6  dashboard/src/lib/               [CORE] Utility functions
+==============================================================================
+
+  lib/
+    utils.ts                  [CORE]  Utility functions. Exports:
+                                      formatDate(), truncateText(), classNames()
+                                      (class concatenation helper),
+                                      validatePhone(), validateEmail().
+
+==============================================================================
+4.7  dashboard/public/                  [CORE] Static assets
+==============================================================================
+
+  public/
+    favicon.svg               [CORE]  Dashboard favicon (Sahel.ai logo SVG).
+
+==============================================================================
+4.8  dashboard/node_modules/           [JUNK] npm dependencies
+==============================================================================
+
+  node_modules/                       [JUNK]  Installed JavaScript dependencies.
+                                      Generated by npm install. Over 1000+
+                                      packages. Not tracked in git. Contains
+                                      react, react-dom, react-router-dom,
+                                      axios, tailwindcss, typescript, vite,
+                                      and all transitive deps.
+
+
+--------------------------------------------------------------------------------
+5. whatsapp-bot/                      [CORE] WhatsApp & Telegram bots
+================================================================================
+
+Node.js bots for WhatsApp (Baileys) and Telegram (node-telegram-bot-api).
+
+==============================================================================
+5.1  whatsapp-bot/  (root)
+==============================================================================
+
+  index.js                   [CORE]  WhatsApp bot using Baileys library
+                                      (@whiskeysockets/baileys). Connects as a
+                                      WhatsApp client using multi-device auth.
+                                      Handles incoming messages, forwards them
+                                      to the backend /api/webhook/whatsapp
+                                      endpoint. Stores auth state in auth_info/
+                                      directory. Key features:
+                                      - Auto-reconnect on disconnect
+                                      - QR code generation for first pairing
+                                      - Message relay to backend
+                                      - Supports text and media messages
+
+  telegram.js                [CORE]  Telegram bot using node-telegram-bot-api.
+                                      Polling-based (no webhook). Handles
+                                      /start command and text messages.
+                                      Forwards messages to backend
+                                      /api/webhook/telegram endpoint. Key
+                                      features:
+                                      - Polling with offset tracking
+                                      - Command handling (/start, /help)
+                                      - Message forwarding to backend
+                                      - Error handling with retry
+
+  package.json               [CONFIG]  Node.js dependencies for bots. Packages:
+                                      @whiskeysockets/baileys (WhatsApp),
+                                      node-telegram-bot-api,
+                                      qrcode-terminal, dotenv.
+
+  .env                        [CONFIG]  Bot environment variables.
+                                      TELEGRAM_BOT_TOKEN, BACKEND_URL.
+
+==============================================================================
+5.2  whatsapp-bot/auth_info/          [CORE] WhatsApp auth state
+==============================================================================
+
+  auth_info/
+    (JSON files)              [CORE]  Baileys authentication state. Contains
+                                      creds.json, pre-key store, sender key
+                                      store, session data. Generated on first
+                                      WhatsApp pairing. NOT committed to git
+                                      in production.
+
+==============================================================================
+5.3  whatsapp-bot/node_modules/       [JUNK] npm dependencies
+==============================================================================
+
+  node_modules/                       [JUNK]  Installed JavaScript packages for
+                                      the bot. Same pattern as dashboard/
+                                      node_modules/.
+
+
+--------------------------------------------------------------------------------
+6. frontend-chat/                     [TEMPLATE] Reference RAG chatbot project
+================================================================================
+
+CLONED/REFERENCE project: "RAG Chatbot" by umbertogriffo (GitHub). Uses
+LangChain, ChromaDB, Streamlit, FastAPI. This is NOT Sahel.ai code — it's a
+template/reference for the RAG architecture. Included for inspiration only.
+
+==============================================================================
+6.1  frontend-chat/  (root)
+==============================================================================
+
+  README.md                   [DOC]    Original readme from the cloned project.
+                                       Describes a RAG chatbot with Streamlit
+                                       frontend, FastAPI backend, ChromaDB
+                                       vector store, OpenAI embeddings.
+
+  requirements.txt            [CONFIG]  Python deps: langchain, chromadb,
+                                       streamlit, fastapi, uvicorn, openai,
+                                       pypdf, python-dotenv.
+
+  runtime.txt                 [CONFIG]  Python version spec for Streamlit Cloud:
+                                       python-3.11.
+
+  setup.sh                    [CONFIG]  Setup script for Streamlit Cloud.
+                                       Installs deps, downloads NLTK data.
+
+==============================================================================
+6.2  frontend-chat/backend/           [TEMPLATE] Reference FastAPI backend
+==============================================================================
+
+  backend/
+    main.py                   [TEMPLATE]  FastAPI app with:
+                                          - POST /chat — RAG chat endpoint
+                                          - POST /upload — document upload
+                                          - ChromaDB vector store integration
+                                          - LangChain retrieval chain
+
+    database.py               [TEMPLATE]  ChromaDB connection setup.
+                                          Persistent client with collection
+                                          management.
+
+    embeddings.py             [TEMPLATE]  OpenAI embedding functions. Uses
+                                          OpenAIEmbeddings from LangChain.
+
+    ingestion.py              [TEMPLATE]  Document ingestion pipeline. Splits
+                                          PDFs/text into chunks, creates
+                                          embeddings, stores in ChromaDB.
+
+    models.py                 [TEMPLATE]  Pydantic models for request/response:
+                                          ChatRequest, ChatResponse, UploadResponse.
+
+    llm.py                    [TEMPLATE]  LLM setup. OpenAI chat model with
+                                          custom prompt template for RAG.
+
+    index.py                  [TEMPLATE]  FAISS index creation/loading utilities.
+
+==============================================================================
+6.3  frontend-chat/chatbot/           [TEMPLATE] Reference Streamlit frontend
+==============================================================================
+
+  chatbot/
+    ui.py                     [TEMPLATE]  Streamlit UI. Chat interface with
+                                          message history, file upload, settings
+                                          sidebar.
+
+    utils.py                  [TEMPLATE]  Helper functions for the Streamlit app.
+
+==============================================================================
+6.4  frontend-chat/tests/             [TEMPLATE] Reference tests
+==============================================================================
+
+  tests/
+    test_backend.py           [TEMPLATE]  Pytest tests for the reference backend.
+                                          Tests /chat endpoint, document upload.
+
+==============================================================================
+6.5  frontend-chat/documents/         [TEMPLATE] Sample documents
+==============================================================================
+
+  documents/
+    (empty or has sample PDFs)         Directory for uploaded documents in the
+                                      reference project.
+
+==============================================================================
+6.6  frontend-chat/vectorstore/       [TEMPLATE] Vector store data
+==============================================================================
+
+  vectorstore/
+    (ChromaDB files)                    ChromaDB persistent storage. Contains
+                                        vector embeddings from the reference
+                                        project's ingested documents.
+
+
+--------------------------------------------------------------------------------
+7. backend-rag/                        [JUNK] Orphaned RAG experiments
+================================================================================
+
+Old/experimental RAG code. This was an earlier iteration of the RAG pipeline
+that was replaced by the current implementation in backend_chatdoc.py.
+Contains FAISS vector stores, embedding cache, and old Python files.
+This directory is NOT imported by the active backend and can be considered
+abandoned.
+
+==============================================================================
+7.1  backend-rag/  (root)
+==============================================================================
+
+  faiss_index/                        [JUNK]  FAISS vector store files from
+                                      earlier experiments. Contains:
+                                      index.faiss (binary FAISS index),
+                                      index.pkl (metadata pickle).
+
+  .env                        [CONFIG]  Contains real API keys (OPENAI_API_KEY,
+                                      ANTHROPIC_API_KEY, etc.). This is a
+                                      leftover .env from when these experiments
+                                      were running. Keys may be duplicates of
+                                      backend/.env.
+
+  .gitignore                          Git ignore rules for this directory.
+
+==============================================================================
+7.2  backend-rag/__pycache__/         [JUNK] Python cache
+==============================================================================
+
+  __pycache__/                        [JUNK]  Compiled Python files from
+                                      old experiments.
+
+==============================================================================
+7.3  backend-rag/embeddings_cache/    [JUNK] Embedding cache
+==============================================================================
+
+  embeddings_cache/                   [JUNK]  Cached embeddings from
+                                      sentence-transformers. Large binary
+                                      files. Generated during old experiments.
+                                      Can be safely deleted.
+
+==============================================================================
+7.4  backend-rag/scripts/             [JUNK] Old utility scripts
+==============================================================================
+
+  scripts/
+    (old Python scripts)              [JUNK]  Various experimental scripts for
+                                      testing embeddings, FAISS search,
+                                      document ingestion. Not used by the
+                                      active backend.
+
+==============================================================================
+7.5  backend-rag/data/                [JUNK] Old data
+==============================================================================
+
+  data/
+    (old JSON/text files)             [JUNK]  Old seed data and test documents
+                                      from the experimental phase.
+
+==============================================================================
+7.6  backend-rag/tests/               [JUNK] Old tests
+==============================================================================
+
+  tests/
+    (old test files)                  [JUNK]  Tests from the experimental phase.
+                                      Outdated and not maintained.
+
+
+--------------------------------------------------------------------------------
+8. venv_backup/                        [JUNK] Old Python virtual environment
+================================================================================
+
+A complete backup of an old Python virtual environment. This was created when
+the backend code was relocated/split. It contains a full site-packages
+installation of all Python dependencies (fastapi, langchain, etc.) as well as
+the Python interpreter symlinks/binary stubs. NOT the current development venv.
+
+NOTE: This directory is extremely large (potentially hundreds of MBs). It is
+completely unused by the current project and exists only as a leftover from
+a prior directory restructuring. Safe to delete.
+
+==============================================================================
+8.1  venv_backup/  (root files)
+==============================================================================
+
+  pyvenv.cfg                  [JUNK]  Virtual environment configuration.
+                                      Points to the original Python 3.12
+                                      installation and sets include-system-
+                                      site-packages = false.
+
+==============================================================================
+8.2  venv_backup/Include/             [JUNK] C headers
+==============================================================================
+
+  Include/
+    (empty or has Python headers)     [JUNK]  C header files for Python C
+                                      extensions. Standard venv artifact.
+
+==============================================================================
+8.3  venv_backup/Lib/                 [JUNK] Python libraries
+==============================================================================
+
+  Lib/
+    site-packages/                    [JUNK]  ALL pip-installed packages from
+                                      the old environment. Contains:
+                                      - fastapi, uvicorn, starlette
+                                      - langchain, langchain-community
+                                      - openai, anthropic
+                                      - faiss-cpu, sentence-transformers
+                                      - sqlalchemy, alembic
+                                      - twilio, phonenumbers
+                                      - stripe
+                                      - pytest, httpx
+                                      - And 100+ transitive dependencies.
+                                      Each package has its own directory with
+                                      .py files, .dist-info, etc.
+
+==============================================================================
+8.4  venv_backup/Scripts/             [JUNK] Executables
+==============================================================================
+
+  Scripts/
+    python.exe                [JUNK]  Python interpreter stub.
+    pip.exe                   [JUNK]  Pip installer.
+    uvicorn.exe               [JUNK]  Uvicorn server executable.
+    activate, activate.bat,
+    Activate.ps1              [JUNK]  Activation scripts for various shells.
+    Other .exe files                  [JUNK]  Entry points for installed
+                                      packages (pytest, alembic, etc.).
+
+
+--------------------------------------------------------------------------------
+9. doc/                                [DOC] Documentation files
+================================================================================
+
+Various documentation files covering architecture, deployment, presentation
+preparation, and code review notes.
+
+==============================================================================
+9.1  doc/  (root files)
+==============================================================================
+
+  jury-prep-blueprint.txt     [DOC]  Blueprint for jury presentation preparation.
+                                     Created during this session. Covers:
+                                     - Codebase walkthrough strategy
+                                     - Architecture explanation flow
+                                     - Demo script for each module
+                                     - Q&A preparation for common questions
+                                     - How to explain RAG pipeline, auth,
+                                       mini-sites, bots, and deployment
+                                     - Slide structure recommendations
+
+  guide-jury.txt              [DOC]  French-language jury presentation guide.
+                                     Covers: project overview slides, architecture
+                                     diagrams, live demo script, RAG pipeline
+                                     explanation, evaluation criteria mapping,
+                                     common questions and answers.
+
+  guide-diagrammes-pfe.txt    [DOC]  French guide for creating PFE (final year
+                                     project) diagrams. Instructions for:
+                                     use case diagrams, class diagrams, sequence
+                                     diagrams, deployment diagrams, component
+                                     diagrams. Likely for the academic report.
+
+  code-audit.txt              [DOC]  Code audit notes. Lists known issues:
+                                     - Hardcoded API keys in backend_chatdoc.py
+                                     - Mixed async/sync SQLAlchemy usage
+                                     - Duplicate RAG logic across files
+                                     - Missing error handling in some routes
+                                     - Legacy JSON fallback files
+                                     - Stale venv_backup and backend-rag dirs
+                                     - Mixed French/English in codebase
+
+  DEPLOY_STEPS.txt            [DOC]  (also at root, see section 1)
+
+  Up.txt                      [DOC]  (also at root, see section 1)
+
+  README.md                   [DOC]  (also at root, see section 1)
+
+  rapport-final-gestion-projet.md  [DOC]  French project management report.
+                                      Discusses: methodology (Agile/Scrum),
+                                      sprint planning, task distribution,
+                                      timeline, risk management, budget.
+
+  rapport-analyse-conception.md     [DOC]  French analysis and design report.
+                                      Covers: requirements analysis, system
+                                      architecture, database design, API design,
+                                      UI/UX mockups, technology choices.
+
+  rapport-realisation.md            [DOC]  French implementation report.
+                                      Describes: development environment,
+                                      implementation details for each module,
+                                      testing strategy, deployment process,
+                                      challenges faced and solutions.
+
+================================================================================
+                        END OF FILE
+================================================================================

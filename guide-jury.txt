@@ -1,0 +1,908 @@
+================================================================================
+                     SAHEL.AI — GUIDE DE PRÉPARATION POUR LE JURY
+                       PFE : Assistant IA pour PME Marocaines
+================================================================================
+
+TABLE DES MATIÈRES
+  1. Présentation générale du projet
+  2. Architecture technique (schéma expliqué)
+  3. Backend (FastAPI) — fichier par fichier
+  4. Frontend (React) — fichier par fichier
+  5. Base de données et stockage
+  6. Déploiement (Vercel + HuggingFace Spaces + Supabase)
+  7. Questions fréquentes du jury avec réponses préparées
+  8. Les points techniques à valoriser
+  9. Démo : scénario pas à pas
+
+
+================================================================================
+1. PRÉSENTATION GÉNÉRALE DU PROJET
+================================================================================
+
+Sahel.ai est une plateforme SaaS qui permet aux petites et moyennes entreprises
+(PME) marocaines de:
+  - Créer un mini-site vitrine professionnel en 2 minutes
+  - Intégrer un assistant IA multilingue (Français, Arabe/Darija, Anglais)
+    qui répond automatiquement aux questions des clients
+  - Gérer les documents (brochures, menus, tarifs) pour enrichir les réponses
+  - Recevoir et gérer les demandes de devis/contact (inquiries)
+  - Générer des QR codes pour partager le mini-site
+  - Utiliser WhatsApp et Telegram comme canaux supplémentaires
+
+Le projet utilise:
+  - Backend: Python FastAPI avec RAG (Retrieval-Augmented Generation)
+  - Frontend: React 19 + Vite
+  - Base de données: PostgreSQL (Supabase) avec SQLAlchemy
+  - LLM: Groq (llama-3.3-70b-versatile) pour les réponses IA
+  - Embeddings: sentence-transformers (all-mpnet-base-v2)
+  - Vector store: FAISS pour la recherche sémantique
+  - Déploiement: Frontend sur Vercel, Backend sur HuggingFace Spaces
+
+Pourquoi ce projet est pertinent pour le PFE:
+  - Problème réel: les PME marocaines n'ont pas les moyens d'avoir un site web
+    avec chatbot. Sahel.ai résout ce problème avec une solution clé en main.
+  - Stack technique complet: frontend, backend, IA, base de données, déploiement
+  - Multilingue: gère le Darija (arabe dialectal marocain) ce qui est innovant
+  - Architecture moderne: RAG, embeddings, streaming, WebSockets
+
+
+================================================================================
+2. ARCHITECTURE TECHNIQUE
+================================================================================
+
+   [Utilisateur]
+        |
+   [Navigateur Web] / [WhatsApp] / [Telegram]
+        |
+   +----+-------------+-----+
+   |    |             |     |
+[Vercel]       [WhatsApp Bot]  [Telegram Bot]
+(Frontend)     (Node.js)       (Node.js)
+   |                |             |
+   |           [Backend API] ------+
+   |                |     (FastAPI - HuggingFace Spaces)
+   |           [Base de données]
+   |           (Supabase PostgreSQL)
+   |
+   +---> Groq Cloud (LLM llama-3.3-70b)
+   +---> sentence-transformers (Embeddings)
+   +---> FAISS (Vector Search)
+
+FLUX D'UNE REQUÊTE CHAT (RAG):
+  1. L'utilisateur pose une question dans le chat
+  2. Le frontend envoie la question à /businesses/{id}/chat
+  3. Le backend détecte la langue (ar/fr/en) via detect_language()
+  4. Le backend cherche les documents pertinents dans FAISS (similarity_search)
+  5. Le backend construit un prompt avec: la question + les documents trouvés +
+     le profil complet du commerce (city, horaires, services, highlights...)
+  6. Le backend envoie le prompt à Groq (llama-3.3-70b-versatile)
+  7. Groq génère une réponse naturelle
+  8. La réponse est sauvegardée dans la base de données
+  9. Le frontend affiche la réponse
+
+FLUX CRÉATION D'UN COMMERCE:
+  1. L'utilisateur remplit le formulaire dans le dashboard
+  2. Le backend reçoit POST /businesses avec les données
+  3. Le backend normalise et sauvegarde dans PostgreSQL
+  4. Le commerce apparaît immédiatement dans la liste
+  5. L'utilisateur peut uploader des documents (PDF) pour enrichir le RAG
+  6. Le mini-site est accessible via /b/{slug}
+
+
+================================================================================
+3. BACKEND (FastAPI) — FICHIER PAR FICHIER
+================================================================================
+
+3.1 backend/backend_chatdoc.py (1993 lignes)
+--------------------------------------------------
+C'est le fichier principal du projet. Il contient TOUTE l'API REST.
+
+CE QU'IL FAUT RETENIR:
+
+a) Les modèles Pydantic (lignes 109-216):
+   Ce sont des "contrats" qui définissent la structure des données entrantes
+   et sortantes. FastAPI les utilise automatiquement pour:
+   - Valider les données (vérifier qu'un email est bien un email)
+   - Générer la documentation Swagger (accessible via /docs)
+   - Convertir les types (string en int, etc.)
+   
+   BusinessCreate (L109): c'est ce que l'utilisateur envoie quand il crée
+   un commerce. On y trouve: name, description, city, working_hours, etc.
+   
+   Business (L133): c'est ce que l'API renvoie. Il contient tout ce qu'il y a
+   dans BusinessCreate + des champs auto-générés comme id, slug, site_url.
+
+b) Détection de langue — detect_language() (L635):
+   C'est une fonction cruciale pour le multilingue. Elle fonctionne en 2 étapes:
+   1. Si le texte contient des caractères arabes (\u0600-\u06FF), retourne "ar"
+   2. Sinon, elle compare avec des dictionnaires de mots-clés pour le français
+      et l'anglais, et un ensemble de mots Darija (dialecte marocain) écrits
+      en lettres latines comme "had", "dyal", "chnu", "ach", "bzf", "mzyan"
+   
+   IMPORTANT: La détection du Darija a été améliorée car les phrases comme
+   "had l business dyalach" étaient détectées comme anglais à cause des mots
+   "business" et "had". On a ajouté ~40 mots-clés Darija pour corriger ça.
+
+c) RAG — answer_for_business() (L1068):
+   C'est le coeur de l'assistant IA. Voici ce qu'elle fait:
+   1. Charge le vector store FAISS pour ce commerce (via load_store)
+   2. Cherche les 3 documents les plus pertinents (similarity_search avec k=3)
+   3. Construit un contexte avec les documents trouvés
+   4. Ajoute les infos du profil (city, working_hours, primary_services, etc.)
+   5. Ajoute une instruction de langue (répondre dans la même langue que
+      la question)
+   6. Envoie le tout à Groq
+   7. Sauvegarde la question+ réponse dans la base
+   8. Retourne la réponse
+
+d) Streaming — stream_answer_for_business() (L1126):
+   Version améliorée qui envoie la réponse caractère par caractère via
+   WebSocket ou Server-Sent Events. Cela permet d'afficher la réponse
+   en temps réel sans attendre qu'elle soit complète. L'utilisateur voit
+   les tokens arriver un par un.
+
+e) Analytics — analytics_for_business() (L1240):
+   Calcule les statistiques pour un commerce:
+   - Nombre total de messages
+   - Nombre total de conversations
+   - Langues utilisées (ar/fr/en)
+   - Questions les plus fréquentes (top 5)
+   - 8 derniers messages
+
+   ET analytics pour tout l'owner — /owner/analytics (L1532):
+   Regroupe les stats de TOUS les commerces en une seule requête.
+   C'est plus rapide que de faire 13 appels séparés.
+
+f) Authentification:
+   - create_owner_session() (L354): crée un JWT token avec l'ID du propriétaire
+   - verify_owner_token() (L368): vérifie le JWT et retourne le propriétaire
+   - require_owner() (L382): utilisé comme middleware sur les endpoints protégés
+   
+   Le JWT est stocké dans localStorage côté frontend et envoyé dans le header
+   Authorization: Bearer <token>. Il expire après 24h.
+
+g) Processus de création d'un commerce (POST /businesses, L1429):
+   1. Vérifie que le slug est unique (ex: "amoudou", "saghro")
+   2. Crée les URLs (site_url = "/b/saghro", chat_url = "/chat/saghro")
+   3. Sauvegarde dans la base
+
+h) Upload de documents (POST /businesses/{id}/documents, L1697):
+   1. Reçoit le fichier PDF/TXT
+   2. Extrait le texte avec pypdf
+   3. Découpe en chunks de 1000 caractères (avec 100 de chevauchement)
+   4. Crée les embeddings avec all-mpnet-base-v2
+   5. Indexe dans FAISS
+   6. Sauvegarde les métadonnées (nom, taille, nombre de chunks)
+
+i) Mini-site dynamique (GET /b/{slug}, L1958):
+   Utilise Jinja2 pour générer une page HTML complète avec:
+   - Les informations du commerce
+   - Le chat intégré
+   - Les traductions (français/arabe)
+   - Le widget embed si configuré
+
+j) Widget embed (GET /embed/{slug}.js, L1873):
+   Génère un script JavaScript dynamique que les commerces peuvent ajouter
+   à leur site existant. Ce script injecte un bouton de chat flottant.
+
+LES QUESTIONS PIÈGES POSSIBLES:
+
+Q: "Comment fonctionne la recherche de documents?"
+R: "On utilise un vector store FAISS. Chaque document est découpé en chunks
+    de 1000 caractères. Chaque chunk est converti en vecteur numérique
+    (embedding) de 768 dimensions via le modèle all-mpnet-base-v2.
+    Quand un client pose une question, on convertit aussi sa question en
+    vecteur, et FAISS trouve les 3 chunks les plus proches dans l'espace
+    vectoriel. Ces chunks sont donnés comme contexte au LLM."
+
+Q: "Pourquoi FAISS et pas une autre solution?"
+R: "FAISS est léger, open-source (Facebook/Meta), et fonctionne très bien
+    en local. Pas besoin de service externe comme Pinecone. Pour notre
+    volume de données (quelques centaines de documents), c'est parfait.
+    Le seul inconvénient est qu'il faut rebuild l'index quand on ajoute
+    un document, mais ça prend moins d'une seconde."
+
+Q: "Comment gérez-vous le multilingue?"
+R: "On détecte la langue de la question avec detect_language() qui utilise
+    à la fois la détection de caractères arabes et un scoring par mots-clés
+    pour le français, l'anglais et le darija. Ensuite on passe une instruction
+    de langue au LLM via le système prompt pour qu'il réponde dans la même
+    langue que la question. Pour le darija, on a enrichi le prompt avec des
+    instructions spécifiques."
+
+Q: "Pourquoi avez-vous utilisé un Jeton JWT plutôt que des sessions classiques?"
+R: "Le JWT est stateless: le serveur n'a pas besoin de stocker les sessions.
+    C'est plus scalable. Le token contient l'ID du propriétaire et expire
+    après 24h. C'est signé avec une clé secrète (APP_SECRET_KEY)."
+--------------------------------------------------------------------------------
+
+3.2 backend/storage.py (240 lignes)
+--------------------------------------------------
+Couche d'abstraction entre l'API et la base de données.
+
+CE QU'IL FAUT RETENIR:
+
+a) Modèles SQLAlchemy (L33-120):
+   Ce sont les "tables" traduites en code Python:
+   - OwnerModel: id, full_name, email, password_hash, verified...
+   - BusinessModel: id, owner_id, slug, name, description, city...
+   - DocumentModel: id, business_id, file_name, file_type...
+   - ConversationModel: id, business_id, language, started_at...
+   - MessageModel: id, business_id, conversation_id, question, answer...
+   - InquiryModel: id, business_id, name, contact, message, status...
+
+b) init_database() (L174):
+   Crée automatiquement les tables au démarrage du serveur si elles
+   n'existent pas encore (grâce à AUTO_CREATE_TABLES=true). C'est ce qui
+   permet de déployer sans avoir à lancer de migrations à la main.
+
+c) run_migrations() (L135):
+   Ajoute les colonnes manquantes aux tables existantes. Utile quand on
+   ajoute des champs (ex: city, highlights) après la création initiale.
+
+d) read_table / write_table (L205-223):
+   Fonctions génériques qui marchent avec TOUTES les tables.
+   - read_table: SELECT * FROM table
+   - write_table: DELETE FROM table + INSERT INTO table (remplacement complet)
+
+e) import_json_table (L232):
+   Au démarrage, si une table est vide et que le fichier JSON correspondant
+   existe, il importe les données. C'est comme ça que les données de seed
+   sont chargées (businesses.json, messages.json, etc.)
+
+ASTUCES À CONNAÎTRE:
+- Le fichier utilise PostgreSQL via l'URL DATABASE_URL. Si l'URL contient
+  "postgres://", normalize_database_url() (L15) le remplace automatiquement
+  en "postgresql+psycopg2://" qui est le format attendu par SQLAlchemy.
+- La variable SessionLocal est un "sessionmaker" qui crée des sessions
+  de base de données. Chaque requête ouvre une session, fait ses opérations,
+  et la ferme.
+--------------------------------------------------------------------------------
+
+3.3 backend/seed_saghro.py (227 lignes)
+--------------------------------------------------
+Script de seeding pour le commerce de démonstration "Hotel Saghro".
+
+Contenu:
+- Un commerce complet (Hotel Saghro, Tinghir, 4 étoiles)
+- 2 documents (brochure PDF, menu restaurant)
+- 8 conversations de démonstration (22 messages au total) en:
+  - Français (3 conversations): tarifs, piscine, restaurant, réservation
+  - Anglais (3 conversations): excursions, parking, Wi-Fi, room service
+  - Arabe/Darija (2 conversations): disponibilité, prix, localisation
+
+Pourquoi ce script existe:
+- Il permet d'avoir des données de démo immédiatement après déploiement
+- Les 22 messages permettent d'afficher des statistiques dans le dashboard
+- Il montre la puissance du système: les réponses dans ce script sont les
+  "réponses parfaites" que le LLM devrait donner
+
+COMMENT L'EXÉCUTER:
+   cd backend
+   python seed_saghro.py
+--------------------------------------------------------------------------------
+
+3.4 backend/gen_seed_json.py (115 lignes)
+--------------------------------------------------
+Génère les fichiers messages.json et conversations.json à partir des
+données de seed_saghro.py. Ces fichiers JSON sont importés automatiquement
+au démarrage du serveur via import_json_table().
+
+Pourquoi séparer en deux fichiers:
+- seed_saghro.py écrit directement dans la base de données (via SQLAlchemy)
+- gen_seed_json.py produit les fichiers JSON qui sont commités dans git
+- Les fichiers JSON sont copiés dans le conteneur Docker et importés
+  automatiquement au démarrage
+- Cela permet d'avoir des données de démo même sur un déploiement frais
+--------------------------------------------------------------------------------
+
+3.5 backend/create_flyer.py (194 lignes)
+--------------------------------------------------
+Génère un flyer PDF pour Hotel Saghro avec fpdf2:
+- Recto: nom de l'hôtel, description, photo de couverture, coordonnées
+- Verso: tarifs, services, QR code
+
+Utile pour montrer une fonctionnalité "export PDF" aux jurés.
+--------------------------------------------------------------------------------
+
+3.6 backend/check_saghro.py (11 lignes)
+--------------------------------------------------
+Script de diagnostic rapide pour vérifier que Hotel Saghro est bien
+présent dans la base de données.
+--------------------------------------------------------------------------------
+
+3.7 backend/requirements.txt
+--------------------------------------------------
+Liste des dépendances Python. Les plus importantes:
+- fastapi: le framework web
+- uvicorn: le serveur ASGI
+- groq: client pour l'API Groq (LLM)
+- langchain-huggingface: embeddings
+- faiss-cpu: vector search
+- pypdf: extraction de texte des PDFs
+- sqlalchemy + psycopg2-binary: base de données
+- pyjwt: tokens d'authentification
+- sentence-transformers: modèle d'embedding
+- qrcode + Pillow: génération de QR codes
+- jinja2: templates HTML (mini-sites)
+- httpx: requêtes HTTP asynchrones
+
+
+================================================================================
+4. FRONTEND (React) — FICHIER PAR FICHIER
+================================================================================
+
+IMPORTANT: Le frontend utilise React 19 avec Vite. Les pages sont organisées
+en composants dans website/src/components/. Chaque fichier JSX exporte un
+composant React qui est une "page" ou un "élément UI".
+
+4.1 website/src/components/DashboardPage.jsx (~1400 lignes)
+--------------------------------------------------
+C'est LE fichier le plus important pour la présentation car c'est
+l'interface que l'utilisateur voit après connexion.
+
+STRUCTURE:
+a) États (useState, L87-134):
+   Chaque "useState" crée une variable qui, quand elle change, met à jour
+   l'affichage automatiquement. Les principales:
+   - businesses: liste des commerces (tableau)
+   - businessStats: stats par commerce (objet)
+   - recentInteractions: dernières conversations
+   - topQuestions: questions fréquentes
+   - languageDistribution: répartition des langues
+   - editBusiness: commerce en cours d'édition
+
+b) Hooks de cycle de vie (useEffect):
+   - Un useEffect au chargement: vérifie la session, charge les commerces
+   - Un useEffect: charge les analytics dès que les commerces sont prêts
+
+c) Fonctions principales:
+   - loadDashboardData() (L159): appel unique à /owner/analytics qui
+     retourne TOUTES les stats en une seule requête (messages, questions,
+     langues, interactions récentes)
+   - createBusiness() (L300): appel POST pour créer un commerce
+   - updateBusiness() (L355): appel PUT pour modifier un commerce
+   - copyLink() / downloadQrCode(): partage / QR code
+
+d) Affichage:
+   - 4 cartes de stats en haut (Conversations, Taux de réponse,
+     Commerces actifs, Langues)
+   - Tableau des commerces avec recherche
+   - Graphiques: questions fréquentes, répartition des langues
+   - Liste des interactions récentes
+
+e) Composant AnimatedNumber (L62):
+   Fait défiler les chiffres de 0 jusqu'à la valeur réelle (effet d'animation)
+   Bug important qu'on a corrigé: au début il ne s'animait qu'une fois et
+   restait bloqué à 0 quand les données arrivaient après le premier rendu.
+
+EXPLICATION DU FLUX DE DONNÉES:
+1. L'utilisateur arrive sur le dashboard
+2. businesses = [] (vide) et loading = true (skeleton affiché)
+3. Le useEffect lance:
+   a) GET /businesses?owner_id=... → charge la liste des commerces
+   b) GET /owner/analytics → charge les stats
+4. Quand les stats arrivent → AnimatedNumber s'anime de 0 vers la valeur
+5. Quand les commerces arrivent → tableau affiché
+
+LES QUESTIONS PIÈGES:
+Q: "Pourquoi les stats mettaient du temps à s'afficher?"
+R: "Au début, loadDashboardData faisait une requête par commerce (13 appels).
+   On a créé un endpoint /owner/analytics qui regroupe tout en un seul appel.
+   Le temps est passé de ~10s à <1s."
+
+Q: "Pourquoi les chiffres restaient bloqués à 0?"
+R: "Le composant AnimatedNumber utilisait une variable started qui empêchait
+   la ré-animation. Quand la valeur passait de 0 à 22, le composant ignorait
+   le changement car started était déjà true. On a remplacé par un système
+   qui compare l'ancienne et la nouvelle valeur."
+--------------------------------------------------------------------------------
+
+4.2 website/src/App.jsx (2050 lignes)
+--------------------------------------------------
+Point d'entrée principal. C'est le routeur qui décide quelle page afficher
+selon l'URL (utilise HashRouter, donc les URLs sont comme #/dashboard).
+
+Pages importantes:
+- / (LandingPage): la page d'accueil marketing
+- /vitrines (ShowcasePage): galerie des commerces
+- /b/:slug (PublicBusinessPage): mini-site d'un commerce
+- /chat/:slug (PublicChatPage): chat public d'un commerce
+- /dashboard (DashboardPage): la page d'admin
+- /login (LoginPage): connexion / inscription
+- /about, /contact, /faq, /blog: pages statiques
+
+POURQUOI HashRouter? (L1977)
+Parce que Vercel redirige toutes les URLs vers index.html avec les rewrites.
+Avec HashRouter, on n'a pas besoin de config spéciale sur le serveur.
+Les URLs avec # fonctionnent toujours.
+--------------------------------------------------------------------------------
+
+4.3 website/src/components/ShowcasePage.jsx (188 lignes)
+--------------------------------------------------
+Page "vitrines" qui affiche tous les commerces disponibles.
+
+Fonctionnement:
+1. Au chargement, fetch GET /businesses (sans auth)
+2. Catégorise les commerces par type (restaurant, hotel, service, retail)
+3. Affiche les cartes avec image, nom, type
+4. Utilisateur peut cliquer pour voir le mini-site
+
+Pourquoi "No*" dans le tableau d'auth? (voir endpoint /businesses L1418):
+La liste des commerces est publique! N'importe qui peut voir les commerces.
+Seuls la création et la modification nécessitent une authentification.
+C'est intentionnel: les visiteurs doivent pouvoir trouver les commerces.
+--------------------------------------------------------------------------------
+
+4.4 website/src/components/ChatInterface.jsx (258 lignes)
+--------------------------------------------------
+Composant de chat réutilisable. Utilisé à la fois dans:
+- Le dashboard (pour tester le chat)
+- Les mini-sites publics
+
+Fonctionnement:
+1. L'utilisateur tape un message
+2. sendMessage() (L169): POST /businesses/{id}/chat avec {question, conversation_id}
+3. La réponse est affichée dans la bulle de chat
+4. L'historique est sauvegardé dans localStorage
+5. Suggestions automatiques: "Services", "Tarifs"
+
+Particularité: conversation_id
+C'est un identifiant qui permet de suivre une conversation continue.
+Le premier message crée une nouvelle conversation. Les messages suivants
+avec le même conversation_id sont attachés à la même conversation.
+C'est utile pour que le LLM ait le contexte des messages précédents.
+--------------------------------------------------------------------------------
+
+4.5 website/src/components/LoginPage.jsx (630 lignes)
+--------------------------------------------------
+Gère connexion et inscription.
+
+Fonctionnalités:
+- Connexion par email/mot de passe (POST /owners/login)
+- Inscription avec vérification d'email
+- Connexion Google (via Google OAuth credential)
+- Renvoi d'email de vérification
+
+FLUX DE CONNEXION:
+1. Utilisateur entre email + mot de passe
+2. POST /owners/login → reçoit { token, owner }
+3. saveSession({token, owner}) → localStorage
+4. Redirection vers /dashboard
+5. À chaque requête: authHeaders() lit le token et l'ajoute en Bearer
+6. Si token expiré: redirect vers /login
+
+POURQUOI localStorage? (session.js)
+Simple et efficace pour une SPA. Pas de cookie à gérer.
+On vérifie l'expiration à chaque chargement: si le JWT est expiré,
+on efface la session et on redirige vers la page de login.
+--------------------------------------------------------------------------------
+
+4.6 website/src/components/FileUpload.jsx (121 lignes)
+--------------------------------------------------
+Upload de fichiers PDF par glisser-déposer.
+
+Utilise react-dropzone pour la zone de drag & drop.
+Le fichier est envoyé à POST /businesses/{id}/documents avec FormData.
+Le backend extrait le texte, crée les embeddings, et indexe dans FAISS.
+
+IMPORTANT: Le fichier original est conservé dans /uploaded_documents/
+--------------------------------------------------------------------------------
+
+4.7 website/src/config.js (8 lignes)
+--------------------------------------------------
+Fichier de configuration minimal:
+- API_URL: vient de la variable d'environnement VITE_API_URL
+  Si non définie → http://localhost:8000 (développement local)
+  Sur Vercel → définie dans les variables d'environnement Vercel
+- GOOGLE_CLIENT_ID: pour la connexion Google
+
+Pourquoi VITE_ ? Les variables d'environnement Vite doivent commencer par
+VITE_ pour être accessibles dans le code côté navigateur.
+--------------------------------------------------------------------------------
+
+4.8 website/src/lib/session.js (51 lignes)
+--------------------------------------------------
+Gère la session utilisateur dans le navigateur.
+
+Fonctions:
+- getSession(): lit la session depuis localStorage
+- saveSession({token, owner}): sauvegarde
+- clearSession(): efface (déconnexion)
+- authHeaders(): retourne { Authorization: "Bearer <token>" }
+- isExpiredSession(): vérifie si le JWT est expiré
+
+LE POINT À VALORISER:
+Le JWT contient une date d'expiration (exp). On peut la décoder côté client
+(le JWT est juste du base64, pas besoin de la clé secrète) pour savoir
+si la session est encore valide AVANT de faire une requête. Cela évite
+les erreurs 401 inutiles.
+--------------------------------------------------------------------------------
+
+4.9 website/src/lib/businessSite.js (252 lignes)
+--------------------------------------------------
+Bibliothèque utilitaire pour manipuler les données des commerces.
+
+Fonctions:
+- parseCoordinates(): extrait latitude/longitude des données
+- amenities(): liste les équipements à partir du texte
+- phoneLink(), whatsAppLink(), mapsLink(): génèrent des URLs
+- coverImageUrl(): résout l'URL de l'image de couverture
+
+Pourquoi un fichier séparé?
+Pour éviter de dupliquer le code dans plusieurs composants. Toute la logique
+métier liée aux commerces est centralisée ici.
+--------------------------------------------------------------------------------
+
+4.10 website/vercel.json (7 lignes)
+--------------------------------------------------
+{
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install --legacy-peer-deps",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
+
+CE QUE ÇA SIGNIFIE:
+- framework: "vite" → Vercel sait que le projet est en Vite
+- buildCommand: npm run build → construit le projet
+- outputDirectory: "dist" → Vercel sert le dossier dist/
+- rewrites: toute URL inconnue redirige vers index.html (SPA routing)
+- legacy-peer-deps: nécessaire pour éviter des conflits de dépendances
+
+
+================================================================================
+5. BASE DE DONNÉES
+================================================================================
+
+5.1 Choix de PostgreSQL
+--------------------------------------------------
+On utilise PostgreSQL via Supabase (service cloud gratuit). Le choix est
+justifié par:
+- Professionnel: PostgreSQL est la base de données la plus utilisée en
+  production. Supabase offre 500MB de données gratuitement.
+- Migration depuis SQLite: Au début du projet, on utilisait SQLite (fichier
+  local) pour le développement. On a migré vers PostgreSQL pour le
+  déploiement production.
+- ORM: SQLAlchemy permet de changer de base sans changer le code.
+
+5.2 Structure des données
+--------------------------------------------------
+6 tables principales:
+
+1. owners - Les propriétaires de commerces
+   id (PK), full_name, email (UNIQUE), password_hash, verified, etc.
+
+2. businesses - Les commerces
+   id (PK), owner_id (FK→owners), slug (UNIQUE), name, description,
+   city, working_hours, primary_services, highlights, public_knowledge,
+   address, latitude, longitude, cover_image_url, etc.
+
+3. documents - Les fichiers uploadés
+   id (PK), business_id (FK→businesses), file_name, file_type,
+   file_url, chunks (nombre de chunks), size_bytes
+
+4. conversations - Les sessions de chat
+   id (PK), business_id (FK→businesses), language (détectée),
+   visitor_ip, started_at
+
+5. messages - Les messages individuels
+   id (PK), business_id (FK→businesses), conversation_id (FK→conversations),
+   question, answer, sources (JSON), language, created_at
+
+6. inquiries - Les demandes de contact
+   id (PK), business_id (FK→businesses), name, contact, message,
+   status (new/contacted/closed), created_at
+
+5.3 Comment les données de seed arrivent sur un nouveau déploiement
+--------------------------------------------------
+1. Les fichiers JSON (businesses.json, documents.json, messages.json,
+   conversations.json, owners.json, inquiries.json) sont commités dans git
+2. Dans Dockerfile: COPY backend/data/ /data/data/ copie ces fichiers
+3. Au démarrage, init_database() crée les tables
+4. import_json_table() vérifie: si table vide ET fichier JSON existe →
+   importe les données
+5. Les commerces, documents et messages de démo sont chargés
+6. Le LLM peut répondre sur ces commerces car leur profil complet est
+   dans la base de données
+
+
+================================================================================
+6. DÉPLOIEMENT
+================================================================================
+
+6.1 Architecture de déploiement
+--------------------------------------------------
+```
+  Frontend (React) → Vercel (gratuit)
+  Backend (FastAPI) → HuggingFace Spaces (gratuit - Docker)
+  Base de données → Supabase (gratuit - 500MB)
+  LLM → Groq Cloud (gratuit - 30 req/min)
+```
+
+6.2 Pourquoi ce choix?
+--------------------------------------------------
+- Vercel + HF Spaces + Supabase: tout est gratuit, pas besoin de carte
+  bancaire. Parfait pour un PFE.
+- Frontend et backend séparés: scaling indépendant. Si le frontend a du
+  traffic, ça n'affecte pas le backend.
+- Docker pour le backend: HF Spaces nécessite un Dockerfile. Il contient
+  Python 3.12, les dépendances, et le code.
+
+6.3 Backend sur HuggingFace Spaces
+--------------------------------------------------
+Le Dockerfile (à la racine) fait:
+1. python:3.12-slim comme base (image légère)
+2. Installe build-essential (nécessaire pour faiss et sentence-transformers)
+3. Installe les dépendances Python via requirements.txt
+4. Copie le dossier backend/ dans /app/
+5. Copie les données seed dans /data/data/ (pour import au démarrage)
+6. Configure DATA_ROOT=/data, AUTO_CREATE_TABLES=true
+7. Lance uvicorn sur le port 7860 (port attendu par HF Spaces)
+
+Variables d'environnement sur HF Spaces (à configurer dans les secrets):
+- GROQ_API_KEY: clé pour le LLM
+- APP_SECRET_KEY: clé pour les JWT
+- DATABASE_URL: URL Supabase PostgreSQL
+- CORS_ORIGINS: domaines autorisés
+- SMTP_*: pour les emails de vérification
+
+Mise à jour via git:
+   git remote add hf https://huggingface.co/spaces/username/sahel-api
+   git push hf main --force
+
+Problème rencontré: HF Spaces rejette les fichiers binaires (images, gifs).
+On a dû créer une branche propre sans les fichiers binaires de l'historique
+git pour pouvoir déployer.
+
+6.4 Frontend sur Vercel
+--------------------------------------------------
+Connecté au repo GitHub. Chaque push sur main déclenche un déploiement.
+
+Variable d'environnement sur Vercel:
+- VITE_API_URL: URL du backend sur HF Spaces (ex: https://sahel-api.hf.space)
+
+SPA Routing: Vercel redirige toutes les URLs vers index.html grâce aux
+rewrites dans vercel.json. Le HashRouter (#/) gère le reste côté client.
+
+6.5 Base de données Supabase
+--------------------------------------------------
+Service cloud PostgreSQL avec:
+- Interface web pour les données
+- API REST optionnelle
+- 500MB de données (gratuit)
+- Connexion via DATABASE_URL
+
+Configuration: DATABASE_URL=postgres://user:pass@host:5432/postgres
+Le backend utilise psycopg2 pour se connecter avec SSL.
+
+6.6 Processus complet de déploiement
+--------------------------------------------------
+Quand on pousse sur main:
+  1. GitHub reçoit le code
+  2. Vercel détecte le changement et rebuild le frontend
+     - npm install + npm run build
+     - Sert le dossier dist/
+  3. HF Spaces détecte le changement et rebuild le backend
+     - Docker build avec le Dockerfile
+     - Lance le conteneur avec les secrets
+     - Au démarrage: init_database() + import_json_table()
+     - L'API est disponible sur https://sahel-api.hf.space
+
+
+================================================================================
+7. QUESTIONS FRÉQUENTES DU JURY — RÉPONSES PRÉPARÉES
+================================================================================
+
+Q1: "Qu'est-ce qui différencie Sahel.ai des autres solutions?"
+R: "Trois points: 1) C'est 100% marocain avec support du Darija. 2) C'est
+    clé en main: mini-site + chatbot IA + QR codes + WhatsApp + Telegram
+    en une seule plateforme. 3) Le RAG permet au chatbot de répondre avec
+    les documents du commerce lui-même, pas des réponses génériques."
+
+Q2: "Comment le chatbot IA fonctionne-t-il exactement?"
+R: "Quand un client pose une question, on détecte d'abord la langue. Ensuite,
+    on cherche dans les documents du commerce (via FAISS) les passages les
+    plus pertinents. On construit un prompt qui contient ces passages + le
+    profil du commerce. On envoie ça à Groq (llama-3.3-70b) qui génère une
+    réponse naturelle et précise. La réponse est sauvegardée dans l'historique."
+
+Q3: "C'est quoi le RAG?"
+R: "Retrieval-Augmented Generation. Au lieu de juste demander au LLM de
+    répondre de mémoire (ce qui peut donner des réponses fausses), on va
+    d'abord chercher l'information dans les documents du commerce. Le LLM
+    génère sa réponse à partir de ces documents. Ça garantit que les
+    réponses sont factuelles et basées sur les vrais documents du commerce."
+
+Q4: "Pourquoi avoir choisi FastAPI plutôt que Django?"
+R: "FastAPI est plus léger, plus rapide, et supporte nativement l'async
+    (asynchrone). C'est important pour le streaming des réponses du LLM.
+    Django serait trop lourd pour une API REST pure. FastAPI génère aussi
+    automatiquement la documentation Swagger (/docs)."
+
+Q5: "Comment gérez-vous les performances?"
+R: "Les embeddings sont faits en local avec sentence-transformers. La
+    recherche vectorielle utilise FAISS qui est très rapide (<10ms). Le
+    LLM est externalisé chez Groq car il nécessite un GPU puissant. Le
+    frontend est statique sur Vercel (CDN mondial)."
+
+Q6: "Comment vous assurez-vous que le chatbot ne raconte pas n'importe quoi?"
+R: "On utilise le RAG: le LLM ne répond qu'à partir des documents qu'on
+    lui fournit. Le prompt système lui demande explicitement de ne pas
+    inventer d'informations. Si aucun document pertinent n'est trouvé, il
+    répond qu'il n'a pas l'information et propose de contacter le commerce."
+
+Q7: "Qu'est-ce qui se passe si Groq est indisponible?"
+R: "On a une fallback. Le système peut fonctionner avec un modèle local
+    via le dossier frontend-chat/. En production, on pourrait aussi
+    basculer sur OpenAI ou un autre fournisseur. L'abstraction est déjà
+    faite dans le code."
+
+Q8: "Comment les données sont-elles sécurisées?"
+R: "Les mots de passe sont hashés avec PBKDF2 (pas stockés en clair).
+    L'authentification utilise des JWT signés avec une clé secrète. Les
+    endpoints sont protégés par require_owner() qui vérifie le token.
+    Les CORS sont configurés pour n'autoriser que des domaines spécifiques."
+
+Q9: "Comment avez-vous géré le multilingue, spécialement le Darija?"
+R: "Le Darija marocain est un défi car il n'a pas de standard écrit. On
+    a une fonction detect_language() qui utilise des dictionnaires de
+    mots-clés (had, dyal, chnu, bzf, wah, mzyan, etc.). Si le texte
+    contient ces mots, on le traite comme du Darija. On a aussi enrichi
+    le prompt système avec des instructions en arabe pour guider le LLM."
+
+Q10: "Comment le mini-site est-il généré?"
+R: "Il y a deux versions. Une version server-side avec Jinja2 (GET /b/{slug})
+    qui génère le HTML côté backend avec les données du commerce. Et une
+    version client-side avec PublicBusinessPage.jsx pour ceux qui visitent
+    via le frontend React. Les deux sont synchronisées."
+
+Q11: "Expliquez le flux d'upload d'un document"
+R: "L'utilisateur upload un PDF. Le backend extrait le texte avec pypdf,
+    le découpe en chunks de 1000 caractères (avec 100 de chevauchement pour
+    garder le contexte). Chaque chunk est converti en vecteur avec
+    sentence-transformers (all-mpnet-base-v2) qui produit 768 dimensions.
+    Les vecteurs sont indexés dans FAISS. Quand un client pose une question,
+    on cherche les 3 chunks les plus similaires."
+
+Q12: "Comment avez-vous géré les problèmes de déploiement?"
+R: "Le plus gros problème était que HF Spaces rejette les fichiers binaires
+    dans git. On a dû créer une branche propre sans les images du commit
+    initial. Aussi, le Dockerfile copiait les seed data dans /app/ mais
+    DATA_ROOT pointait vers /data/. On a ajouté une ligne COPY pour copier
+    les fichiers au bon endroit."
+
+Q13: "Quels sont les limites et perspectives d'amélioration?"
+R: "Limites: Le nombre de requêtes Groq est limité (30/min gratuit). FAISS
+    doit être rebuildé à chaque ajout de document. Pas de paiement intégré.
+    Perspectives: Multi-bot (un chatbot par commerce), authentification
+    avancée, paiement en ligne, statistiques avancées, application mobile."
+
+Q14: "Pourquoi avoir séparé le frontend et le backend?"
+R: "Architecture microservices: le frontend React peut être déployé sur
+    Vercel (CDN), le backend sur HF Spaces. Si un crash, l'autre continue.
+    On peut mettre à jour l'un sans casser l'autre. Et le backend peut
+    servir à la fois le site web, WhatsApp et Telegram."
+
+Q15: "Le projet utilise Groq, c'est quoi?"
+R: "Groq est un fournisseur de LLM qui a des puces spécialisées (LPU)
+    pour l'inférence. Leur modèle llama-3.3-70b est très rapide et
+    gratuit pour les petits volumes. On peut envoyer jusqu'à 30 requêtes
+    par minute sans payer."
+
+
+================================================================================
+8. LES POINTS TECHNIQUES À VALORISER
+================================================================================
+
+Lors de la présentation, insistez sur ces points pour montrer votre maîtrise:
+
+✓ RAG (Retrieval-Augmented Generation)
+  "Notre assistant ne répond pas de mémoire. Il cherche dans les documents
+  du commerce et construit sa réponse à partir de sources fiables."
+
+✓ Multilingue avec Darija
+  "Peu de solutions gèrent le Darija marocain. Nous avons développé notre
+  propre détection de langue avec des dictionnaires de mots-clés."
+
+✓ Architecture scalable
+  "Frontend sur Vercel (CDN), backend sur HF Spaces (Docker), base de
+  données Supabase (PostgreSQL cloud). Chaque composant peut scaler
+  indépendamment."
+
+✓ Vector Search avec FAISS
+  "FAISS de Meta permet une recherche sémantique ultra-rapide dans les
+  documents. On convertit le texte en vecteurs mathématiques et on trouve
+  les plus pertinents par similarité cosinus."
+
+✓ Streaming des réponses
+  "Les réponses du LLM sont streamées caractère par caractère. L'utilisateur
+  voit la réponse arriver en temps réel, sans attendre."
+
+✓ Mini-site + Chat + QR Code
+  "Un commerce a tout en un: site vitrine, assistant IA, QR code à imprimer
+  pour les vitrines physiques, et widget embed pour les sites existants."
+
+✓ WhatsApp + Telegram
+  "Les clients peuvent poser des questions via WhatsApp ou Telegram. Le bot
+  transmet au même backend IA."
+
+✓ Dashboard Analytics
+  "Le propriétaire voit en temps réel: conversations, taux de réponse,
+  questions fréquentes, répartition par langue, interactions récentes."
+
+✓ Auto-seeding
+  "Les données de démonstration sont chargées automatiquement au premier
+  démarrage via import_json_table(). Pas besoin de configuration manuelle."
+
+
+================================================================================
+9. DÉMO — SCÉNARIO PAS À PAS
+================================================================================
+
+SCÉNARIO À SUIVRE PENDANT LA PRÉSENTATION:
+
+1. ACCUEIL
+   - Ouvrir https://sahel-ai.vercel.app
+   - Montrer la landing page: "Sahel.ai - L'assistant IA de vos commerces"
+   - Scroller: features, vitrines, FAQ, footer
+
+2. VITRINES
+   - Cliquer sur "Vitrines"
+   - Montrer les commerces disponibles
+   - Choisir "Hotel Saghro" → mini-site
+
+3. CHAT
+   - Sur le mini-site, poser une question en français: "Quels sont vos tarifs?"
+   - Montrer la réponse du LLM
+   - Poser en anglais: "Do you have a pool?"
+   - Poser en darija: "شنو هي الخدمات ديالكم؟"
+
+4. ADMIN / DASHBOARD
+   - Aller sur /login
+   - Se connecter avec demo@sahel.ai / demo123
+   - Montrer le dashboard:
+     * Stats en haut (Conversations, Taux de réponse...)
+     * Tableau des commerces
+     * Questions fréquentes
+     * Répartition par langue
+     * Interactions récentes
+   - Cliquer sur un commerce → voir les détails
+   - Montrer l'embed widget
+
+5. CRÉATION D'UN COMMERCE
+   - Cliquer "+ Nouveau commerce"
+   - Remplir: nom, type, description, ville
+   - Créer → le commerce apparaît dans la liste
+   - Uploader un PDF (si possible)
+   - Montrer que le chat répond maintenant avec le document
+
+6. QR CODE
+   - Cliquer sur le QR code d'un commerce
+   - Montrer le QR code → scannable
+
+7. TECHNIQUE (optionnel, si le jury demande)
+   - Ouvrir /docs → documentation Swagger auto-générée
+   - Montrer les endpoints
+   - Tester un endpoint directement depuis Swagger
+
+================================================================================
+ANNEXE: LIENS ET ACCÈS
+================================================================================
+
+Frontend:         https://sahel-ai.vercel.app
+Backend API:      https://sahel-api.hf.space
+Documentation:    https://sahel-api.hf.space/docs
+Compte démo:      demo@sahel.ai / demo123
+Code source:      https://github.com/Moohaaamed/Sahel.ai
+Supabase:         https://supabase.com (compte: voir .env)
+
+Dépendances critiques:
+  - Groq Cloud: https://console.groq.com
+  - HuggingFace: https://huggingface.co/spaces/Mohamed-20/sahel-api
+  - Vercel: https://vercel.com (lié au repo GitHub)
+
+================================================================================
+                     FIN DU GUIDE — BONNE CHANCE POUR LA SOUTENANCE !
+================================================================================

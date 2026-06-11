@@ -1,0 +1,436 @@
+══════════════════════════════════════════════════════════════════════════════
+  SAHEL.AI — JURY PREPARATION BLUEPRINT (2-DAY CRASH COURSE)
+  "Everything you need to know to sound like you built it yourself"
+══════════════════════════════════════════════════════════════════════════════
+
+PROJECT OVERVIEW (Memorize this paragraph):
+Sahel.ai is a multi-tenant AI concierge platform for Moroccan small businesses.
+It gives each business an automatic mini-website + QR code + WhatsApp/Telegram bot
++ an AI chatbot that answers customer questions 24/7 using their own documents
+(menus, price lists, FAQs). The AI uses RAG (Retrieval-Augmented Generation):
+it searches the business's documents with FAISS vector search, then sends the
+relevant chunks to Groq's LLM (Llama 3.3 70B) to generate an answer — all in
+3 languages (Arabic/Darija, French, English). Owners manage everything from a
+dashboard with analytics. Deployed on Vercel (frontend) + Hugging Face Spaces/Docker
+(backend), with PostgreSQL via SQLAlchemy (works with Supabase or local SQLite).
+
+──────────────────────────────────────────────────────────────────────────────
+  DAY 1: CORE ARCHITECTURE — "What is this thing and how does it work?"
+──────────────────────────────────────────────────────────────────────────────
+
+▎ 1. REACT (Frontend Library — `website/`)
+─────────────────────────────────────────────
+● What is it? — A JavaScript library for building interactive UIs with components.
+  Everything on the screen is a "component" (a function that returns HTML-like JSX).
+
+● Key Concepts You MUST Know:
+  • JSX: HTML inside JavaScript — `return <div>hello</div>`
+  • Components: Reusable pieces of UI. File = component. (App.jsx, ChatInterface.jsx)
+  • Props: Data passed TO a component: `<ChatInterface business={data} />`
+  • State (`useState`): Data that changes over time (text input, chat messages, user session).
+    When state changes, React re-renders the component automatically.
+  • Effects (`useEffect`): Runs code AFTER the component renders — for fetching data from API,
+    setting up event listeners, timers.
+  • `useCallback`: Prevents functions from being recreated on every render (optimization).
+  • `useMemo`: Caches computed values between renders.
+  • `useRef`: Holds a reference to a DOM element without causing re-renders.
+  • `lazy` + `Suspense`: Code splitting — loads components only when needed (faster initial load).
+  • `AbortController`: Cancels in-flight API requests when the user navigates away.
+
+● In our project:
+  → `App.jsx` is the ROOT component. It looks at `window.location.pathname` and decides
+    which page to show (landing page, dashboard, chat, mini-site, etc.) — simple routing
+    without React Router library.
+  → `ChatInterface.jsx` has messages `[]` as state, an `input` string state, sends POST to
+    `/businesses/{id}/chat` via Axios.
+  → `DashboardPage.jsx` manages businesses list, profile settings, analytics, file uploads.
+
+● Judges might ask:
+  "Why React and not plain HTML?" → Because React updates ONLY the parts of the page that
+  change (virtual DOM diffing), making chat and dashboard interactions fast without page reloads.
+  "What about routing?" → We use simple conditional rendering based on the URL path —
+  lighter than React Router for our SPA.
+
+▎ 2. VITE (Build Tool — `vite.config.js`)
+─────────────────────────────────────────────
+● What is it? — A modern build tool that replaces Webpack. Dev server starts instantly
+  because it uses native ES modules (no bundling needed in dev).
+
+● Key Concepts:
+  • Dev server on port 5173 with Hot Module Replacement (HMR) — change code, see instantly.
+  • Proxy (`vite.config.js`): `/api` requests → forwarded to `http://localhost:8000` (FastAPI).
+    This avoids CORS issues in development.
+  • Build: `vite build` → bundles & minifies into `dist/` folder for production.
+  • Code splitting (`manualChunks`): Separates vendor (react, react-dom) from app code.
+  • Environment variables via `import.meta.env.VITE_*` (e.g., `VITE_API_URL`).
+
+● Judges: "Why Vite?" → It's ~10x faster than Webpack in dev because it serves modules
+  on-demand instead of bundling everything upfront.
+
+▎ 3. TAILWIND CSS (Styling — `tailwind.config.js`)
+────────────────────────────────────────────────────
+● What is it? — Utility-first CSS framework. Instead of writing custom CSS classes,
+  you compose styles directly in HTML/JSX using tiny utility classes.
+
+● Key Concepts:
+  • `className="bg-primary text-on-primary px-4 py-2 rounded-xl"`
+    → background-color: primary color, text: white, padding, rounded corners.
+  • Custom theme in `tailwind.config.js`: We defined our own `colors` (primary, surface, etc.),
+    `fontFamily`, `fontSize`, `spacing`, `borderRadius` to match brand design.
+  • `darkMode: 'class'` — toggle dark mode by adding `class="dark"` to HTML element.
+  • Plugins: `@tailwindcss/forms` (better form styling), `@tailwindcss/container-queries`.
+  • Responsive: `md:col-span-3` (on medium screens, span 3 columns).
+  • PostCSS + Autoprefixer handle the compilation.
+
+● Judges: "Why Tailwind?" → Fast prototyping, consistent design system, no CSS naming
+  conflicts, small production CSS (purges unused classes).
+
+▎ 4. FASTAPI (Python Backend — `backend/backend_chatdoc.py`)
+──────────────────────────────────────────────────────────────
+● What is it? — A modern Python web framework for building APIs. Async by default.
+  Very fast (on par with Node.js/Go for APIs).
+
+● Key Concepts:
+  • Decorators define routes: `@app.post("/businesses/{identifier}/chat")`
+  • Pydantic models (`class QueryRequest(BaseModel)`): Automatic request validation.
+    If a field is wrong type, FastAPI returns 422 with the error automatically.
+  • Dependency injection: `authorization: str | None = Header(default=None)` extracts HTTP header.
+  • CORS middleware allows the frontend (localhost:5173) to talk to the backend (localhost:8000).
+  • ASGI server: Uvicorn serves the app.
+
+● Key Endpoints (know these):
+  • `POST /owners/register` — create account
+  • `POST /owners/login` — returns JWT token
+  • `GET/POST/PUT/DELETE /businesses` — CRUD for businesses
+  • `POST /businesses/{id}/chat` — ask a question (returns answer from AI)
+  • `POST /businesses/{id}/documents` — upload PDF/TXT
+  • `POST /businesses/{id}/inquiries` — customer contact form
+  • `GET /businesses/{id}/analytics` — stats
+  • `WebSocket /chat/stream` — real-time chat with streaming tokens
+
+● Judges: "Why FastAPI?" → Native async support for WebSocket streaming, automatic
+  OpenAPI docs at /docs, Pydantic validation, fastest Python framework.
+
+──────────────────────────────────────────────────────────────────────────────
+  DAY 2: THE AI & DATA LAYER — "How does the magic actually work?"
+──────────────────────────────────────────────────────────────────────────────
+
+▎ 5. RETRIEVAL-AUGMENTED GENERATION (RAG — The Core Innovation)
+─────────────────────────────────────────────────────────────────
+● What is it? — Instead of asking the AI (LLM) to answer from its training data (which
+  doesn't know about your business), RAG RETRIEVES relevant info from YOUR documents
+  first, then gives that context to the AI to answer. This is the heart of the project.
+
+● The Pipeline (Memorize this flow!):
+
+  [1] Owner uploads PDF (menu, price list) → FastAPI saves file
+  [2] Document is SPLIT into text chunks (500-1000 characters each with overlap)
+  [3] Each chunk is CONVERTED to a vector (embedding) using sentence-transformers
+  [4] Vectors are stored in a FAISS index (vector database)
+  [5] When a customer asks a question → question is also converted to a vector
+  [6] FAISS finds the 3 most SIMILAR chunks (nearest neighbors)
+  [7] Those chunks + business profile + question are sent to Groq's Llama 3.3 70B
+  [8] The LLM generates an answer ONLY from that context (hallucination guard)
+  [9] Answer is returned to the user in their language
+
+● Code Location: `backend_chatdoc.py` lines 1168-1383
+  • `process_document()` — reads PDF/TXT, splits into chunks
+  • `LocalFaissStore` class — manages FAISS index (build, save, load, search)
+  • `answer_for_business()` — orchestrates: embed → search → LLM prompt → respond
+
+● Judges will love this. Be ready to say: "RAG eliminates hallucination by constraining
+  the AI to only answer from the business's own documents. No document = no answer."
+
+▎ 6. FAISS (Vector Search Engine)
+───────────────────────────────────
+● What is it? — Facebook AI Similarity Search. A library for fast nearest-neighbor search
+  in high-dimensional spaces. This is our "vector database."
+
+● Key Concepts:
+  • `IndexFlatL2(dimension)`: The simplest index — compares vectors using Euclidean (L2) distance.
+    dimension = 768 (for all-mpnet-base-v2 model).
+  • `index.add(vectors)`: Adds all document chunk vectors to the index.
+  • `index.search(query_vector, k=3)`: Returns the k most similar chunks + their distances.
+  • We save/load the index using `faiss.write_index()` / `faiss.read_index()` to disk.
+  • Each business has its OWN FAISS index stored in `vector_stores/{business_id}/`.
+
+● Why FAISS not Pinecone/Milvus? → FAISS is local, free, no external API call needed,
+  works offline, perfect for a small-scale MVP. Zero cost per query.
+
+▎ 7. EMBEDDINGS (sentence-transformers)
+──────────────────────────────────────────
+● What is it? — Converts text into a vector (list of 768 numbers) where similar texts
+  have similar vectors (close in vector space).
+
+● Model: `all-mpnet-base-v2` from HuggingFace. It's a sentence-BERT model trained on
+  over 1 billion sentence pairs. 768-dimensional vectors.
+
+● Usage:
+  • `embeddings.embed_documents(["text1", "text2"])` → array of vectors for chunks
+  • `embeddings.embed_query("question")` → single vector for the question
+
+● Why this model? → Best quality/speed trade-off for multilingual (French, Arabic, English).
+
+▎ 8. GROQ (LLM Provider)
+───────────────────────────
+● What is it? — A cloud service that runs open-source LLMs incredibly fast (like 500 tokens/sec).
+  We use `llama-3.3-70b-versatile` — Meta's Llama 3.3 70B parameter model.
+
+● Key Concepts:
+  • Temperature=0.2: Low randomness = deterministic, factual answers.
+  • System prompt: "Answer only from context. Never invent prices or hours."
+  • Streaming: `stream=True` receives tokens one by one (used in WebSocket).
+  • API key stored in environment variable `GROQ_API_KEY`.
+
+● Why Groq? → 10x faster than OpenAI for open-source models, native function calling,
+  free tier available, perfect for real-time chat.
+
+▎ 9. LANGCHAIN (Orchestration Framework)
+───────────────────────────────────────────
+● What is it? — A framework that chains together LLM calls, embeddings, vector stores,
+  and other AI components. We use it sparingly — just for embeddings and text splitting.
+
+● Components used:
+  • `HuggingFaceEmbeddings`: Wraps sentence-transformers in LangChain's interface.
+  • `CharacterTextSplitter`: Splits text into chunks of `chunk_size=1000` with
+    `chunk_overlap=100` (so context isn't cut off at chunk boundaries).
+
+● We built our own `LocalFaissStore` class instead of using LangChain's FAISS wrapper
+  because we wanted finer control over serialization and search.
+
+▎ 10. SQLALCHEMY (Database ORM — `storage.py`)
+─────────────────────────────────────────────────
+● What is it? — Python Object-Relational Mapping library. Allows us to work with
+  databases using Python objects instead of writing raw SQL.
+
+● Key Concepts:
+  • Models: Python classes that map to database tables (OwnerModel, BusinessModel, etc.).
+  • Engine: Connection to the database (SQLite local or PostgreSQL/ Supabase in production).
+  • Sessions: Where queries happen — query, add, commit.
+  • Migration: `AUTO_CREATE_TABLES=true` auto-creates tables on startup via `metadata.create_all()`.
+  • Can switch from SQLite to PostgreSQL/Supabase just by changing `DATABASE_URL`.
+
+● Tables in our project:
+  • `owners` — user accounts (name, email, password_hash, verified flag)
+  • `businesses` — each business profile (name, slug, contact, social, hours, etc.)
+  • `documents` — uploaded files metadata
+  • `conversations` — chat sessions
+  • `messages` — individual Q&A pairs (question, answer, sources, language)
+  • `inquiries` — contact form submissions from customers
+  • `contacts` — global contact form messages
+
+● Judges might ask about Supabase → Supabase is a hosted PostgreSQL with a nice dashboard.
+  We can use it by setting `DATABASE_URL` to the Supabase PostgreSQL connection string.
+  The code already handles `supabase.co` URLs with SSL mode (line 19-20 in storage.py).
+  "We use Supabase as a managed PostgreSQL — it handles backups, scaling, and the web UI."
+
+▎ 11. JWT AUTHENTICATION
+───────────────────────────
+● What is it? — JSON Web Tokens. A secure way to prove "who you are" without sending
+  password on every request.
+
+● Flow:
+  • Login: email + password → server validates → returns `{ token, expires_at }`
+  • Client stores token in `localStorage`
+  • Every API request includes header: `Authorization: Bearer <token>`
+  • Server decodes token with `APP_SECRET_KEY`, extracts user ID (`sub` claim)
+  • Token expires after 24 hours (`OWNER_SESSION_TTL_MINUTES`)
+
+● Password Security: `hash_password()` uses PBKDF2-HMAC-SHA256 with 600,000 iterations
+  and a random salt. This is a secure password hashing algorithm.
+
+● Cookie fallback: Session cookie (`httponly`, `samesite=lax`) is set alongside JWT
+  for scenarios where the frontend can't easily pass the Bearer header (e.g., direct
+  page loads).
+
+▎ 12. INTERNATIONALIZATION (i18n)
+───────────────────────────────────
+● Languages: French (default), Arabic/Darija, English.
+● Implementation: Translation JSON files (fr.json, ar.json, en.json) + React Context
+  (`LanguageProvider`) that provides a `t("key")` function.
+● Language detection: URL param `?lang=`, localStorage, browser preference, or detect
+  from the chat question text using keyword matching (Arabic script check + Darija keywords).
+● RTL support: When Arabic is selected, `dir="rtl"` is set on the document.
+
+▎ 13. WEBSOCKET STREAMING CHAT
+─────────────────────────────────
+● What is it? — A persistent bi-directional connection between browser and server.
+  Unlike REST (request → response), WebSocket keeps the connection open.
+● Usage in this project: `ws://host/chat/stream?business_slug=demo`
+  → The AI streams tokens one by one, so the user sees the response being typed
+    in real-time (like ChatGPT). This is much better UX than waiting for the full response.
+● Rate limiting: Custom in-memory rate limiter limits WebSocket to N requests/minute per IP.
+● Fallback: The regular `POST /businesses/{id}/chat` endpoint returns the full response at once.
+
+▎ 14. WHATSAPP BOT (`whatsapp-bot/index.js`)
+──────────────────────────────────────────────
+● Uses the `@whiskeysockets/baileys` library — an unofficial WhatsApp Web API.
+● Works by: Scanning a QR code with WhatsApp → bot acts like a WhatsApp Web session.
+● Users send messages → bot forwards to `POST /businesses/{slug}/chat` → sends answer back.
+● Commands: `/business <slug>` to select which business, `/menu` for help.
+● Persistence: Sessions saved in `session/` folder, user-business mapping in `users.json`.
+● Auto-reconnect with exponential backoff on disconnect.
+
+▎ 15. TELEGRAM BOT (`whatsapp-bot/telegram.js`)
+─────────────────────────────────────────────────
+● Uses Telegram Bot API with long polling (asks Telegram "any new messages?" every 1.5s).
+● Same logic as WhatsApp: receive message → call API → send answer back.
+● Commands: `/business <slug>`, `/start`, `/menu`.
+
+▎ 16. EMBEDDABLE WIDGET (`public/embed.js`)
+───────────────────────────────────────────────
+● A JavaScript snippet that any business can add to their own website:
+  `<script src="https://api.sahel.ai/embed/{slug}.js" defer></script>`
+● Creates a floating chat bubble that opens an iframe to the Sahel.ai chat page.
+● Customizable: position (left/right), primary color, button label, title.
+
+▎ 17. DEPLOYMENT
+───────────────────
+● Frontend (Vercel):
+  → `website/vercel.json` tells Vercel: "This is a Vite SPA, rewrite all routes to index.html."
+  → Build: `npm run build` → outputs to `dist/` → Vercel deploys it globally on CDN.
+  → Environment variables: `VITE_API_URL` points to backend URL.
+
+● Backend (Docker / Hugging Face Spaces):
+  → `Dockerfile` builds a Python 3.12 image with all dependencies.
+  → Runs `uvicorn backend_chatdoc:app --host 0.0.0.0 --port 7860`
+  → Hugging Face Spaces reads README.md metadata (sdk: docker) and deploys automatically.
+  → Environment: `DATA_ROOT=/data`, `CORS_ORIGINS=https://sahel-ai.vercel.app`, etc.
+
+● Database: SQLite for dev, PostgreSQL (Supabase) for production. Switch via `DATABASE_URL`.
+
+▎ 18. ADDITIONAL CONCEPTS
+───────────────────────────
+● Rate Limiting (slowapi):
+  → Auth endpoints: 5 req/min, Chat: 20 req/min, WebSocket: 30 req/min.
+  → Prevents abuse and brute-force attacks.
+
+● Security Headers:
+  → `X-Content-Type-Options: nosniff` — prevents MIME-type sniffing.
+  → `X-Frame-Options: DENY` — prevents clickjacking.
+  → `Strict-Transport-Security` — forces HTTPS for 2 years.
+
+● CSRF Protection:
+  → Custom middleware checks that POST/PUT/DELETE requests come from allowed origins.
+  → Checks `Origin` and `Referer` headers against `CORS_ORIGINS`.
+
+● PDF Parsing (pypdf):
+  → Extracts text from uploaded PDF documents.
+  → Supports both .pdf and .txt files.
+
+● QR Code Generation:
+  → Each business gets a QR code linking to its mini-site.
+  → Uses `qrcode` Python library + `qrcode.react` on frontend.
+
+● Cover Photo Upload:
+  → Businesses can upload cover images (JPG, PNG, WebP).
+  → Stored on disk, served via FastAPI's `StaticFiles` mount.
+
+● Analytics:
+  → Tracks: total messages, conversations, questions/count, language distribution.
+  → Dashboard shows these metrics per business and aggregated across all businesses.
+
+● Text Splitting:
+  → `CharacterTextSplitter(chunk_size=1000, chunk_overlap=100)` breaks documents into
+    overlapping chunks for better retrieval.
+
+● Slug Generation:
+  → Business names converted to URL-friendly slugs (e.g., "Restaurant Atlas" → `restaurant-atlas`).
+  → Used in mini-site URLs: `/b/restaurant-atlas`.
+
+──────────────────────────────────────────────────────────────────────────────
+  SAMPLE ANSWERS FOR JUDGE QUESTIONS
+──────────────────────────────────────────────────────────────────────────────
+
+Q: "What was the biggest challenge?"
+A: "Making the AI answer accurately in 3 languages without hallucination. RAG solved it by
+   constraining answers to document context. The multilingual language detection was also
+   tricky — we built a keyword-based detector for Darija since it doesn't have standard
+   written form."
+
+Q: "Why FAISS instead of a database LIKE clause?"
+A: "Database LIKE/SQL search only matches exact keywords. FAISS understands semantic meaning —
+   'what time do you close' and 'what are your working hours' return the same chunks because
+   their vectors are close together. SQL can't do that."
+
+Q: "How do you handle multiple businesses?"
+A: "Each business has its own FAISS index stored in a separate folder. The owner authenticates
+   with JWT, and our middleware ensures they can only access their own businesses and documents.
+   The API routes use the business slug or ID, and owner_id is checked on every operation."
+
+Q: "How does the system handle scale?"
+A: "We use SQLAlchemy which can scale from SQLite to PostgreSQL/Supabase without code changes.
+   FAISS is in-memory per query but indexes are small (a few MB per business). For more scale,
+   we'd move to a vector database like pgvector or Pinecone. The frontend on Vercel scales
+   globally on CDN automatically."
+
+Q: "What's the difference between streaming and non-streaming chat?"
+A: "Non-streaming: user waits 2-3 seconds, then sees the full answer. Streaming: tokens appear
+   one by one as the AI generates them — much better UX, feels instant. Streaming uses WebSocket
+   which keeps a persistent connection. The backend uses async generators (`async for token in stream`)."
+
+Q: "How secure is the authentication?"
+A: "Passwords are hashed with PBKDF2-SHA256 with 600K iterations and a unique salt per password.
+   JWT tokens expire in 24 hours. Session cookies are HttpOnly (not accessible to JavaScript)
+   and SameSite=Lax (prevents CSRF). We also validate Origin/Referer headers on mutations."
+
+Q: "How do the WhatsApp and Telegram bots work?"
+A: "WhatsApp: We use the Baileys library which implements the WhatsApp Web protocol. An owner
+   scans a QR code to link the bot to their WhatsApp. Telegram: Simple polling — asks Telegram
+   'any new messages?' every 1.5 seconds. Both forward messages to the same chat API endpoint."
+
+Q: "Why Python for the backend and not Node.js?"
+A: "Python has the best ecosystem for AI/ML — sentence-transformers, FAISS, LangChain, Groq SDK.
+   FastAPI matches Node.js performance with async support. Having one language for the AI layer
+   eliminates serialization overhead between services."
+
+──────────────────────────────────────────────────────────────────────────────
+  QUICK REFERENCE: TECHNOLOGIES & WHERE THEY LIVE
+──────────────────────────────────────────────────────────────────────────────
+
+├── React (v19)         →  website/src/   — All .jsx files
+├── Vite (v6)           →  website/vite.config.js
+├── Tailwind CSS (v3)   →  website/tailwind.config.js, index.css
+├── FastAPI             →  backend/backend_chatdoc.py (2453 lines)
+├── SQLAlchemy          →  backend/storage.py (289 lines)
+├── FAISS               →  backend/backend_chatdoc.py (class LocalFaissStore)
+├── LangChain           →  backend/requirements.txt (used for embeddings + text splitter)
+├── Groq (Llama 3.3)    →  backend/backend_chatdoc.py (client.chat.completions)
+├── JWT (PyJWT)         →  backend/backend_chatdoc.py (create_owner_session, verify_owner_token)
+├── WhatsApp Bot        →  whatsapp-bot/index.js (Baileys library)
+├── Telegram Bot        →  whatsapp-bot/telegram.js (polling API)
+├── Embed Widget        →  website/public/embed.js (vanilla JS)
+├── Docker              →  Dockerfile, README.md (HF Spaces config)
+├── Vercel              →  website/vercel.json
+├── PostgreSQL/Supabase →  backend/storage.py (normalize_database_url, supabase.co)
+├── i18n (3 languages)  →  website/src/i18n/ (context, JSON files)
+├── Styled-Components   →  website/src/components/ChatInterface.jsx
+├── Axios               →  website/src/components/ChatInterface.jsx
+├── pypdf               →  backend/requirements.txt (PDF text extraction)
+└── Alembic             →  backend/alembic/ (database migrations)
+
+──────────────────────────────────────────────────────────────────────────────
+  FINAL ADVICE
+──────────────────────────────────────────────────────────────────────────────
+
+► RAG pipeline is the STAR of this project. Know it backwards. Start with:
+  "The core innovation is RAG — documents → vectors → FAISS search → LLM answer."
+
+► When you don't know something: "That's a great question. I focused on the RAG
+  architecture and the full-stack integration. For that specific detail, I'd need
+  to check the code, but the principle is..."
+
+► Language: If your jury is French/Arabic, learn to say key terms in their language.
+  "RAG" is universal. "FAISS" is pronounced "fess" (like face).
+
+► Demo flow to practice:
+  1. Show landing page (explain: "built with React + Tailwind, multi-lingual, responsive")
+  2. Click "Get Started" → register/login ("JWT authentication")
+  3. Dashboard → create business ("SQLAlchemy stores it in Postgres")
+  4. Upload a PDF ("pypdf extracts text, CharacterTextSplitter chunks it")
+  5. Ask a question in the test chat ("FAISS finds 3 most similar chunks, sends to Groq LLM")
+  6. Show the mini-site ("auto-generated HTML page with our business info")
+  7. Show analytics ("messages tracked by language, most asked questions")
+  8. Mention WhatsApp/Telegram ("multi-platform reach for the business owner")
+
+GOOD LUCK! YOU'VE GOT THIS. 🚀

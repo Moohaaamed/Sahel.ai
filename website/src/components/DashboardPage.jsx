@@ -46,7 +46,6 @@ function BusinessDetailView({ business, ownerToken, onBack, onUpdate, onDelete }
   const [isSaving, setIsSaving] = useState(false);
   const [documents, setDocuments] = useState([]);
   const [uploadedFile, setUploadedFile] = useState(null);
-  const [detailConvId, setDetailConvId] = useState(null);
   const [detailMessages, setDetailMessages] = useState([]);
   const [detailInput, setDetailInput] = useState('');
   const [detailLoading, setDetailLoading] = useState(false);
@@ -54,6 +53,9 @@ function BusinessDetailView({ business, ownerToken, onBack, onUpdate, onDelete }
   const [activeTab, setActiveTab] = useState('general');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const wsRef = useRef(null);
+  const streamTimeoutRef = useRef(null);
+  const [streamingTokens, setStreamingTokens] = useState('');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -88,6 +90,29 @@ function BusinessDetailView({ business, ownerToken, onBack, onUpdate, onDelete }
     });
     setCoverPreview(resolveApiUrl(business.cover_image_url));
   }, [business]);
+
+  useEffect(() => {
+    const slug = business.slug;
+    if (!slug) return;
+    const wsUrl = API_URL.replace(/^http/, 'ws');
+    const ws = new WebSocket(`${wsUrl}/chat/stream?business_slug=${encodeURIComponent(slug)}`);
+    ws.onmessage = (event) => {
+      setStreamingTokens((prev) => prev + event.data);
+      if (streamTimeoutRef.current) clearTimeout(streamTimeoutRef.current);
+      streamTimeoutRef.current = setTimeout(() => {
+        setDetailMessages((prev) => {
+          const last = prev[prev.length - 1];
+          if (last?.sender === 'bot' && last.isStreaming) {
+            return [...prev.slice(0, -1), { ...last, isStreaming: false }];
+          }
+          return prev;
+        });
+        setDetailLoading(false);
+      }, 500);
+    };
+    wsRef.current = ws;
+    return () => { ws.close(); if (streamTimeoutRef.current) clearTimeout(streamTimeoutRef.current); };
+  }, [business.slug]);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -134,31 +159,15 @@ function BusinessDetailView({ business, ownerToken, onBack, onUpdate, onDelete }
     }
   };
 
-  const handleChat = async () => {
+  const handleChat = () => {
     const text = detailInput.trim();
-    if (!text || detailLoading) return;
+    if (!text || detailLoading || !wsRef.current) return;
     setDetailMessages((prev) => [...prev, { id: `${Date.now()}-user`, text, sender: 'user' }]);
+    setDetailMessages((prev) => [...prev, { id: `${Date.now()}-bot`, text: '', sender: 'bot', isStreaming: true }]);
     setDetailInput('');
     setDetailLoading(true);
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-      const res = await fetch(`${API_URL}/businesses/${business.id}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders(ownerToken) },
-        signal: controller.signal,
-        body: JSON.stringify({ question: text, conversation_id: detailConvId }),
-      });
-      clearTimeout(timeoutId);
-      if (!res.ok) throw new Error('API Error');
-      const data = await res.json();
-      setDetailConvId(data.conversation_id);
-      setDetailMessages((prev) => [...prev, { id: `${Date.now()}-bot`, text: data.answer, sender: 'bot' }]);
-    } catch {
-      setDetailMessages((prev) => [...prev, { id: `${Date.now()}-error`, text: 'Sorry, could not connect.', sender: 'bot' }]);
-    } finally {
-      setDetailLoading(false);
-    }
+    setStreamingTokens('');
+    wsRef.current.send(JSON.stringify({ text, rag: true }));
   };
 
   const appOrigin = window.location.origin;
@@ -462,12 +471,19 @@ function BusinessDetailView({ business, ownerToken, onBack, onUpdate, onDelete }
                       <span className="material-symbols-outlined text-3xl text-outline/30 mb-2">chat</span>
                       <p className="font-body-md text-body-md text-on-surface-variant m-0">Ask a question to test your AI assistant</p>
                     </div>
-                  ) : detailMessages.map((msg) => (
+                  ) : detailMessages.map((msg, idx) => (
                     <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`px-3 py-2 rounded-2xl max-w-[85%] text-sm leading-relaxed ${msg.sender === 'user' ? 'bg-primary text-on-primary rounded-br-md' : 'bg-white text-on-surface rounded-bl-md border border-hairline-border'}`}>{msg.text}</div>
+                      <div className={`px-3 py-2 rounded-2xl max-w-[85%] text-sm leading-relaxed ${msg.sender === 'user' ? 'bg-primary text-on-primary rounded-br-md' : 'bg-white text-on-surface rounded-bl-md border border-hairline-border'}`}>
+                        {msg.sender === 'bot' && msg.isStreaming && idx === detailMessages.length - 1
+                          ? streamingTokens || (detailLoading ? '' : msg.text)
+                          : msg.text}
+                        {msg.sender === 'bot' && msg.isStreaming && idx === detailMessages.length - 1 && detailLoading && (
+                          <span className="inline-block w-1.5 h-4 bg-primary ml-0.5 animate-pulse" />
+                        )}
+                      </div>
                     </div>
                   ))}
-                  {detailLoading && (
+                  {detailLoading && streamingTokens === '' && (
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-tertiary flex items-center justify-center text-white text-[8px] font-bold">AI</div>
                       <div className="flex gap-1 px-3 py-2 bg-white rounded-2xl border border-hairline-border">
@@ -605,6 +621,10 @@ export default function DashboardPage() {
   const [topQuestions, setTopQuestions] = useState([]);
   const [languageDistribution, setLanguageDistribution] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [inquiries, setInquiries] = useState([]);
+  const [inquiryBusinessSlug, setInquiryBusinessSlug] = useState('');
+  const [analyticsSlug, setAnalyticsSlug] = useState('');
+  const [perBusinessAnalytics, setPerBusinessAnalytics] = useState(null);
 
   const [showAllBusinesses, setShowAllBusinesses] = useState(false);
   const [editBusiness, setEditBusiness] = useState(null);
@@ -789,6 +809,24 @@ export default function DashboardPage() {
       setManageBusiness(null);
     }
   }, [showSettings, manageBusiness]);
+
+  useEffect(() => {
+    if (!owner || businesses.length === 0) return;
+    const slug = inquiryBusinessSlug || businesses[0]?.slug;
+    if (!slug) return;
+    fetch(`${API_URL}/businesses/${slug}/inquiries`, { headers: authHeaders(ownerToken) })
+      .then((r) => r.json())
+      .then((d) => setInquiries(d.inquiries || []))
+      .catch(() => setInquiries([]));
+  }, [owner, ownerToken, businesses, inquiryBusinessSlug]);
+
+  useEffect(() => {
+    if (!analyticsSlug) { setPerBusinessAnalytics(null); return; }
+    fetch(`${API_URL}/businesses/${analyticsSlug}/analytics`, { headers: authHeaders(ownerToken) })
+      .then((r) => r.json())
+      .then(setPerBusinessAnalytics)
+      .catch(() => setPerBusinessAnalytics(null));
+  }, [analyticsSlug, ownerToken]);
 
   const totals = useMemo(() => {
     const conversationTotal = Object.values(businessStats).reduce(
@@ -1394,9 +1432,43 @@ export default function DashboardPage() {
               </section>
 
               {/* Analytics */}
-              {(topQuestions.length > 0 || languageDistribution.length > 0) && (
-                <section className="space-y-4">
-                  <h3 className="font-headline-sm text-[20px] text-on-surface px-1 m-0">{t('dashboard.analytics')}</h3>
+              <section className="space-y-4">
+                <div className="flex items-center justify-between px-1">
+                  <h3 className="font-headline-sm text-[20px] text-on-surface m-0">{t('dashboard.analytics')}</h3>
+                  {businesses.length > 1 && (
+                    <select
+                      value={analyticsSlug}
+                      onChange={(e) => setAnalyticsSlug(e.target.value)}
+                      className="text-sm border border-hairline-border rounded-lg px-3 py-1.5 bg-white text-on-surface outline-none"
+                    >
+                      <option value="">{t('dashboard.allBusinesses')}</option>
+                      {businesses.map((b) => (
+                        <option key={b.slug || b.id} value={b.slug}>{b.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                {analyticsSlug && perBusinessAnalytics ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                    <div className="bg-white border border-hairline-border rounded-xl p-4">
+                      <p className="font-label-sm text-label-sm text-on-surface-variant">{t('dashboard.messages')}</p>
+                      <p className="font-newsreader text-2xl text-deep-navy font-bold mt-0.5">{perBusinessAnalytics.total_messages ?? 0}</p>
+                    </div>
+                    <div className="bg-white border border-hairline-border rounded-xl p-4">
+                      <p className="font-label-sm text-label-sm text-on-surface-variant">{t('dashboard.conversations')}</p>
+                      <p className="font-newsreader text-2xl text-deep-navy font-bold mt-0.5">{perBusinessAnalytics.total_conversations ?? 0}</p>
+                    </div>
+                    <div className="bg-white border border-hairline-border rounded-xl p-4">
+                      <p className="font-label-sm text-label-sm text-on-surface-variant">{t('dashboard.languages')}</p>
+                      <div className="flex gap-1 flex-wrap mt-1">
+                        {Object.entries(perBusinessAnalytics.language_counts || {}).filter(([, c]) => c > 0).map(([lang, count]) => (
+                          <span key={lang} className="text-[10px] px-2 py-0.5 rounded-full bg-surface-blue text-primary font-bold">{lang.toUpperCase()}: {count}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+                {(!analyticsSlug || !perBusinessAnalytics) && (topQuestions.length > 0 || languageDistribution.length > 0) && (
                   <div className="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
                     {topQuestions.length > 0 && (
                       <div className="bg-white border border-hairline-border rounded-xl">
@@ -1458,8 +1530,136 @@ export default function DashboardPage() {
                       </div>
                     )}
                   </div>
-                </section>
-              )}
+                )}
+                {analyticsSlug && perBusinessAnalytics && (perBusinessAnalytics.top_questions?.length > 0 || perBusinessAnalytics.recent_messages?.length > 0) && (
+                  <div className="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
+                    {perBusinessAnalytics.top_questions?.length > 0 && (
+                      <div className="bg-white border border-hairline-border rounded-xl">
+                        <div className="px-4 py-3 flex items-center gap-2 border-b border-hairline-border">
+                          <span className="material-symbols-outlined text-primary text-lg">quiz</span>
+                          <h4 className="font-label-md text-label-md text-on-surface m-0">{t('dashboard.frequentQuestions')}</h4>
+                        </div>
+                        <div className="p-4 space-y-3">
+                          {perBusinessAnalytics.top_questions.slice(0, 3).map((item, i) => {
+                            const maxCount = perBusinessAnalytics.top_questions[0].count || 1;
+                            const pct = (item.count / maxCount) * 100;
+                            return (
+                              <div key={i} className="flex items-center gap-3">
+                                <span className={`w-5 h-5 rounded-md text-[10px] font-bold flex items-center justify-center shrink-0 ${i === 0 ? 'bg-primary text-on-primary' : i === 1 ? 'bg-primary-fixed text-primary' : 'bg-surface-container text-on-surface-variant'}`}>{i + 1}</span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex justify-between text-sm mb-1">
+                                    <span className="text-on-surface truncate">{item.question}</span>
+                                    <span className="text-on-surface-variant text-xs shrink-0 ml-2">{item.count}</span>
+                                  </div>
+                                  <div className="w-full h-1.5 bg-outline/10 rounded-full overflow-hidden">
+                                    <div className="h-full rounded-full bg-primary transition-all duration-1000" style={{ width: `${pct}%`, opacity: i === 0 ? 1 : i === 1 ? 0.7 : 0.4 }} />
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {perBusinessAnalytics.recent_messages?.length > 0 && (
+                      <div className="bg-white border border-hairline-border rounded-xl">
+                        <div className="px-4 py-3 flex items-center gap-2 border-b border-hairline-border">
+                          <span className="material-symbols-outlined text-primary text-lg">forum</span>
+                          <h4 className="font-label-md text-label-md text-on-surface m-0">{t('dashboard.recentMessages')}</h4>
+                        </div>
+                        <div className="p-4 space-y-3 max-h-64 overflow-y-auto">
+                          {perBusinessAnalytics.recent_messages.map((m, i) => (
+                            <div key={i} className="p-2 rounded-lg bg-surface-container-low text-sm">
+                              <p className="font-medium text-on-surface text-xs">Q: {m.question}</p>
+                              <p className="text-on-surface-variant text-xs mt-0.5 line-clamp-2">A: {m.answer}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </section>
+
+              {/* Inquiries */}
+              <section className="space-y-4">
+                <div className="flex items-center justify-between px-1">
+                  <h3 className="font-headline-sm text-[20px] text-on-surface m-0">{t('dashboard.inquiries')}</h3>
+                  {businesses.length > 1 && (
+                    <select
+                      value={inquiryBusinessSlug || businesses[0]?.slug || ''}
+                      onChange={(e) => setInquiryBusinessSlug(e.target.value)}
+                      className="text-sm border border-hairline-border rounded-lg px-3 py-1.5 bg-white text-on-surface outline-none"
+                    >
+                      {businesses.map((b) => (
+                        <option key={b.slug || b.id} value={b.slug}>{b.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                <div className="bg-white border-[0.5px] border-hairline-border rounded-xl divide-y divide-hairline-border">
+                  {inquiries.length === 0 ? (
+                    <div className="p-4 text-center font-body-md text-body-md text-on-surface-variant">
+                      {t('dashboard.noInquiries')}
+                    </div>
+                  ) : (
+                    inquiries.map((inq) => (
+                      <div key={inq.id} className="p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <span className="font-body-md font-medium text-on-surface">{inq.name}</span>
+                              <span className="font-caption text-caption text-on-surface-variant">{inq.contact}</span>
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                inq.status === 'new' ? 'bg-yellow-100 text-yellow-800' :
+                                inq.status === 'contacted' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'
+                              }`}>{inq.status}</span>
+                            </div>
+                            <p className="font-caption text-caption text-on-surface-variant m-0">{inq.message}</p>
+                            <p className="font-caption text-[10px] text-on-surface-variant mt-1">
+                              {new Date(inq.created_at).toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            {inq.status !== 'contacted' && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const slug = inquiryBusinessSlug || businesses[0]?.slug;
+                                    await fetch(`${API_URL}/businesses/${slug}/inquiries/${inq.id}`, {
+                                      method: 'PATCH',
+                                      headers: { 'Content-Type': 'application/json', ...authHeaders(ownerToken) },
+                                      body: JSON.stringify({ status: 'contacted' }),
+                                    });
+                                    setInquiries((prev) => prev.map((i) => i.id === inq.id ? { ...i, status: 'contacted' } : i));
+                                  } catch (e) { console.error(e); }
+                                }}
+                                className="px-2.5 py-1 text-[10px] font-medium rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 cursor-pointer"
+                              >{t('dashboard.contacted')}</button>
+                            )}
+                            {inq.status !== 'closed' && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const slug = inquiryBusinessSlug || businesses[0]?.slug;
+                                    await fetch(`${API_URL}/businesses/${slug}/inquiries/${inq.id}`, {
+                                      method: 'PATCH',
+                                      headers: { 'Content-Type': 'application/json', ...authHeaders(ownerToken) },
+                                      body: JSON.stringify({ status: 'closed' }),
+                                    });
+                                    setInquiries((prev) => prev.map((i) => i.id === inq.id ? { ...i, status: 'closed' } : i));
+                                  } catch (e) { console.error(e); }
+                                }}
+                                className="px-2.5 py-1 text-[10px] font-medium rounded-md bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200 cursor-pointer"
+                              >{t('common.close')}</button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </section>
 
               {/* Recent Intelligence */}
               <section className="space-y-4">

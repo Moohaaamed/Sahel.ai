@@ -1,0 +1,39 @@
+=== VERCEL DEPLOYMENT ANALYSIS ===
+
+✅ WILL WORK:
+- Dashboard UI — static files served by Vercel work fine
+- Vercel config (rewrites for SPA routing) — correct
+- Build command & output directory — correct
+
+❌ WILL BREAK:
+
+1. VITE_API_URL=http://localhost:8000 (website\.env)
+   Frontend will call localhost:8000 from the user's browser.
+   That doesn't exist on Vercel.
+   Fix: Set VITE_API_URL to your deployed backend URL (e.g. https://your-backend.railway.app)
+
+2. CORS origins (backend\backend_chatdoc.py:80)
+   Only allows localhost origins. The Vercel domain won't be allowed to call the backend.
+   Fix: Add the Vercel URL to CORS_ORIGINS env var or the code.
+
+3. Google OAuth
+   GOOGLE_CLIENT_ID is set, but the Vercel deployment URL must be added to
+   Authorized JavaScript origins in Google Cloud Console.
+   Otherwise Google login will reject requests from the Vercel domain.
+
+4. SITE_URL=http://localhost:5173 (backend\.env)
+   Used for inquiry notification links and email redirects.
+   Will send broken localhost URLs to users.
+
+5. Website .env is not committed — Vercel won't have the env vars unless
+   you manually add them in the Vercel project dashboard settings.
+
+=== QUICK FIX CHECKLIST ===
+
+| Setting                  | Where to set                                |
+|--------------------------|---------------------------------------------|
+| VITE_API_URL             | Vercel project env vars (website)           |
+| VITE_GOOGLE_CLIENT_ID    | Vercel project env vars (website)           |
+| CORS_ORIGINS             | Backend env (add https://your-site.vercel.app) |
+| SITE_URL                 | Backend env                                 |
+| Google OAuth origins     | Google Cloud Console → add Vercel URL       |

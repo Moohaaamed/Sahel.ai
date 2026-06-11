@@ -297,6 +297,17 @@ dashboard with analytics. Deployed on Vercel (frontend) + Hugging Face Spaces/Do
   → Hugging Face Spaces reads README.md metadata (sdk: docker) and deploys automatically.
   → Environment: `DATA_ROOT=/data`, `CORS_ORIGINS=https://sahel-ai.vercel.app`, etc.
 
+● Docker Compose (Local Development — `docker-compose.yml`):
+  → Orchestrates TWO services: `backend` (FastAPI, port 8000) and `website` (nginx, port 4173).
+  → Website is served via production-grade nginx (not Vite dev server) — multi-stage Docker build:
+    Stage 1 (node:20-alpine): runs `vite build` → outputs `dist/`
+    Stage 2 (nginx:alpine): serves the `dist/` folder with SPA routing, gzip, 1-year asset cache
+  → `docker compose up` starts both services with one command.
+  → Environment variables loaded from root `.env` (GROQ_API_KEY, GOOGLE_CLIENT_ID, etc.).
+  → Backend data persists via a named Docker volume (`sahel_data` mapped to `/data`).
+  → Website config in `website/nginx.conf` (SPA fallback, gzip, asset caching headers).
+  → Frontend-only dev: `npm run dev` (Vite on port 5173) while backend runs in Docker.
+
 ● Database: SQLite for dev, PostgreSQL (Supabase) for production. Switch via `DATABASE_URL`.
 
 ▎ 18. ADDITIONAL CONCEPTS
@@ -305,14 +316,15 @@ dashboard with analytics. Deployed on Vercel (frontend) + Hugging Face Spaces/Do
   → Auth endpoints: 5 req/min, Chat: 20 req/min, WebSocket: 30 req/min.
   → Prevents abuse and brute-force attacks.
 
-● Security Headers:
-  → `X-Content-Type-Options: nosniff` — prevents MIME-type sniffing.
-  → `X-Frame-Options: DENY` — prevents clickjacking.
-  → `Strict-Transport-Security` — forces HTTPS for 2 years.
-
-● CSRF Protection:
-  → Custom middleware checks that POST/PUT/DELETE requests come from allowed origins.
-  → Checks `Origin` and `Referer` headers against `CORS_ORIGINS`.
+● Security Middleware:
+  → `_private_network_access` middleware adds `Access-Control-Allow-Private-Network: true`
+     header so HTTPS pages can make requests to private-network resources.
+  → CORS middleware with explicit origins (`CORS_ORIGINS` env var) — the browser's
+     built-in CORS policy handles origin validation for all cross-origin requests.
+  → Standard headers: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+     `Strict-Transport-Security`.
+  → Previous custom `_csrf_protection` middleware was removed — it duplicated CORS
+     origin checks and could cause unhandled 500 errors on legitimate POST requests.
 
 ● PDF Parsing (pypdf):
   → Extracts text from uploaded PDF documents.
@@ -371,8 +383,8 @@ A: "Non-streaming: user waits 2-3 seconds, then sees the full answer. Streaming:
 
 Q: "How secure is the authentication?"
 A: "Passwords are hashed with PBKDF2-SHA256 with 600K iterations and a unique salt per password.
-   JWT tokens expire in 24 hours. Session cookies are HttpOnly (not accessible to JavaScript)
-   and SameSite=Lax (prevents CSRF). We also validate Origin/Referer headers on mutations."
+   JWT tokens expire in 24 hours.    Session cookies are HttpOnly (not accessible to JavaScript)
+   and SameSite=Lax (prevents CSRF). CORS middleware validates origins automatically."
 
 Q: "How do the WhatsApp and Telegram bots work?"
 A: "WhatsApp: We use the Baileys library which implements the WhatsApp Web protocol. An owner
@@ -400,7 +412,7 @@ A: "Python has the best ecosystem for AI/ML — sentence-transformers, FAISS, La
 ├── WhatsApp Bot        →  whatsapp-bot/index.js (Baileys library)
 ├── Telegram Bot        →  whatsapp-bot/telegram.js (polling API)
 ├── Embed Widget        →  website/public/embed.js (vanilla JS)
-├── Docker              →  Dockerfile, README.md (HF Spaces config)
+├── Docker              →  Dockerfile (backend), docker-compose.yml, website/Dockerfile, website/nginx.conf
 ├── Vercel              →  website/vercel.json
 ├── PostgreSQL/Supabase →  backend/storage.py (normalize_database_url, supabase.co)
 ├── i18n (3 languages)  →  website/src/i18n/ (context, JSON files)

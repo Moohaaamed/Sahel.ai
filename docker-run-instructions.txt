@@ -1,0 +1,37 @@
+HOW TO RUN SAHEL.AI WITH DOCKER
+================================
+
+Prerequisites:
+  - Docker Desktop installed and running
+  - Open PowerShell / Terminal in the project folder (C:\Users\pc\sahel-ai)
+
+Step 1 — Start the project:
+  docker compose up -d
+
+  The '-d' flag runs containers in the background (detached mode).
+  First build takes 10-20 minutes (downloading PyTorch etc.).
+  Subsequent starts are instant.
+
+Step 2 — Open the website:
+  http://localhost:4173
+
+  The landing page should load. You can register a new account
+  or use the demo account (demo@sahel.ai / demo123).
+
+Step 3 — Stop the project:
+  docker compose down
+
+  This stops and removes both containers. Data is preserved in
+  a Docker volume (sahel_data) for next time.
+
+Step 4 — Reset all data (start fresh):
+  docker compose down --volumes
+
+Useful commands:
+  docker compose ps         — check if containers are running
+  docker compose logs -f    — follow logs in real time
+  docker compose up -d      — start again after stopping
+
+Architecture:
+  Backend  (FastAPI)  → http://localhost:8000
+  Website  (nginx)    → http://localhost:4173

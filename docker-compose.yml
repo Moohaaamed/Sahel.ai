@@ -1,0 +1,34 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:7860"
+    environment:
+      - DATABASE_URL=sqlite:///data/sahel.db
+      - AUTO_CREATE_TABLES=true
+      - APP_SECRET_KEY=change-this-to-a-random-secret
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:4173
+      - SITE_URL=http://localhost:4173
+      - DEMO_OWNER_EMAIL=demo@sahel.ai
+      - DEMO_OWNER_PASSWORD=demo123
+    volumes:
+      - sahel_data:/data
+
+  website:
+    build:
+      context: ./website
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8000
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    ports:
+      - "4173:80"
+    depends_on:
+      - backend
+
+volumes:
+  sahel_data:

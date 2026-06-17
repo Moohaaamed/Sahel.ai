@@ -8,6 +8,10 @@ import re
 import secrets
 import shutil
 import hashlib
+from pathlib import Path
+
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).resolve().parent / ".env")
 import hmac
 import random
 import smtplib
@@ -15,6 +19,8 @@ import time
 import unicodedata
 from datetime import datetime, timedelta, timezone
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.utils import formatdate
 from pathlib import Path
 from collections import defaultdict
 from typing import List
@@ -25,7 +31,9 @@ import jwt
 import numpy as np
 from pypdf import PdfReader
 import io
+import httpx
 from fastapi import FastAPI, File, Header, HTTPException, Request, Response, UploadFile, WebSocket, WebSocketDisconnect, Query
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -51,6 +59,29 @@ app = FastAPI(title="Sahel.ai RAG API")
 limiter = Limiter(key_func=get_remote_address, default_limits=[os.getenv("RATE_LIMIT_DEFAULT", "30/minute")])
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = []
+    for err in exc.errors():
+        field = ".".join(
+            str(loc) for loc in err.get("loc", []) if loc not in ("body",)
+        )
+        msg = err.get("msg", "Invalid value")
+        if msg.startswith("String should have at least"):
+            msg = "Too short"
+        elif msg.startswith("String should have at most"):
+            msg = "Too long"
+        elif msg.startswith("Value error, "):
+            msg = msg.removeprefix("Value error, ")
+        errors.append(f"{field}: {msg}" if field else msg)
+    return Response(
+        status_code=422,
+        content=json.dumps({"detail": "; ".join(errors)}),
+        media_type="application/json",
+    )
+
 
 RATE_LIMIT_AUTH = os.getenv("RATE_LIMIT_AUTH", "5/minute")
 RATE_LIMIT_CHAT = os.getenv("RATE_LIMIT_CHAT", "20/minute")
@@ -314,13 +345,13 @@ class ForgotPassword(BaseModel):
 
 class ResetPassword(BaseModel):
     email: str = Field(min_length=5, max_length=120)
-    code: str = Field(min_length=8, max_length=8)
+    code: str = Field(min_length=6, max_length=6)
     new_password: str = Field(min_length=6, max_length=120)
 
 
 class VerifyResetCode(BaseModel):
     email: str = Field(min_length=5, max_length=120)
-    code: str = Field(min_length=8, max_length=8)
+    code: str = Field(min_length=6, max_length=6)
 
 
 class GoogleLogin(BaseModel):
@@ -578,80 +609,149 @@ def generate_verification_token() -> str:
     return uuid4().hex + uuid4().hex
 
 
-def send_verification_email(owner: dict) -> None:
+def _send_email(to: str, subject: str, html_body: str, text_body: str) -> bool:
+    sendgrid_key = os.getenv("SENDGRID_API_KEY")
+    if sendgrid_key:
+        try:
+            payload = {
+                "personalizations": [{"to": [{"email": to}]}],
+                "from": {"email": os.getenv("SMTP_USER", "noreply@sahel.ai"), "name": "Sahel.ai"},
+                "subject": subject,
+                "content": [
+                    {"type": "text/plain", "value": text_body},
+                    {"type": "text/html", "value": html_body},
+                ],
+            }
+            resp = httpx.post(
+                "https://api.sendgrid.com/v3/mail/send",
+                headers={
+                    "Authorization": f"Bearer {sendgrid_key}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+                timeout=15,
+            )
+            if resp.status_code in (200, 201, 202):
+                return True
+            logging.error("SendGrid error %s: %s", resp.status_code, resp.text)
+        except Exception as e:
+            logging.error("SendGrid failed: %s — falling back to SMTP", e)
+
     smtp_host = os.getenv("SMTP_HOST")
     smtp_port = os.getenv("SMTP_PORT", "587")
     smtp_user = os.getenv("SMTP_USER")
-    smtp_pass = os.getenv("SMTP_PASS")
+    smtp_pass = os.getenv("SMTP_PASS", "").replace(" ", "")
+
+    if not all([smtp_host, smtp_user, smtp_pass]):
+        logging.warning("No email service configured — email not sent to %s", to)
+        return True
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"Sahel.ai <{smtp_user}>"
+    msg["To"] = to
+    msg["Message-ID"] = f"<{uuid4().hex}@sahel.ai>"
+    msg["Date"] = formatdate(localtime=True)
+    msg.attach(MIMEText(text_body, "plain", _charset="utf-8"))
+    msg.attach(MIMEText(html_body, "html", _charset="utf-8"))
+
+    for attempt in range(3):
+        try:
+            with smtplib.SMTP(smtp_host, int(smtp_port), timeout=15) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_pass)
+                server.send_message(msg)
+            return True
+        except smtplib.SMTPServerDisconnected:
+            if attempt < 2:
+                time.sleep(1)
+                continue
+            logging.error("SMTP send failed (disconnected) after 3 attempts to %s", to)
+        except smtplib.SMTPAuthenticationError:
+            logging.error("SMTP auth failed — check SMTP_USER and SMTP_PASS in .env")
+        except (smtplib.SMTPException, OSError) as e:
+            err = str(e)
+            if "550" in err and "unsolicited" in err.lower():
+                logging.error("Gmail blocked email to %s as unsolicited. Add SENDGRID_API_KEY to .env to fix.", to)
+            elif attempt < 2:
+                time.sleep(1)
+                continue
+            else:
+                logging.error("SMTP send failed to %s after 3 attempts: %s", to, e)
+        except Exception as e:
+            logging.error("SMTP send error to %s: %s", to, e)
+        return False
+    return False
+
+
+def send_verification_email(owner: dict) -> bool:
     site_url = os.getenv("SITE_URL", "http://localhost:5173")
     token = owner.get("verification_token")
     if not token:
-        return
+        return False
 
     verify_url = f"{site_url}/verify-email?token={token}"
-
+    name = owner.get("full_name", "")
     subject = "Confirm your email — Sahel.ai"
-    body = (
-        f"Welcome to Sahel.ai, {owner['full_name']}!\n\n"
-        f"Please confirm your email address by clicking the link below:\n\n"
+    text_body = (
+        f"Welcome to Sahel.ai, {name}!\n\n"
+        f"Please confirm your email by clicking the link below:\n\n"
         f"{verify_url}\n\n"
-        f"This link expires in 24 hours.\n\n"
-        f"If you didn't create an account, you can ignore this email.\n\n"
-        f"Sahel.ai — Digital presence for Moroccan businesses"
+        f"This link expires in 24 hours.\n"
+        f"If you didn't create an account, you can ignore this email."
     )
+    html_body = f"""<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
+<table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden">
+<tr><td style="padding:32px">
+<h1 style="font-size:20px;margin:0 0 16px;color:#1a1a2e">Welcome to Sahel.ai</h1>
+<p style="font-size:15px;line-height:1.6;color:#555;margin:0 0 24px">Hi {name},<br><br>Please confirm your email address by clicking the button below:</p>
+<table cellpadding="0" cellspacing="0"><tr><td style="background:#005ea4;border-radius:8px;padding:12px 28px">
+<a href="{verify_url}" style="color:#fff;font-size:15px;font-weight:bold;text-decoration:none;display:inline-block">Confirm my email</a>
+</td></tr></table>
+<p style="font-size:13px;line-height:1.5;color:#999;margin:24px 0 0">If the button doesn't work, copy and paste this link into your browser:<br><span style="color:#666;word-break:break-all">{verify_url}</span></p>
+<p style="font-size:13px;line-height:1.5;color:#999;margin:16px 0 0">This link expires in 24 hours. If you didn't create an account, you can ignore this email.</p>
+</td></tr>
+<tr><td style="background:#f8f9fb;padding:16px 32px;text-align:center;font-size:12px;color:#aaa">Sahel.ai — Digital presence for Moroccan businesses</td></tr>
+</table>
+</td></tr></table>
+</body>
+</html>"""
+    return _send_email(owner["email"], subject, html_body, text_body)
 
-    if all([smtp_host, smtp_user, smtp_pass]):
-        try:
-            msg = MIMEText(body, _charset="utf-8")
-            msg["Subject"] = subject
-            msg["From"] = smtp_user
-            msg["To"] = owner["email"]
-            with smtplib.SMTP(smtp_host, int(smtp_port), timeout=10) as server:
-                server.starttls()
-                server.login(smtp_user, smtp_pass)
-                server.send_message(msg)
-            return
-        except Exception as e:
-            logging.error("SMTP send_verification_email failed: %s", e)
 
-    logging.warning("\n=== VERIFICATION EMAIL (SMTP not configured) ===")
-    logging.warning("To: %s", owner['email'])
-    logging.warning("==================================================\n")
-
-
-def send_reset_code_email(owner: dict, code: str) -> None:
-    smtp_host = os.getenv("SMTP_HOST")
-    smtp_port = os.getenv("SMTP_PORT", "587")
-    smtp_user = os.getenv("SMTP_USER")
-    smtp_pass = os.getenv("SMTP_PASS")
-
-    subject = "Password reset code — Sahel.ai"
-    body = (
-        f"Hello {owner['full_name']},\n\n"
-        f"Use the code below to reset your Sahel.ai password:\n\n"
-        f"{code}\n\n"
-        f"This code expires in 15 minutes.\n\n"
+def send_reset_code_email(owner: dict, code: str) -> bool:
+    name = owner.get("full_name", "")
+    subject = "Your password reset code — Sahel.ai"
+    text_body = (
+        f"Hello {name},\n\n"
+        f"Your password reset code is: {code}\n\n"
+        f"Enter this code on the password reset page. It expires in 15 minutes.\n\n"
         f"If you didn't request this, you can ignore this email.\n\n"
-        f"Sahel.ai — Digital presence for Moroccan businesses"
+        f"Sahel.ai"
     )
-
-    if all([smtp_host, smtp_user, smtp_pass]):
-        try:
-            msg = MIMEText(body, _charset="utf-8")
-            msg["Subject"] = subject
-            msg["From"] = smtp_user
-            msg["To"] = owner["email"]
-            with smtplib.SMTP(smtp_host, int(smtp_port), timeout=10) as server:
-                server.starttls()
-                server.login(smtp_user, smtp_pass)
-                server.send_message(msg)
-            return
-        except Exception as e:
-            logging.error("SMTP send_reset_code failed: %s", e)
-
-    logging.warning("\n=== RESET CODE (SMTP not configured) ===")
-    logging.warning("To: %s", owner['email'])
-    logging.warning("==========================================\n")
+    html_body = f"""<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
+<table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden">
+<tr><td style="padding:32px">
+<h1 style="font-size:20px;margin:0 0 16px;color:#1a1a2e">Reset your password</h1>
+<p style="font-size:15px;line-height:1.6;color:#555;margin:0 0 16px">Hi {name},</p>
+<p style="font-size:15px;line-height:1.6;color:#555;margin:0 0 24px">Use the code below to reset your password. It expires in 15 minutes.</p>
+<div style="background:#f0f4ff;border-radius:8px;padding:20px;text-align:center;font-size:32px;font-weight:bold;letter-spacing:10px;color:#005ea4;font-family:monospace">{code}</div>
+<p style="font-size:13px;line-height:1.5;color:#999;margin:24px 0 0">If you didn't request this, you can ignore this email.</p>
+</td></tr>
+<tr><td style="background:#f8f9fb;padding:16px 32px;text-align:center;font-size:12px;color:#aaa">Sahel.ai</td></tr>
+</table>
+</td></tr></table>
+</body>
+</html>"""
+    return _send_email(owner["email"], subject, html_body, text_body)
 
 
 def read_owners() -> list[dict]:
@@ -831,7 +931,7 @@ def send_contact_email(contact: dict) -> None:
     smtp_host = os.getenv("SMTP_HOST")
     smtp_port = os.getenv("SMTP_PORT", "587")
     smtp_user = os.getenv("SMTP_USER")
-    smtp_pass = os.getenv("SMTP_PASS")
+    smtp_pass = os.getenv("SMTP_PASS", "").replace(" ", "")
     notify_to = os.getenv("NOTIFICATION_EMAIL")
 
     if not notify_to:
@@ -861,6 +961,35 @@ def send_contact_email(contact: dict) -> None:
         logging.info("Contact notification sent to %s", notify_to)
     except Exception as e:
         logging.error("Failed to send contact notification: %s", e)
+
+
+async def send_telegram_notification(business: dict) -> None:
+    bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
+    chat_id = os.getenv("TELEGRAM_ADMIN_CHAT_ID")
+    if not bot_token or not chat_id:
+        return
+    text = (
+        f"🆕 New Business Created!\n\n"
+        f"Name: {business.get('name', 'N/A')}\n"
+        f"Slug: {business.get('slug', 'N/A')}\n"
+        f"Type: {business.get('business_type', 'N/A')}\n"
+        f"Owner ID: {business.get('owner_id', 'N/A')}\n"
+        f"Email: {business.get('owner_email', 'N/A')}\n"
+        f"Phone: {business.get('owner_phone', 'N/A')}\n"
+        f"City: {business.get('city', 'N/A')}\n"
+        f"Address: {business.get('address', 'N/A')}\n"
+        f"Site: {business.get('site_url', 'N/A')}\n"
+        f"Chat: {business.get('chat_url', 'N/A')}"
+    )
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            await client.post(
+                f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                json={"chat_id": chat_id, "text": text, "parse_mode": "Markdown"},
+            )
+        logging.info("Telegram notification sent for business: %s", business.get("slug"))
+    except Exception as e:
+        logging.error("Failed to send Telegram notification: %s", e)
 
 
 def save_contact(payload: ContactCreate) -> dict:
@@ -1075,7 +1204,7 @@ def send_notification_email(business: dict, inquiry: dict) -> None:
     smtp_host = os.getenv("SMTP_HOST")
     smtp_port = os.getenv("SMTP_PORT", "587")
     smtp_user = os.getenv("SMTP_USER")
-    smtp_pass = os.getenv("SMTP_PASS")
+    smtp_pass = os.getenv("SMTP_PASS", "").replace(" ", "")
     notify_to = os.getenv("NOTIFICATION_EMAIL") or business.get("owner_email")
 
     if not all([smtp_host, smtp_user, smtp_pass, notify_to]):
@@ -1552,6 +1681,19 @@ async def health_check():
     return {"status": "ok"}
 
 
+@app.get("/debug-smtp")
+async def debug_smtp():
+    return {
+        "host": os.getenv("SMTP_HOST"),
+        "port": os.getenv("SMTP_PORT"),
+        "user": os.getenv("SMTP_USER"),
+        "pass_set": bool(os.getenv("SMTP_PASS")),
+        "pass_len": len(os.getenv("SMTP_PASS", "").replace(" ", "")),
+        "site_url": os.getenv("SITE_URL"),
+        "all_set": all([os.getenv("SMTP_HOST"), os.getenv("SMTP_USER"), os.getenv("SMTP_PASS")]),
+    }
+
+
 @app.post("/owners/register")
 @limiter.limit(RATE_LIMIT_AUTH)
 async def register_owner(request: Request, payload: OwnerRegister):
@@ -1572,9 +1714,19 @@ async def register_owner(request: Request, payload: OwnerRegister):
         "reset_code_expires": None,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
+
     owners.append(owner)
     write_owners(owners)
-    send_verification_email(owner)
+
+    sent = send_verification_email(owner)
+    if not sent:
+        owners.remove(owner)
+        write_owners(owners)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to send verification email. Please check your email address or try again later.",
+        )
+
     return {
         "message": "Registration successful. Please check your email to verify your account.",
         "owner_id": owner["id"],
@@ -1613,7 +1765,12 @@ async def resend_verification(request: Request, payload: ForgotPassword):
             owners[i] = owner
             break
     write_owners(owners)
-    send_verification_email(owner)
+    sent = send_verification_email(owner)
+    if not sent:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to send verification email. Please check your email address or try again later.",
+        )
     return {"message": "Verification email resent. Please check your inbox."}
 
 
@@ -1624,7 +1781,7 @@ async def forgot_password(request: Request, payload: ForgotPassword):
     if not owner:
         return {"message": "If that email exists, a reset code has been sent."}
 
-    code = secrets.token_urlsafe(6)[:8]
+    code = str(random.randint(100000, 999999))
     owner["reset_code"] = code
     owner["reset_code_expires"] = (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()
 
@@ -1634,7 +1791,12 @@ async def forgot_password(request: Request, payload: ForgotPassword):
             owners[i] = owner
             break
     write_owners(owners)
-    send_reset_code_email(owner, code)
+    sent = send_reset_code_email(owner, code)
+    if not sent:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to send reset code email. Please try again later.",
+        )
     return {"message": "If that email exists, a reset code has been sent."}
 
 
@@ -1863,6 +2025,7 @@ async def create_business(payload: BusinessCreate, authorization: str | None = H
     normalize_business_record(business)
     businesses.append(business)
     write_businesses(businesses)
+    asyncio.create_task(send_telegram_notification(business))
     return {**BUSINESS_OPTIONAL_DEFAULTS, **business}
 
 
@@ -2455,6 +2618,11 @@ app.mount("/profile_photos", StaticFiles(directory=str(PROFILE_PHOTOS_DIR)), nam
 if __name__ == "__main__":
     import uvicorn
 
+    smtp_ok = all([os.getenv("SMTP_HOST"), os.getenv("SMTP_USER"), os.getenv("SMTP_PASS")])
+    if smtp_ok:
+        logging.warning("SMTP is CONFIGURED — emails will be sent")
+    else:
+        logging.warning("SMTP is NOT configured — emails will be logged only")
     if not os.getenv("SITE_URL"):
         logging.warning("SITE_URL is not set — using localhost fallback for email links")
     uvicorn.run(app, host="0.0.0.0", port=8000)

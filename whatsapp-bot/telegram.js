@@ -62,6 +62,7 @@ const menuText = `🤖 *Sahel.ai — AI Assistant*
 Commands:
 /business <slug>  — Choose a business
 /menu or /start   — Show this menu
+/myid            — Get your Telegram Chat ID
 
 *To get started:*
 1. Send /business <slug> (e.g., /business sahel)
@@ -80,6 +81,10 @@ async function handleUpdate(update) {
 
   if (lower === '/start' || lower === '/menu') {
     return sendMessage(chatId, menuText, { parse_mode: 'Markdown' });
+  }
+
+  if (lower === '/myid') {
+    return sendMessage(chatId, `Your Telegram Chat ID: \`${chatId}\`\n\nUse this as TELEGRAM_ADMIN_CHAT_ID in the backend .env to receive new business notifications.`, { parse_mode: 'Markdown' });
   }
 
   if (lower.startsWith('/business')) {
@@ -126,7 +131,21 @@ async function handleUpdate(update) {
   }
 }
 
+async function clearStaleConnections() {
+  try {
+    await axios.get(`${API}/deleteWebhook?drop_pending_updates=true`, { timeout: 5000 });
+    const res = await axios.get(`${API}/getUpdates`, {
+      params: { offset: -1, timeout: 0 },
+      timeout: 5000
+    });
+    if (res.data.ok && res.data.result?.length) {
+      lastUpdateId = Math.max(...res.data.result.map(u => u.update_id));
+    }
+  } catch (_) {}
+}
+
 async function poll() {
+  await clearStaleConnections();
   while (running) {
     try {
       const res = await axios.get(`${API}/getUpdates`, {
@@ -144,7 +163,10 @@ async function poll() {
       }
     } catch (err) {
       if (err.code === 'ECONNABORTED') continue;
-      console.error('⚠️ Poll error:', err.message);
+      console.error('⚠️ Poll error:', err.response?.data?.description || err.message);
+      if (err.response?.status === 409) {
+        await clearStaleConnections();
+      }
       await new Promise(r => setTimeout(r, 3000));
     }
   }

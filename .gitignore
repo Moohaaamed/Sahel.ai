@@ -16,3 +16,6 @@ backend-rag/faiss_vector_store_MINNOVA/
 backend-rag/uploaded_documents/
 backend-rag/vector_stores/
 dashboard/
+backend/login_test.json
+backend/register_test.json
+whatsapp-bot/get-chat-id.js

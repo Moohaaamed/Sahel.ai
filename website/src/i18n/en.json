@@ -205,13 +205,15 @@
     "errors": {
       "passwordMismatch": "Passwords do not match.",
       "passwordTooShort": "Password must be at least 6 characters.",
+      "nameTooShort": "Name must be at least 2 characters.",
       "acceptTerms": "Please accept the terms of service.",
       "invalidCredentials": "Invalid credentials",
       "registrationFailed": "Registration failed",
       "enterEmail": "Please enter your email address.",
       "enterCode": "Please enter the 6-digit code you received by email.",
       "resendFailed": "Failed to resend the verification code.",
-      "googleFailed": "Google sign-in failed. Please try again."
+      "googleFailed": "Google sign-in failed. Please try again.",
+      "emailFailed": "Failed to send verification email. Please check your email address or try again."
     },
     "success": {
       "codeSent": "A reset code has been sent to your email.",

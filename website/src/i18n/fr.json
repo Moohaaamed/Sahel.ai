@@ -205,13 +205,15 @@
     "errors": {
       "passwordMismatch": "Les mots de passe ne correspondent pas.",
       "passwordTooShort": "Le mot de passe doit contenir au moins 6 caractères.",
+      "nameTooShort": "Le nom doit contenir au moins 2 caractères.",
       "acceptTerms": "Veuillez accepter les conditions d'utilisation.",
       "invalidCredentials": "Identifiants incorrects",
       "registrationFailed": "Inscription impossible",
       "enterEmail": "Veuillez entrer votre adresse email.",
       "enterCode": "Veuillez entrer le code à 6 chiffres reçu par email.",
       "resendFailed": "Échec du renvoi du code de vérification.",
-      "googleFailed": "La connexion Google a échoué. Veuillez réessayer."
+      "googleFailed": "La connexion Google a échoué. Veuillez réessayer.",
+      "emailFailed": "Échec d'envoi de l'email de vérification. Vérifiez votre adresse ou réessayez."
     },
     "success": {
       "codeSent": "Un code de réinitialisation vous a été envoyé par email.",

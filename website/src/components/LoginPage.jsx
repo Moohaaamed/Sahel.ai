@@ -30,6 +30,21 @@ async function resolvePostLoginPath(session) {
   return ROUTES.onboarding;
 }
 
+function parseErrorDetail(detail) {
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    return detail.map((e) => {
+      const field = ((e.loc || []).filter((l) => l !== 'body')).join('.');
+      const msg = e.msg || 'Invalid value';
+      return field ? `${field}: ${msg}` : msg;
+    }).join('; ');
+  }
+  if (detail && typeof detail === 'object') {
+    try { return JSON.stringify(detail); } catch { return 'Unknown error'; }
+  }
+  return '';
+}
+
 const formDefaults = {
   full_name: '',
   email: '',
@@ -72,6 +87,11 @@ export default function LoginPage({ initialMode = 'login' }) {
     setStatus('');
 
     if (mode === 'register') {
+      if (!form.full_name || form.full_name.trim().length < 2) {
+        setStatus(t('login.errors.nameTooShort'));
+        setIsSubmitting(false);
+        return;
+      }
       if (form.password !== form.confirm_password) {
         setStatus(t('login.errors.passwordMismatch'));
         setIsSubmitting(false);
@@ -104,7 +124,7 @@ export default function LoginPage({ initialMode = 'login' }) {
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        const msg = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+        const msg = parseErrorDetail(error.detail);
         throw new Error(msg || (mode === 'login' ? t('login.errors.invalidCredentials') : t('login.errors.registrationFailed')));
       }
 
@@ -137,7 +157,7 @@ export default function LoginPage({ initialMode = 'login' }) {
       });
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        const msg = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+        const msg = parseErrorDetail(error.detail);
         throw new Error(msg || t('login.errors.googleFailed'));
       }
       const data = await response.json();
@@ -196,7 +216,7 @@ export default function LoginPage({ initialMode = 'login' }) {
       });
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        const msg = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+        const msg = parseErrorDetail(error.detail);
         throw new Error(msg || t('login.errors.resendFailed'));
       }
       setStatus(t('login.success.codeSent'));
@@ -224,7 +244,7 @@ export default function LoginPage({ initialMode = 'login' }) {
       });
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        const msg = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+        const msg = parseErrorDetail(error.detail);
         throw new Error(msg || t('login.errors.invalidCredentials'));
       }
       setResetState('reset_code');
@@ -252,7 +272,7 @@ export default function LoginPage({ initialMode = 'login' }) {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || t('login.errors.invalidCode'));
+        throw new Error(parseErrorDetail(err.detail) || t('login.errors.invalidCode'));
       }
       setResetState('reset_password');
       setStatus('');

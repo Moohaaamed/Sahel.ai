@@ -4,9 +4,15 @@ __pycache__/
 *.log
 venv/
 .venv/
+venv_backup/
 node_modules/
 dist/
 .pytest_cache/
 .DS_Store
 sahel.db
 *.db
+backend-rag/faiss_vector_store/
+backend-rag/faiss_vector_store_MINNOVA/
+backend-rag/uploaded_documents/
+backend-rag/vector_stores/
+dashboard/
